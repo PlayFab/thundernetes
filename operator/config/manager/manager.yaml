@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+  labels:
+    control-plane: controller-manager
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - command:
+        - /manager
+        args:
+        - --leader-elect
+        image: controller:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: API_SERVICE_SECURITY
+          value: ${API_SERVICE_SECURITY}
+        - name: THUNDERNETES_SIDECAR_IMAGE
+          value: ${IMAGE_NAME_SIDECAR}:${SIDECAR_TAG}
+        - name: THUNDERNETES_INIT_CONTAINER_IMAGE
+          value: ${IMAGE_NAME_INIT_CONTAINER}:${INIT_CONTAINER_TAG}
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        name: manager
+        securityContext:
+          allowPrivilegeEscalation: false
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 500m
+            memory: 500Mi
+        ports:
+        - containerPort: 5000
+          hostPort: 5000
+      serviceAccountName: controller-manager
+      terminationGracePeriodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-manager
+spec:
+  selector:
+    control-plane: controller-manager
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: LoadBalancer

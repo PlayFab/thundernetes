@@ -1,0 +1,30 @@
+{
+	"folders": [
+		{
+			"name": "operator",
+			"path": "operator"
+		},
+		{
+			"name": "e2e",
+			"path": "e2e"
+		},
+		{
+			"name": "initcontainer",
+			"path": "initcontainer"
+		},
+		{
+			"name": "samples",
+			"path": "samples"
+		},
+		{
+			"name": "sidecar-go",
+			"path": "sidecar-go"
+		},
+		{
+			"name": "thundernetes",
+			"path": "."
+		}
+	],
+	"settings": {
+	}
+}

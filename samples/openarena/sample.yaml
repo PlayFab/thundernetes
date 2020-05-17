@@ -1,0 +1,20 @@
+apiVersion: mps.playfab.com/v1alpha1
+kind: GameServerBuild
+metadata:
+  name: gameserverbuild-sample-openarena
+spec:
+  titleID: "1E04" # required
+  buildID: "85ffe8da-c82f-4035-86c5-9d2b5f42d6f7" # must be a GUID
+  standingBy: 2 # required
+  max: 4 # required
+  portsToExpose:
+    - containerName: thundernetes-sample-openarena # must be the same as the container name described below
+      portName: gameport # must be the same as the port name described below
+  podSpec:
+    containers:
+      - image: ghcr.io/playfab/thundernetes-openarena-sample:0.0.1.2
+        name: thundernetes-sample-openarena
+        ports:
+        - containerPort: 27960 # your game server port
+          protocol: UDP # your game server port protocol
+          name: gameport # required field

@@ -1,0 +1,1 @@
+# This folder contains data relevant to GSDK integration with your game server
