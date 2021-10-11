@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: thundernetes-controller-manager
+    release: prometheus
+  name: thundernetes-controller-manager
+spec:
+  endpoints:
+  - interval: 30s
+    path: /metrics
+    port: https
+  jobLabel: spring-demo-app
+  namespaceSelector:
+    matchNames:
+    - thundernetes-system
+  selector:
+    matchLabels:
+      control-plane: controller-manager 
