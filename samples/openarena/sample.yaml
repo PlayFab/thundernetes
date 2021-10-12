@@ -18,3 +18,10 @@ spec:
         - containerPort: 27960 # your game server port
           protocol: UDP # your game server port protocol
           name: gameport # required field
+        resources:
+          requests:
+            cpu: 500m
+            memory: 500Mi
+          limits:
+            cpu: 500m
+            memory: 500Mi
