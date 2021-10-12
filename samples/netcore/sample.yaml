@@ -26,8 +26,8 @@ spec:
           name: gameport # required field
         resources:
           requests:
-            cpu: 500m
+            cpu: 100m
             memory: 500Mi
           limits:
-            cpu: 500m
+            cpu: 100m
             memory: 500Mi
