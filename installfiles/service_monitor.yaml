@@ -11,7 +11,7 @@ spec:
   - interval: 30s
     path: /metrics
     port: metrics
-  jobLabel: spring-demo-app
+  jobLabel: thundernetes-controller
   namespaceSelector:
     matchNames:
     - thundernetes-system
