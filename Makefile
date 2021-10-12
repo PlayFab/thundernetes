@@ -43,15 +43,16 @@ builddockerlocal:
 installkind:
 	curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64
 	chmod +x ./kind
+	mkdir -p ./operator/testbin/bin
 	mv ./kind ./operator/testbin/bin/kind
 
-createkindcluster:
+createkindcluster: 
 	./operator/testbin/bin/kind create cluster --config ./e2e/kind-config.yaml
 
 deletekindcluster:
 	./operator/testbin/bin/kind delete cluster 
 
-e2elocal:
+e2elocal: 
 	kubectl config use-context kind-$(KIND_CLUSTER_NAME)
 	chmod +x ./e2e/run.sh
 	./e2e/run.sh config-$(KIND_CLUSTER_NAME) local
