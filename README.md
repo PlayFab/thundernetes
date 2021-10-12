@@ -19,13 +19,17 @@ Thundernetes is an preview project from the [Azure PlayFab Multiplayer Servers (
 
 Goal for thundernetes is to be portable with MPS - this means that your Linux Game Server that works on thundernetes should work with MPS.
 
-Thundernetes requires a Kubernetes cluster with Public IP per Node. We've tested it extensively on [Azure Kubernetes Service](https://docs.microsoft.com/en-us/azure/aks/intro-kubernetes) as well as in local clusters using [kind](https://kind.sigs.k8s.io/). You also need to have ports 10000-50000 open in your cluster, since these are the ports that Thundernetes will use to receive traffic and forward to your game server.
+Thundernetes requires a Kubernetes cluster with Public IP per Node. We've tested it extensively on [Azure Kubernetes Service - AKS](https://docs.microsoft.com/en-us/azure/aks/intro-kubernetes) as well as in local clusters using [kind](https://kind.sigs.k8s.io/). You also need to have ports 10000-50000 open in your cluster, since these are the ports that Thundernetes will use to receive traffic and forward to your game server.
+
+> Quick reminder that you can try Azure (and AKS) for free at [azure.com/free](https://azure.com/free).
 
 ## Quickstart
 
 Check the [quickstart](docs/quickstart.md) document on how to install thundernetes on your cluster and run the sample game server. 
 
 ### Installing on Azure Kubernetes Service
+
+Click on the following image for a quick preview of the quickstart:
 
 [![asciicast](https://asciinema.org/a/438455.png)](https://asciinema.org/a/438455)
 
