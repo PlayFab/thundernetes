@@ -43,6 +43,7 @@ var (
 	podsUnderCreation = &hm.HashMap{}
 )
 
+const safeToEvictPodAttribute string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
 const finalizerName string = "gameservers.mps.playfab.com/finalizer"
 
 // GameServerReconciler reconciles a GameServer object
@@ -166,6 +167,24 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// other status updates on the GameServer state are provided by the sidecar
 	// which calls the K8s API server
+
+	// if a game server is active, there are players present.
+	// When using the cluster autoscaler, an annotation will be added
+	// to prevent the node from being scaled down.
+	r.Recorder.Eventf(&gs, corev1.EventTypeNormal, "Update", "Gameserver %s state is %s", gs.Name, gs.Status.State)
+	podAnnotations := pod.GetAnnotations()
+	if podAnnotations == nil {
+		podAnnotations = make(map[string]string)
+	}
+	if gs.Status.State == mpsv1alpha1.GameServerStateActive {
+		// if the game is active, mark the pod as unsafe to be evicted
+		podAnnotations[safeToEvictPodAttribute] = "false"
+	} else {
+		// game is not active, it is safe to evict this pod
+		podAnnotations[safeToEvictPodAttribute] = "true"
+	}
+	pod.SetAnnotations(podAnnotations)
+	r.Update(ctx, &pod)
 
 	// if we don't have a Public IP set, we need to get and set it on the status
 	if gs.Status.PublicIP == "" {
