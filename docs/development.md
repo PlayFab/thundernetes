@@ -9,12 +9,17 @@
 
 ## Generate install files
 
-make create-install-files
+Run `make create-install-files`.
 
 ## Metrics
 
 - If you are using Prometheus and Prometheus operator, uncomment all sections with `# [PROMETHEUS]` on `config/default/kustomization.yaml` file. More details [here](https://book.kubebuilder.io/reference/metrics.html)
 - To enable authentication for the metrics server, remove the comment from this line on the file ``config/default/kustomization.yaml`: `- manager_auth_proxy_patch.yaml`
+
+## Running end to end tests on macOS
+
+First of all, end to end tests require `envsubst` utility, assuming that you have Homebrew installed you can get it via `brew install gettext &&brew link --force gettext`.
+We assume that you have installed Go, then you should install kind with `go install sigs.k8s.io/kind@latest`. Kind will be installed in `$(go env GOPATH)/bin` directory. Then, you should move kind to the `<projectRoot>/operator/testbin/bin/` folder with a command like `mv $(go env GOPATH)/bin/kind ./operator/testbin/bin/kind`. You can run end to end tests with `make builddockerlocal createkindcluster e2elocal`.
 
 ## Various scripts
 
