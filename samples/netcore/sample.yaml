@@ -24,3 +24,10 @@ spec:
         - containerPort: 80 # your game server port
           protocol: TCP # your game server port protocol
           name: gameport # required field
+        resources:
+          requests:
+            cpu: 100m
+            memory: 500Mi
+          limits:
+            cpu: 100m
+            memory: 500Mi
