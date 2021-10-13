@@ -24,6 +24,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	safeToEvictPodAttribute string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
+)
+
 // executeRemoteCommand executes a remote shell command on the given pod
 // returns the output from stdout and stderr
 func executeRemoteCommand(coreClient *kubernetes.Clientset, pod *v1.Pod, cfg *rest.Config, args ...string) (string, string, error) {
@@ -209,8 +213,15 @@ func verifyGameServers(ctx context.Context, buildID, buildName string, state bui
 		}
 		if gameServer.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 			observedStandingByCount++
+			if err := verifyGameServerPodEvictionAnnotation(ctx, gameServer, "true"); err != nil {
+				return err
+			}
+
 		} else if gameServer.Status.State == mpsv1alpha1.GameServerStateActive {
 			observedActiveCount++
+			if err := verifyGameServerPodEvictionAnnotation(ctx, gameServer, "false"); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -220,6 +231,20 @@ func verifyGameServers(ctx context.Context, buildID, buildName string, state bui
 	if observedActiveCount != state.activeCount {
 		return fmt.Errorf(fmt.Sprintf("Expected %d gameservers in active, got %d", state.activeCount, observedActiveCount))
 	}
+	return nil
+}
+
+func verifyGameServerPodEvictionAnnotation(ctx context.Context, gameserver mpsv1alpha1.GameServer, safeToEvict string) error {
+	var pod v1.Pod
+	if err := kubeClient.Get(ctx, types.NamespacedName{Namespace: gameserver.Namespace, Name: gameserver.Name}, &pod); err != nil {
+		return err
+	}
+	annotations := pod.GetAnnotations()
+
+	if strings.ToLower(annotations[safeToEvictPodAttribute]) != safeToEvict {
+		return fmt.Errorf("Expected gameserver %s pod %s %s attribute to be marked %s. Got %s", gameserver.Name, pod.Name, safeToEvictPodAttribute, safeToEvict, annotations[safeToEvictPodAttribute])
+	}
+
 	return nil
 }
 
