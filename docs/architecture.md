@@ -40,3 +40,23 @@ kubectl port-forward -n thundernetes-system deployments/thundernetes-controller-
 ```
 
 Then, you can use your browser and point it to `http://localhost:8080/metrics` to view the metrics.
+
+## Port allocation
+
+Thundernetes requires ports in the range 10000-50000 to be open in the cluster. Each port requested to be exposed by a GameServer (by the portsToExpose field in the GameServerBuild) will be assigned a port in that range (let's call it an external port) via a PortRegistry feature, living inside the controller. Game clients can send traffic to this external port. Once the GameServer session ends, the port is returned back to the pool of available ports and may be re-used in the future.
+Each port that is allocated by the PortRegistry is assigned to HostPort field of the Pod's definition. The fact that Nodes in the cluster have a Public IP makes this port accessible outside the cluster.
+Noteworth is the fact that this port range is used for all GameServerBuilds and for all Nodes in the cluster. This way, thundernetes can support up to 40000/number_of_exposed_ports GameServers per cluster, i.e. if your GameServer needs only a single port, you can have up to 40k GameServers in the cluster.
+
+## GameServer allocation
+
+When you allocate a GameServer, thundernetes needs to do two things:
+
+- Find a GameServer instance for the requested GameServerBuild in the StandindBy state and update it to the Active state.
+- Inform the corresponding GameServer Pod (specifically, the sidecar container in that Pod) that the GameServer state is now Active.
+
+There are two ways we can accomplish the second step:
+
+- Have a [Kubernetes watch](https://kubernetes.io/docs/reference/using-api/api-concepts/#efficient-detection-of-changes) from the sidecar to the Kubernetes' API server which will be notified when the GameServer is updated.
+- Have the controller's API service (which accepts the allocation requests) forward the allocation request to the sidecar. This is done via having the sidecar expose its HTTP server inside the cluster. Of course, this assumes that we trust the processes running on the containers in the cluster.
+
+We picked the second approach. Main reasoning was to minimize the amount of watches to the Kubernetes API server.
