@@ -1,0 +1,38 @@
+apiVersion: mps.playfab.com/v1alpha1
+kind: GameServerBuild
+metadata:
+  name: gameserverbuild-sample-netcore
+spec:
+  titleID: "1E03" # required
+  buildID: "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6" # must be a GUID
+  standingBy: 2 # required
+  max: 4 # required
+  crashesToMarkUnhealthy: 5 # optional, default is 5. It is the number of crashes needed to mark the build unhealthy
+  buildMetadata: # optional. Retrievable via GSDK
+    - key: "buildMetadataKey1"
+      value: "buildMetadataValue1"
+    - key: "buildMetadataKey1"
+      value: "buildMetadataValue1"
+  portsToExpose:
+    - containerName: thundernetes-sample-netcore # must be the same as the container name described below
+      portName: gameport # must be the same as the port name described below
+  podSpec:
+    affinity:
+      podAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: BuildID
+                operator: In
+                values:
+                - "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
+            topologyKey: "kubernetes.io/hostname"
+    containers:
+      - image: ghcr.io/playfab/thundernetes-netcore-sample:0.0.1.2
+        name: thundernetes-sample-netcore
+        ports:
+        - containerPort: 80 # your game server port
+          protocol: TCP # your game server port protocol
+          name: gameport # required field
