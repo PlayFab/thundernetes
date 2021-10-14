@@ -8,7 +8,7 @@ Refer to the instructions at the [quickstart guide](./quickstart.md) for creatin
 
 ## Creating an Azure Kubernetes Service cluster
 
-Refer to the instructions at the [installation guide](./installation.md) for creating an Azure Kubernetes Service cluster.
+Refer to the instructions at the [quickstart guide](./quickstart.md) for creating an Azure Kubernetes Service cluster.
 
 ## Install thundernetes
 
