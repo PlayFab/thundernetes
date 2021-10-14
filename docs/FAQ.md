@@ -76,6 +76,8 @@ There might be cases in which you would like to have system and operator Pods (P
 1. Use the `nodeSelector` field on your GameServer Pod spec to request that the GameServer Pod is scheduled on Nodes that have the `agentpool=gameserver` Label. Take a look at this [sample YAML file](../samples/netcore/sample_second_node_pool.yaml) for an example.
 1. When you create your GameServer Pods, those will be scheduled on the NodePool you created.
 
+You can check [here](https://docs.microsoft.com/en-us/azure/aks/use-system-pools#system-and-user-node-pools) for more information on AKS system and user node pools.
+
 ## Not supported features (compared to MPS)
 
 There are some features of MPS that are not yet supported on Thundernetes.
