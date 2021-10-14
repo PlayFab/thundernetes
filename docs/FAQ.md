@@ -75,6 +75,38 @@ There are some features of MPS that are not yet supported on Thundernetes.
 1. Thundernetes, for the time being, supports only Linux game servers.
 1. On PlayFab MPS, you can upload a zip file that contains parts of your game server (referred to as assets). This is decompressed on the VM that your game server runs and is automatically mounted. You cannot do that on Thundernetes, however you can always mount a storage volume onto your Pod (e.g. check [here](https://kubernetes.io/docs/concepts/storage/volumes/#azuredisk) on how to mount an Azure Disk).
 
+### Deleting namespace thundernetes-system stuck in terminating state
+```bash
+ kubectl get namespace thundernetes-system -o json >tmp.json
+```
+Open tmp.json file
+```json
+    "spec": {
+        "finalizers": [
+            "kubernetes"
+        ]
+    },
+    "status": {
+        "phase": "Active"
+    }
+```
+remove the finalizer section
+```json
+ "spec": {
+
+   },
+   "status": {
+     "phase": "Terminating"
+   }
+```
+upload the json file
+```bash
+kubectl proxy
+curl -k -H "Content-Type: application/json" -X PUT --data-binary @tmp.json http://127.0.0.1:8001/api/v1/namespaces/thundernetes-system/finalize
+kubectl get ns
+```
+For more information about deleting namespaces stuck in terminating state check the [link](https://www.ibm.com/docs/en/cloud-private/3.2.0?topic=console-namespace-is-stuck-in-terminating-state)
+
 ## Where does the name 'thundernetes' come from?
 
 It's a combination of the words 'thunderhead' and 'kubernetes'. 'Thunderhead' is the internal code name for the Azure PlayFab Multiplayer Servers service. Credits to [Andreas Pohl](https://github.com/Annonator) for the naming idea!
