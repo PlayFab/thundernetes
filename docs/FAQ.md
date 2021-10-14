@@ -75,8 +75,14 @@ There might be cases in which you would like to have system and operator Pods (P
 1. Create a separate NodePool to host your GameServer Pods. Check [here](https://docs.microsoft.com/en-us/azure/aks/use-multiple-node-pools) on how to do it on Azure Kubernetes Service. Create this on "user" mode so that "kube-system" Pods are not scheduled on this NodePool. When creating a NodePool, you can specify custom Labels for the Nodes. Let's assume that you apply the `agentpool=gameserver` Label.
 1. Use the `nodeSelector` field on your GameServer Pod spec to request that the GameServer Pod is scheduled on Nodes that have the `agentpool=gameserver` Label. Take a look at this [sample YAML file](../samples/netcore/sample_second_node_pool.yaml) for an example.
 1. When you create your GameServer Pods, those will be scheduled on the NodePool you created.
+1. You should also modify the `nodeSelector` field on the controller Pod spec to make it will be scheduled on the system Node Pool. On AKS, if the NodePool is called `nodepool1`, you should add this YAML snippet to the `thundernetes-controller-manager` Deployment on the [YAML install file](../installfiles/operator.yaml):
 
-You can check [here](https://docs.microsoft.com/en-us/azure/aks/use-system-pools#system-and-user-node-pools) for more information on AKS system and user node pools.
+```YAML
+nodeSelector:
+  agentpool: nodepool1
+```
+
+You should add this YAML snippet to any workloads you don't want to be scheduled on the GameServer NodePool. Check [here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) for additional information on assigning pods to Nodes and check [here](https://docs.microsoft.com/en-us/azure/aks/use-system-pools#system-and-user-node-pools) for more information on AKS system and user node pools.
 
 ## Not supported features (compared to MPS)
 
