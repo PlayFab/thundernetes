@@ -19,7 +19,7 @@ Run `make create-install-files`.
 ## Running end to end tests on macOS
 
 First of all, end to end tests require `envsubst` utility, assuming that you have Homebrew installed you can get it via `brew install gettext &&brew link --force gettext`.
-We assume that you have installed Go, then you should install kind with `go install sigs.k8s.io/kind@latest`. Kind will be installed in `$(go env GOPATH)/bin` directory. Then, you should move kind to the `<projectRoot>/operator/testbin/bin/` folder with a command like `mv $(go env GOPATH)/bin/kind ./operator/testbin/bin/kind`. You can run end to end tests with `make builddockerlocal createkindcluster e2elocal`.
+We assume that you have installed Go, then you should install kind with `go install sigs.k8s.io/kind@latest`. Kind will be installed in `$(go env GOPATH)/bin` directory. Then, you should move kind to the `<projectRoot>/operator/testbin/bin/` folder with a command like `cp $(go env GOPATH)/bin/kind ./operator/testbin/bin/kind`. You can run end to end tests with `make builddockerlocal createkindcluster e2elocal`.
 
 ## Various scripts
 
