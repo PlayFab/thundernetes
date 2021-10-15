@@ -3,16 +3,18 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/tools/cache"
 )
 
 var (
@@ -31,10 +33,11 @@ type httpHandler struct {
 	gameServerNamespace   string
 	userSetSessionDetails SessionDetails
 	mux                   *sync.RWMutex
+	watchStopper          chan struct{}
 }
 
 func NewHttpHandler(k8sClient dynamic.Interface, gameServerName, gameServerNamespace string) httpHandler {
-	return httpHandler{
+	hh := httpHandler{
 		previousGameState:   GameStateInitializing,
 		previousGameHealth:  "N/A",
 		k8sClient:           k8sClient,
@@ -43,7 +46,72 @@ func NewHttpHandler(k8sClient dynamic.Interface, gameServerName, gameServerNames
 		userSetSessionDetails: SessionDetails{
 			State: string(GameStateInvalid),
 		},
-		mux: &sync.RWMutex{},
+		mux:          &sync.RWMutex{},
+		watchStopper: make(chan struct{}),
+	}
+
+	hh.setupWatch()
+
+	return hh
+}
+
+func (h *httpHandler) setupWatch() {
+	// used this article https://firehydrant.io/blog/dynamic-kubernetes-informers/
+	listOptions := dynamicinformer.TweakListOptionsFunc(func(options *metav1.ListOptions) {
+		options.FieldSelector = fmt.Sprintf("metadata.name=%s", h.gameServerName)
+	})
+	dynInformer := dynamicinformer.NewFilteredDynamicSharedInformerFactory(h.k8sClient, 0, h.gameServerNamespace, listOptions)
+	informer := dynInformer.ForResource(gameserverGVR).Informer()
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		UpdateFunc: h.gameServerUpdated,
+	})
+
+	go informer.Run(h.watchStopper)
+}
+
+func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
+	// dynamic client returns an unstructured object
+	old := oldObj.(*unstructured.Unstructured)
+	new := newObj.(*unstructured.Unstructured)
+
+	// get the old and the new state from .status.state
+	oldState, oldStateExists, oldStateErr := unstructured.NestedString(old.Object, "status", "state")
+	newState, newStateExists, newStateErr := unstructured.NestedString(new.Object, "status", "state")
+
+	if oldStateErr != nil {
+		fmt.Printf("error getting old state %s\n", oldStateErr.Error())
+		return
+	}
+
+	if newStateErr != nil {
+		fmt.Printf("error getting new state %s\n", newStateErr.Error())
+	}
+
+	if !oldStateExists || !newStateExists {
+		fmt.Printf("state does not exist, oldStateExists:%t, newStateExists:%t\n", oldStateExists, newStateExists)
+		return
+	}
+
+	fmt.Printf("CRD instance changed %s:%s,%s,%s\n", old.GetName(), oldState, new.GetName(), newState)
+
+	// if the GameSwerver was allocated
+	if oldState == string(GameStateStandingBy) && newState == string(GameStateActive) {
+		sessionID, _, _ := unstructured.NestedString(new.Object, "status", "sessionID")
+		sessionCookie, _, _ := unstructured.NestedString(new.Object, "status", "sessionCookie")
+		initialPlayers, _, _ := unstructured.NestedStringSlice(new.Object, "status", "initialPlayers")
+
+		s := SessionDetails{
+			SessionId:      sessionID,
+			SessionCookie:  sessionCookie,
+			InitialPlayers: initialPlayers,
+		}
+
+		h.mux.Lock()
+		h.userSetSessionDetails = s
+		defer h.mux.Unlock()
+		// closing the channel will cause the informer to stop
+		// we don't expect any more state changes so we close the watch to decrease the pressue on Kubernetes API server
+		close(h.watchStopper)
 	}
 }
 
@@ -172,38 +240,4 @@ func (h *httpHandler) transitionStateToStandingBy(ctx context.Context, hb *Heart
 	}
 	h.previousGameState = hb.CurrentGameState
 	return nil
-}
-
-func (h *httpHandler) getGameServerStateFromK8s(ctx context.Context) (*SessionDetails, error) {
-	sd := &SessionDetails{}
-	gs, err := h.k8sClient.Resource(gameserverGVR).Namespace(h.gameServerNamespace).Get(ctx, h.gameServerName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	stu, exists := gs.Object["status"]
-	if !exists {
-		return nil, errors.New("status subresource does not exist")
-	}
-	st := stu.(map[string]interface{})
-	state, exists := st["state"]
-	if exists {
-		sd.State = state.(string)
-	}
-	sessionCookie, exists := st["sessionCookie"]
-	if exists {
-		sd.SessionCookie = sessionCookie.(string)
-	}
-	sessionId, exists := st["sessionId"]
-	if exists {
-		sd.SessionId = sessionId.(string)
-	}
-	initialPlayers, exists := st["initialPlayers"]
-	if exists {
-		temp := initialPlayers.([]interface{})
-		sd.InitialPlayers = make([]string, len(temp))
-		for i := 0; i < len(temp); i++ {
-			sd.InitialPlayers = append(sd.InitialPlayers, temp[i].(string))
-		}
-	}
-	return sd, nil
 }

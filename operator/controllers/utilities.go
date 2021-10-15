@@ -200,14 +200,7 @@ func attachSidecar(gs *mpsv1alpha1.GameServer, pod *corev1.Pod) {
 		Name:            SidecarContainerName,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Image:           SidecarImage,
-		Ports: []corev1.ContainerPort{
-			{
-				Name:          "port",
-				ContainerPort: SidecarPort,
-				Protocol:      corev1.ProtocolTCP,
-			},
-		},
-		Env: getGameServerEnvVariables(gs),
+		Env:             getGameServerEnvVariables(gs),
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      DataVolumeName,

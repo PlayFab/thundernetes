@@ -90,10 +90,10 @@ func (s *ApiServer) Start(ctx context.Context) error {
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/v1/allocate", &allocateHandler{
-		client:                       s.client,
-		config:                       s.config,
-		scheme:                       s.scheme,
-		changeStatusInternalProvider: changeStatusInternal})
+		client: s.client,
+		config: s.config,
+		scheme: s.scheme,
+	})
 
 	log.Info("serving API server", "addr", addr, "port", listeningPort)
 
