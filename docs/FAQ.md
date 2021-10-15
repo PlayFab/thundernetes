@@ -10,8 +10,17 @@ By default GameServer application pods may schedule on different kubernetes node
     affinity:
       podAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: BuildID
+                operator: In
+                values:
+                - "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
+            topologyKey: "kubernetes.io/hostname"
 ``` 
-To test this behavior check the link [sample-nodeaffinity.yaml](../samples/netcore/sample-nodeaffinity.yaml)
+To test this behavior, adding the section above to [sample](../samples/dot)
 
 ## How can I find the Public IP address from inside a GameServer?
 
