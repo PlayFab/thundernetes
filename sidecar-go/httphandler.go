@@ -65,57 +65,81 @@ func (h *httpHandler) setupWatch() {
 	dynInformer := dynamicinformer.NewFilteredDynamicSharedInformerFactory(h.k8sClient, 0, h.gameServerNamespace, listOptions)
 	informer := dynInformer.ForResource(gameserverGVR).Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			// dynamic client returns an unstructured object
-			old := oldObj.(*unstructured.Unstructured)
-			new := newObj.(*unstructured.Unstructured)
-
-			// get the old and the new state from .status.state
-			oldState, oldStateExists, oldStateErr := unstructured.NestedString(old.Object, "status", "state")
-			newState, newStateExists, newStateErr := unstructured.NestedString(new.Object, "status", "state")
-
-			if oldStateErr != nil {
-				fmt.Printf("error getting old state %s\n", oldStateErr.Error())
-				return
-			}
-
-			if newStateErr != nil {
-				fmt.Printf("error getting new state %s\n", newStateErr.Error())
-				return
-			}
-
-			if !oldStateExists || !newStateExists {
-				fmt.Printf("state does not exist, oldStateExists:%t, newStateExists:%t\n", oldStateExists, newStateExists)
-				return
-			}
-
-			fmt.Printf("CRD instance updated %s:%s,%s,%s\n", old.GetName(), oldState, new.GetName(), newState)
-
-			// if the GameServer was allocated
-			if oldState == string(GameStateStandingBy) && newState == string(GameStateActive) {
-				sessionID, _, _ := unstructured.NestedString(new.Object, "status", "sessionID")
-				sessionCookie, _, _ := unstructured.NestedString(new.Object, "status", "sessionCookie")
-				initialPlayers, _, _ := unstructured.NestedStringSlice(new.Object, "status", "initialPlayers")
-
-				fmt.Printf("Got values from allocation, sessionID:%s, sessionCookie:%s, initialPlayers:%#v\n", sessionID, sessionCookie, initialPlayers)
-
-				mux.Lock()
-				userSetSessionDetails = &SessionDetails{
-					SessionID:      sessionID,
-					SessionCookie:  sessionCookie,
-					InitialPlayers: initialPlayers,
-					State:          string(GameStateActive),
-				}
-				mux.Unlock()
-
-				// closing the channel will cause the informer to stop
-				// we don't expect any more state changes so we close the watch to decrease the pressue on Kubernetes API server
-				close(watchStopper)
-			}
-		},
+		UpdateFunc: gameServerUpdated,
 	})
 
 	go informer.Run(watchStopper)
+}
+
+func gameServerUpdated(oldObj, newObj interface{}) {
+	// dynamic client returns an unstructured object
+	old := oldObj.(*unstructured.Unstructured)
+	new := newObj.(*unstructured.Unstructured)
+
+	// get the old and the new state from .status.state
+	oldState, oldStateExists, oldStateErr := unstructured.NestedString(old.Object, "status", "state")
+	newState, newStateExists, newStateErr := unstructured.NestedString(new.Object, "status", "state")
+
+	if oldStateErr != nil {
+		fmt.Printf("error getting old state %s\n", oldStateErr.Error())
+		return
+	}
+
+	if newStateErr != nil {
+		fmt.Printf("error getting new state %s\n", newStateErr.Error())
+		return
+	}
+
+	if !oldStateExists || !newStateExists {
+		fmt.Printf("state does not exist, oldStateExists:%t, newStateExists:%t\n", oldStateExists, newStateExists)
+		return
+	}
+
+	fmt.Printf("CRD instance updated %s:%s,%s,%s\n", old.GetName(), oldState, new.GetName(), newState)
+
+	// if the GameServer was allocated
+	if oldState == string(GameStateStandingBy) && newState == string(GameStateActive) {
+		sessionID, sessionCookie, initialPlayers := getSessionDetails(new)
+
+		fmt.Printf("Got values from allocation, sessionID:%s, sessionCookie:%s, initialPlayers:%#v\n", sessionID, sessionCookie, initialPlayers)
+
+		mux.Lock()
+		userSetSessionDetails = &SessionDetails{
+			SessionID:      sessionID,
+			SessionCookie:  sessionCookie,
+			InitialPlayers: initialPlayers,
+			State:          string(GameStateActive),
+		}
+		mux.Unlock()
+
+		// closing the channel will cause the informer to stop
+		// we don't expect any more state changes so we close the watch to decrease the pressue on Kubernetes API server
+		close(watchStopper)
+	}
+}
+
+func getSessionDetails(u unstructured.Unstructured) (string, string, []string) {
+	sessionID, sessionIDExists, sessionIDErr := unstructured.NestedString(new.Object, "status", "sessionID")
+	sessionCookie, sessionCookieExists, SessionCookieErr := unstructured.NestedString(new.Object, "status", "sessionCookie")
+	initialPlayers, initialPlayersExists, initialPlayersErr := unstructured.NestedStringSlice(new.Object, "status", "initialPlayers")
+
+	if !sessionIDExists || !sessionCookieExists || !initialPlayersExists {
+		fmt.Printf("sessionID, sessionCookie, or initialPlayers do not exist, sessionIDExists:%t, sessionCookieExists:%t, initialPlayersExists:%t\n", sessionIDExists, sessionCookieExists, initialPlayersExists)
+	}
+
+	if sessionIDErr != nil {
+		fmt.Printf("error getting sessionID %s\n", sessionIDErr.Error())
+	}
+
+	if SessionCookieErr != nil {
+		fmt.Printf("error getting sessionCookie %s\n", SessionCookieErr.Error())
+	}
+
+	if initialPlayersErr != nil {
+		fmt.Printf("error getting initialPlayers %s\n", initialPlayersErr.Error())
+	}
+
+	return sessionID, sessionCookie, initialPlayers
 }
 
 func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request) {
