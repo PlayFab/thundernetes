@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,15 +25,22 @@ var (
 	}
 )
 
+var (
+	userSetSessionDetails = &SessionDetails{
+		State: string(GameStateInvalid),
+	}
+	watchStopper = make(chan struct{})
+	mux          = &sync.RWMutex{}
+)
+
+const logEveryHeartbeat = false
+
 type httpHandler struct {
-	k8sClient             dynamic.Interface
-	previousGameState     GameState
-	previousGameHealth    string
-	gameServerName        string
-	gameServerNamespace   string
-	userSetSessionDetails *SessionDetails
-	mux                   *sync.RWMutex
-	watchStopper          chan struct{}
+	k8sClient           dynamic.Interface
+	previousGameState   GameState
+	previousGameHealth  string
+	gameServerName      string
+	gameServerNamespace string
 }
 
 func NewHttpHandler(k8sClient dynamic.Interface, gameServerName, gameServerNamespace string) httpHandler {
@@ -42,11 +50,6 @@ func NewHttpHandler(k8sClient dynamic.Interface, gameServerName, gameServerNames
 		k8sClient:           k8sClient,
 		gameServerName:      gameServerName,
 		gameServerNamespace: gameServerNamespace,
-		userSetSessionDetails: &SessionDetails{
-			State: string(GameStateInvalid),
-		},
-		mux:          &sync.RWMutex{},
-		watchStopper: make(chan struct{}),
 	}
 
 	hh.setupWatch()
@@ -55,20 +58,20 @@ func NewHttpHandler(k8sClient dynamic.Interface, gameServerName, gameServerNames
 }
 
 func (h *httpHandler) setupWatch() {
-	// used this article https://firehydrant.io/blog/dynamic-kubernetes-informers/
+	// great article for reference https://firehydrant.io/blog/dynamic-kubernetes-informers/
 	listOptions := dynamicinformer.TweakListOptionsFunc(func(options *metav1.ListOptions) {
 		options.FieldSelector = fmt.Sprintf("metadata.name=%s", h.gameServerName)
 	})
 	dynInformer := dynamicinformer.NewFilteredDynamicSharedInformerFactory(h.k8sClient, 0, h.gameServerNamespace, listOptions)
 	informer := dynInformer.ForResource(gameserverGVR).Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		UpdateFunc: h.gameServerUpdated,
+		UpdateFunc: gameServerUpdated,
 	})
 
-	go informer.Run(h.watchStopper)
+	go informer.Run(watchStopper)
 }
 
-func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
+func gameServerUpdated(oldObj, newObj interface{}) {
 	// dynamic client returns an unstructured object
 	old := oldObj.(*unstructured.Unstructured)
 	new := newObj.(*unstructured.Unstructured)
@@ -84,6 +87,7 @@ func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
 
 	if newStateErr != nil {
 		fmt.Printf("error getting new state %s\n", newStateErr.Error())
+		return
 	}
 
 	if !oldStateExists || !newStateExists {
@@ -91,35 +95,59 @@ func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
 		return
 	}
 
-	fmt.Printf("CRD instance changed %s:%s,%s,%s\n", old.GetName(), oldState, new.GetName(), newState)
+	fmt.Printf("CRD instance updated %s:%s,%s,%s\n", old.GetName(), oldState, new.GetName(), newState)
 
 	// if the GameServer was allocated
 	if oldState == string(GameStateStandingBy) && newState == string(GameStateActive) {
-		sessionID, _, _ := unstructured.NestedString(new.Object, "status", "sessionID")
-		sessionCookie, _, _ := unstructured.NestedString(new.Object, "status", "sessionCookie")
-		initialPlayers, _, _ := unstructured.NestedStringSlice(new.Object, "status", "initialPlayers")
+		sessionID, sessionCookie, initialPlayers := getSessionDetails(new)
 
-		h.mux.Lock()
-		h.userSetSessionDetails = &SessionDetails{
-			SessionId:      sessionID,
+		fmt.Printf("Got values from allocation, sessionID:%s, sessionCookie:%s, initialPlayers:%#v\n", sessionID, sessionCookie, initialPlayers)
+
+		mux.Lock()
+		userSetSessionDetails = &SessionDetails{
+			SessionID:      sessionID,
 			SessionCookie:  sessionCookie,
 			InitialPlayers: initialPlayers,
 			State:          string(GameStateActive),
 		}
-		fmt.Printf("test4 %s\n", h.userSetSessionDetails.State)
-		defer h.mux.Unlock()
+		mux.Unlock()
+
 		// closing the channel will cause the informer to stop
 		// we don't expect any more state changes so we close the watch to decrease the pressue on Kubernetes API server
-		close(h.watchStopper)
+		close(watchStopper)
 	}
+}
+
+func getSessionDetails(u *unstructured.Unstructured) (string, string, []string) {
+	sessionID, sessionIDExists, sessionIDErr := unstructured.NestedString(u.Object, "status", "sessionID")
+	sessionCookie, sessionCookieExists, SessionCookieErr := unstructured.NestedString(u.Object, "status", "sessionCookie")
+	initialPlayers, initialPlayersExists, initialPlayersErr := unstructured.NestedStringSlice(u.Object, "status", "initialPlayers")
+
+	if !sessionIDExists || !sessionCookieExists || !initialPlayersExists {
+		fmt.Printf("sessionID, sessionCookie, or initialPlayers do not exist, sessionIDExists:%t, sessionCookieExists:%t, initialPlayersExists:%t\n", sessionIDExists, sessionCookieExists, initialPlayersExists)
+	}
+
+	if sessionIDErr != nil {
+		fmt.Printf("error getting sessionID %s\n", sessionIDErr.Error())
+	}
+
+	if SessionCookieErr != nil {
+		fmt.Printf("error getting sessionCookie %s\n", SessionCookieErr.Error())
+	}
+
+	if initialPlayersErr != nil {
+		fmt.Printf("error getting initialPlayers %s\n", initialPlayersErr.Error())
+	}
+
+	return sessionID, sessionCookie, initialPlayers
 }
 
 func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := context.Background()
-	// re := regexp.MustCompile(`.*/v1/sessionHosts\/(.*?)(/heartbeats|$)`)
-	// match := re.FindStringSubmatch(req.RequestURI)
+	re := regexp.MustCompile(`.*/v1/sessionHosts\/(.*?)(/heartbeats|$)`)
+	match := re.FindStringSubmatch(req.RequestURI)
 
-	// sessionHostId := match[1]
+	sessionHostId := match[1]
 
 	var hb HeartbeatRequest
 	err := json.NewDecoder(req.Body).Decode(&hb)
@@ -128,7 +156,9 @@ func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	//fmt.Printf("heartbeat received from sessionHostId %s, data %#v\n", sessionHostId, hb)
+	if logEveryHeartbeat {
+		fmt.Printf("heartbeat received from sessionHostId %s, data %#v\n", sessionHostId, hb)
+	}
 
 	if err := validateHeartbeatRequestArgs(&hb); err != nil {
 		fmt.Printf("error validating heartbeat request %s\n", err.Error())
@@ -152,10 +182,9 @@ func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request)
 
 	var op GameOperation = GameOperationContinue
 
-	h.mux.RLock()
-	fmt.Printf("test3 %s\n", h.userSetSessionDetails.State)
-	sd := h.userSetSessionDetails
-	h.mux.RUnlock()
+	mux.RLock()
+	sd := userSetSessionDetails
+	mux.RUnlock()
 
 	if sd.State == string(GameStateInvalid) { // user has not set the status yet
 		op = GameOperationContinue
@@ -170,8 +199,8 @@ func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request)
 	}
 
 	sc := &SessionConfig{}
-	if sd.SessionId != "" {
-		sc.SessionId = sd.SessionId
+	if sd.SessionID != "" {
+		sc.SessionId = sd.SessionID
 	}
 	if sd.SessionCookie != "" {
 		sc.SessionCookie = sd.SessionCookie

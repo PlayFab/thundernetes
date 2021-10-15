@@ -34,20 +34,6 @@ func validateHeartbeatRequestArgs(hb *HeartbeatRequest) error {
 	return nil
 }
 
-func validateSessionDetailsArgs(sd *SessionDetails) error {
-	var msg string
-	if sd.SessionId == "" {
-		msg = "SessionId cannot be empty"
-	}
-	if sd.State == "" {
-		msg = fmt.Sprintf("%s - State cannot be empty", msg)
-	}
-	if msg != "" {
-		return errors.New(msg)
-	}
-	return nil
-}
-
 func initializeKubernetesClient() (dynamic.Interface, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {

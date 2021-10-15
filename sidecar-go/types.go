@@ -55,8 +55,8 @@ type ConnectedPlayer struct {
 
 // SessionDetails contains data regarding the details for the session that occurs when the GameServer state changes from StandingBy to Active
 type SessionDetails struct {
-	SessionId      string   `json:"sessionId,omitempty"`
-	SessionCookie  string   `json:"sessionCookie,omitempty"`
-	InitialPlayers []string `json:"initialPlayers,omitempty"`
-	State          string   `json:"state,omitempty"`
+	SessionID      string
+	SessionCookie  string
+	InitialPlayers []string
+	State          string
 }
