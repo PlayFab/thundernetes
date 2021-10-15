@@ -23,10 +23,6 @@ We have created a [sidecar](https://www.magalix.com/blog/the-sidecar-pattern) co
 
 GSDK libraries are attempting to read configuration from a file (GSDKConfig.json). In order to create this file and let it be readable by the GameServer Pod, we have created a simple Kubernetes [Init Container](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/) that shares a volume mount with the GSDK sidecar and will create the configuration file for it to read.
 
-## Logging
-
-Thundernetes does not attempt to solve the game server logging problem. There are various solutions on Kubernetes on this problem e.g. running a [fluentd](https://www.fluentd.org/) DaemonSet in the cluster which will grab the logs and forward them to an output of your choice.
-
 ## End to end (e2e) testing
 
 We are using [kind](https://kind.sigs.k8s.io/) and Kubernetes [client-go](https://github.com/kubernetes/client-go) library for end-to-end testing scenarios. Kind dynamically setups a Kubernetes cluster in which we create and allocate game servers and test various scenarios. Check [this](../e2e) folder for more details.
