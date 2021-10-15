@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +30,7 @@ type httpHandler struct {
 	previousGameHealth    string
 	gameServerName        string
 	gameServerNamespace   string
-	userSetSessionDetails SessionDetails
+	userSetSessionDetails *SessionDetails
 	mux                   *sync.RWMutex
 	watchStopper          chan struct{}
 }
@@ -43,7 +42,7 @@ func NewHttpHandler(k8sClient dynamic.Interface, gameServerName, gameServerNames
 		k8sClient:           k8sClient,
 		gameServerName:      gameServerName,
 		gameServerNamespace: gameServerNamespace,
-		userSetSessionDetails: SessionDetails{
+		userSetSessionDetails: &SessionDetails{
 			State: string(GameStateInvalid),
 		},
 		mux:          &sync.RWMutex{},
@@ -94,20 +93,20 @@ func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
 
 	fmt.Printf("CRD instance changed %s:%s,%s,%s\n", old.GetName(), oldState, new.GetName(), newState)
 
-	// if the GameSwerver was allocated
+	// if the GameServer was allocated
 	if oldState == string(GameStateStandingBy) && newState == string(GameStateActive) {
 		sessionID, _, _ := unstructured.NestedString(new.Object, "status", "sessionID")
 		sessionCookie, _, _ := unstructured.NestedString(new.Object, "status", "sessionCookie")
 		initialPlayers, _, _ := unstructured.NestedStringSlice(new.Object, "status", "initialPlayers")
 
-		s := SessionDetails{
+		h.mux.Lock()
+		h.userSetSessionDetails = &SessionDetails{
 			SessionId:      sessionID,
 			SessionCookie:  sessionCookie,
 			InitialPlayers: initialPlayers,
+			State:          string(GameStateActive),
 		}
-
-		h.mux.Lock()
-		h.userSetSessionDetails = s
+		fmt.Printf("test4 %s\n", h.userSetSessionDetails.State)
 		defer h.mux.Unlock()
 		// closing the channel will cause the informer to stop
 		// we don't expect any more state changes so we close the watch to decrease the pressue on Kubernetes API server
@@ -115,35 +114,12 @@ func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
 	}
 }
 
-func (h *httpHandler) changeStateHandler(w http.ResponseWriter, req *http.Request) {
-	s := SessionDetails{}
-	err := json.NewDecoder(req.Body).Decode(&s)
-	if err != nil {
-		badRequest(w, err, "cannot deserialize json")
-		return
-	}
-
-	fmt.Printf("sessiondetails request received for sessionId %s, data %#v\n", s.SessionId, s)
-
-	if err := validateSessionDetailsArgs(&s); err != nil {
-		fmt.Printf("error validating change state request %s\n", err.Error())
-		badRequest(w, err, "invalid change state request")
-		return
-	}
-
-	h.mux.Lock()
-	h.userSetSessionDetails = s
-	defer h.mux.Unlock()
-
-	w.WriteHeader(http.StatusOK)
-}
-
 func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := context.Background()
-	re := regexp.MustCompile(`.*/v1/sessionHosts\/(.*?)(/heartbeats|$)`)
-	match := re.FindStringSubmatch(req.RequestURI)
+	// re := regexp.MustCompile(`.*/v1/sessionHosts\/(.*?)(/heartbeats|$)`)
+	// match := re.FindStringSubmatch(req.RequestURI)
 
-	sessionHostId := match[1]
+	// sessionHostId := match[1]
 
 	var hb HeartbeatRequest
 	err := json.NewDecoder(req.Body).Decode(&hb)
@@ -152,7 +128,7 @@ func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	fmt.Printf("heartbeat received from sessionHostId %s, data %#v\n", sessionHostId, hb)
+	//fmt.Printf("heartbeat received from sessionHostId %s, data %#v\n", sessionHostId, hb)
 
 	if err := validateHeartbeatRequestArgs(&hb); err != nil {
 		fmt.Printf("error validating heartbeat request %s\n", err.Error())
@@ -177,6 +153,7 @@ func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request)
 	var op GameOperation = GameOperationContinue
 
 	h.mux.RLock()
+	fmt.Printf("test3 %s\n", h.userSetSessionDetails.State)
 	sd := h.userSetSessionDetails
 	h.mux.RUnlock()
 
@@ -230,7 +207,7 @@ func (h *httpHandler) updateHealthIfNeeded(ctx context.Context, hb *HeartbeatReq
 }
 
 func (h *httpHandler) transitionStateToStandingBy(ctx context.Context, hb *HeartbeatRequest) error {
-	fmt.Printf("State is different than before, updating. Old state %s, new state StandingBy", h.previousGameState)
+	fmt.Printf("State is different than before, updating. Old state %s, new state StandingBy\n", h.previousGameState)
 	payload := fmt.Sprintf("{\"status\":{\"state\":\"%s\"}}", hb.CurrentGameState)
 	payloadBytes := []byte(payload)
 	_, err := h.k8sClient.Resource(gameserverGVR).Namespace(h.gameServerNamespace).Patch(ctx, h.gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")

@@ -27,7 +27,6 @@ func main() {
 
 	h := NewHttpHandler(k8sClient, gameServerName, crdNamespace)
 
-	http.HandleFunc("/v1/changeState", h.changeStateHandler)
 	http.HandleFunc("/v1/sessionHosts/", h.heartbeatHandler)
 
 	http.ListenAndServe(fmt.Sprintf(":%d", SidecarPort), nil)

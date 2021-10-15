@@ -293,6 +293,8 @@ func main() {
 	validateBuildState(ctx, buildState{buildID: test2BuildID, buildName: testBuild2Name, standingByCount: 3, activeCount: 0, podCount: 3})
 	validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, test1BuildID)
 
+	return
+
 	fmt.Println("Allocating on Build1 with same sessionID - should not convert another standingBy to active")
 	if err := allocate(test1BuildID, sessionID1, cert); err != nil {
 		handleError(err)
