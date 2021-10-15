@@ -7,6 +7,13 @@ rules:
 - apiGroups:
   - mps.playfab.com
   resources:
+  - gameservers
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - mps.playfab.com
+  resources:
   - gameservers/status
   verbs:
   - patch
