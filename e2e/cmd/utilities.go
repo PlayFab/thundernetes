@@ -74,8 +74,10 @@ func executeRemoteCommand(coreClient *kubernetes.Clientset, pod *v1.Pod, cfg *re
 	return buf.String(), errBuf.String(), nil
 }
 
-func getPodLogs(ctx context.Context, coreClient *kubernetes.Clientset, podName, podNamespace string) (string, error) {
-	podLogOpts := v1.PodLogOptions{}
+func getPodLogs(ctx context.Context, coreClient *kubernetes.Clientset, podName, containerName, podNamespace string) (string, error) {
+	podLogOpts := v1.PodLogOptions{
+		Container: containerName,
+	}
 	req := coreClient.CoreV1().Pods(podNamespace).GetLogs(podName, &podLogOpts)
 	podLogs, err := req.Stream(ctx)
 	if err != nil {
@@ -89,7 +91,6 @@ func getPodLogs(ctx context.Context, coreClient *kubernetes.Clientset, podName, 
 		return "", err
 	}
 	str := buf.String()
-
 	return str, nil
 }
 
@@ -242,7 +243,7 @@ func verifyGameServerPodEvictionAnnotation(ctx context.Context, gameserver mpsv1
 	annotations := pod.GetAnnotations()
 
 	if strings.ToLower(annotations[safeToEvictPodAttribute]) != safeToEvict {
-		return fmt.Errorf("Expected gameserver %s pod %s %s attribute to be marked %s. Got %s", gameserver.Name, pod.Name, safeToEvictPodAttribute, safeToEvict, annotations[safeToEvictPodAttribute])
+		return fmt.Errorf("expected gameserver %s pod %s %s attribute to be marked %s. Got %s", gameserver.Name, pod.Name, safeToEvictPodAttribute, safeToEvict, annotations[safeToEvictPodAttribute])
 	}
 
 	return nil

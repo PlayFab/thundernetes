@@ -75,48 +75,6 @@ var _ = Describe("API server tests", func() {
 		_ = json.Unmarshal(resBody, &hbr)
 		Expect(hbr.Operation).To(Equal(GameOperationContinue))
 	})
-	It("change state request with empty body should return error", func() {
-		req := httptest.NewRequest(http.MethodPost, "/v1/changeState", nil)
-		w := httptest.NewRecorder()
-		h := NewHttpHandler(newDynamicInterface(), gameServerName, gameServerNamespace)
-		h.changeStateHandler(w, req)
-		res := w.Result()
-		defer res.Body.Close()
-		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
-		_, err := ioutil.ReadAll(res.Body)
-		Expect(err).ToNot(HaveOccurred())
-	})
-	It("change state request with empty body should return error", func() {
-		s := SessionDetails{}
-		b, _ := json.Marshal(s)
-		req := httptest.NewRequest(http.MethodPost, "/v1/changeState", bytes.NewReader(b))
-		w := httptest.NewRecorder()
-		h := NewHttpHandler(newDynamicInterface(), gameServerName, gameServerNamespace)
-		h.changeStateHandler(w, req)
-		res := w.Result()
-		defer res.Body.Close()
-		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
-		_, err := ioutil.ReadAll(res.Body)
-		Expect(err).ToNot(HaveOccurred())
-	})
-	It("change state request with non-empty body should work", func() {
-		s := SessionDetails{
-			State:     "GameStateActive",
-			SessionId: "sessionId",
-		}
-		b, _ := json.Marshal(s)
-		req := httptest.NewRequest(http.MethodPost, "/v1/changeState", bytes.NewReader(b))
-		w := httptest.NewRecorder()
-		h := NewHttpHandler(newDynamicInterface(), gameServerName, gameServerNamespace)
-		h.changeStateHandler(w, req)
-		res := w.Result()
-		defer res.Body.Close()
-		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		Expect(h.userSetSessionDetails.SessionId).To(Equal("sessionId"))
-		Expect(h.userSetSessionDetails.State).To(Equal("GameStateActive"))
-		_, err := ioutil.ReadAll(res.Body)
-		Expect(err).ToNot(HaveOccurred())
-	})
 })
 
 func newDynamicInterface() dynamic.Interface {
