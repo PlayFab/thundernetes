@@ -36,6 +36,17 @@ The above methods work since the Node hosting your Pod has a Public IP.
 
 [source](https://serversuit.com/community/technical-tips/view/finding-your-external-ip-address.html)
 
+## Grab GameServer logs
+
+One of easiest ways to grab logs from your GameServer Pods is to use [fluentbit](https://fluentbit.io/) to capture logs and send them to [Azure Blob Storage](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blobs-overview).
+
+You can use the following steps to setup fluentbit to capture logs from your GameServer Pods:
+
+- Set up an Azure Storage Account. Check [here](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal) on how to do it using the Azure Portal.
+- Install fluentbit on your Kubernetes cluster. Check [here](https://docs.fluentbit.io/manual/installation/kubernetes) on how to do it using the Azure Portal.
+- As soon as you create the namespace and roles/role bindings, you should create the fluentbit ConfigMap containing the fluentbit configuration file. You can see a sample [here](../samples/fluentbit/fluent-bit-configmap.yaml). Remember to replace the values with your Azure Storage Account name and key.
+- Finally, you should create the fluentbit DaemonSet, so a fluentbit Pod runs on every Node in your cluster and grabs the logs. You can find a sample [here](../samples/fluentbit/fluent-bit-ds.yaml).
+
 ## Node Autoscaling
 
 Scaling in Kubernetes is two fold. Pod autoscaling and Cluster autoscaling. Thundernetes enables pod autoscaling by default utilizing the standby mechanism. For Node autoscaling, Kubernetes cluster autoscaler can be potentially used, especially with the use of [overprovisioning](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-can-i-configure-overprovisioning-with-cluster-autoscaler). If you are using Azure Kubernetes Service, you can [easily enable cluster autoscaler](https://docs.microsoft.com/en-us/azure/aks/cluster-autoscaler).
@@ -85,10 +96,13 @@ There are some features of MPS that are not yet supported on Thundernetes.
 1. On PlayFab MPS, you can upload a zip file that contains parts of your game server (referred to as assets). This is decompressed on the VM that your game server runs and is automatically mounted. You cannot do that on Thundernetes, however you can always mount a storage volume onto your Pod (e.g. check [here](https://kubernetes.io/docs/concepts/storage/volumes/#azuredisk) on how to mount an Azure Disk).
 
 ### Deleting namespace thundernetes-system stuck in terminating state
+
 ```bash
- kubectl get namespace thundernetes-system -o json >tmp.json
+ kubectl get namespace thundernetes-system -o json > tmp.json
 ```
+
 Open tmp.json file
+
 ```json
     "spec": {
         "finalizers": [
@@ -99,7 +113,9 @@ Open tmp.json file
         "phase": "Active"
     }
 ```
+
 remove the finalizer section
+
 ```json
  "spec": {
 
@@ -108,12 +124,15 @@ remove the finalizer section
      "phase": "Terminating"
    }
 ```
+
 upload the json file
+
 ```bash
 kubectl proxy
 curl -k -H "Content-Type: application/json" -X PUT --data-binary @tmp.json http://127.0.0.1:8001/api/v1/namespaces/thundernetes-system/finalize
 kubectl get ns
 ```
+
 For more information about deleting namespaces stuck in terminating state check the [link](https://www.ibm.com/docs/en/cloud-private/3.2.0?topic=console-namespace-is-stuck-in-terminating-state)
 
 ## Where does the name 'thundernetes' come from?
