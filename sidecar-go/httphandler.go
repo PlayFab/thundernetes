@@ -118,10 +118,10 @@ func gameServerUpdated(oldObj, newObj interface{}) {
 	}
 }
 
-func getSessionDetails(u unstructured.Unstructured) (string, string, []string) {
-	sessionID, sessionIDExists, sessionIDErr := unstructured.NestedString(new.Object, "status", "sessionID")
-	sessionCookie, sessionCookieExists, SessionCookieErr := unstructured.NestedString(new.Object, "status", "sessionCookie")
-	initialPlayers, initialPlayersExists, initialPlayersErr := unstructured.NestedStringSlice(new.Object, "status", "initialPlayers")
+func getSessionDetails(u *unstructured.Unstructured) (string, string, []string) {
+	sessionID, sessionIDExists, sessionIDErr := unstructured.NestedString(u.Object, "status", "sessionID")
+	sessionCookie, sessionCookieExists, SessionCookieErr := unstructured.NestedString(u.Object, "status", "sessionCookie")
+	initialPlayers, initialPlayersExists, initialPlayersErr := unstructured.NestedStringSlice(u.Object, "status", "initialPlayers")
 
 	if !sessionIDExists || !sessionCookieExists || !initialPlayersExists {
 		fmt.Printf("sessionID, sessionCookie, or initialPlayers do not exist, sessionIDExists:%t, sessionCookieExists:%t, initialPlayersExists:%t\n", sessionIDExists, sessionCookieExists, initialPlayersExists)
