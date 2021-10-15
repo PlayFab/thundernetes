@@ -6,13 +6,13 @@ This document describes the architecture of thundernetes as well as various desi
 
 ## Goal
 
-End goal is to create a developer tool that will allow game developers to test their GSDK enabled Linux game servers. Tool will enable GameServer scaling and GameServer allocations. 
+End goal is to create a developer tool that will allow game developers to test their GSDK enabled Linux game servers. Tool will enable GameServer scaling and GameServer allocations.
 
 We are extending Kubernetes by creating an [operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/). This involves creating a custom [controller](https://kubernetes.io/docs/concepts/architecture/controller/) and a couple of [Custom Resources (CRDs)](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/). We are using the open source tool [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) to scaffold our operator files.
 
 Specifically, we have two core entities in our project, which are represented by two respective CRDs:
 
-- **GameServerBuild** ([YAML](../operator/config/crd/bases/mps.playfab.com_gameserverbuildss.yaml), [Go](../operator/api/v1alpha1/gameserverbuild_types.go)): this represents a collection of GameServers that will run the same Pod template and can be scaled in/out within the Build (i.e. add or remove instances of them). GameServers that are members of the same GameServerBuild share the same details in their execution environment, e.g. all of them could launch the same multiplayer map or the same type of game. So, you could have one GameServerBuild for a "Capture the flag" mode of your game and another GameServerBuild for a "Conquest" mode. Or, one GameServerBuild for players playing on map "X" and another GameServerBuild for players playing on map "Y". You can, however, modify how each GameServer operates via BuildMedata (configured on the GameServerBuild) or via environment variables. 
+- **GameServerBuild** ([YAML](../operator/config/crd/bases/mps.playfab.com_gameserverbuildss.yaml), [Go](../operator/api/v1alpha1/gameserverbuild_types.go)): this represents a collection of GameServers that will run the same Pod template and can be scaled in/out within the Build (i.e. add or remove instances of them). GameServers that are members of the same GameServerBuild share the same details in their execution environment, e.g. all of them could launch the same multiplayer map or the same type of game. So, you could have one GameServerBuild for a "Capture the flag" mode of your game and another GameServerBuild for a "Conquest" mode. Or, one GameServerBuild for players playing on map "X" and another GameServerBuild for players playing on map "Y". You can, however, modify how each GameServer operates via BuildMedata (configured on the GameServerBuild) or via environment variables.
 - **GameServer** ([YAML](../operator/config/crd/bases/mps.playfab.com_gameservers.yaml), [Go](../operator/api/v1alpha1/gameserver_types.go)): this represents the multiplayer game server itself. Each DedicatedGameServer has a single corresponding child [Pod](https://kubernetes.io/docs/concepts/workloads/pods/pod/) which will run the container image containing your game server executable.
 
 ## GSDK integration
@@ -25,21 +25,23 @@ GSDK libraries are attempting to read configuration from a file (GSDKConfig.json
 
 ## Logging
 
-Thundernetes does not attempt to solve the game server logging problem. There are various solutions on Kubernetes on this problem e.g. running a [fluentd](https://www.fluentd.org/) DaemonSet in the cluster which will grab the logs and forward them to an output of your choice. 
+Thundernetes does not attempt to solve the game server logging problem. There are various solutions on Kubernetes on this problem e.g. running a [fluentd](https://www.fluentd.org/) DaemonSet in the cluster which will grab the logs and forward them to an output of your choice.
 
 ## End to end (e2e) testing
 
 We are using [kind](https://kind.sigs.k8s.io/) and Kubernetes [client-go](https://github.com/kubernetes/client-go) library for end-to-end testing scenarios. Kind dynamically setups a Kubernetes cluster in which we create and allocate game servers and test various scenarios. Check [this](../e2e) folder for more details.
 
-## metrics 
+## metrics
 
-Thundernetes exposes various metrics regarding GameServer management in Prometheus format. To view them, you can forward traffic to port 8080 of the controller via
+Thundernetes exposes various metrics regarding GameServer management in [Prometheus](https://prometheus.io) format. To view them, you can forward traffic to port 8080 of the controller via
 
 ```bash
 kubectl port-forward -n thundernetes-system deployments/thundernetes-controller-manager 8080:8080
 ```
 
 Then, you can use your browser and point it to `http://localhost:8080/metrics` to view the metrics.
+
+If you currently have [Prometheus](https://prometheus.io) & [Grafana](https://grafana.org) installed, yout can utilize the [sample dashboard](../samples/grafana/readme.md) to visualize the current controller and gameserver pod metrics.
 
 ## Port allocation
 
