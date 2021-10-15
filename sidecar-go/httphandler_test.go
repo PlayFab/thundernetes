@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
 	scheme2 "k8s.io/client-go/kubernetes/scheme"
@@ -121,7 +122,9 @@ var _ = Describe("API server tests", func() {
 func newDynamicInterface() dynamic.Interface {
 	SchemeBuilder := &scheme.Builder{GroupVersion: gameserverGVR.GroupVersion()}
 	SchemeBuilder.AddToScheme(scheme2.Scheme)
-	return fake.NewSimpleDynamicClient(scheme2.Scheme)
+	gvrMap := make(map[schema.GroupVersionResource]string)
+	gvrMap[gameserverGVR] = "GameServerList"
+	return fake.NewSimpleDynamicClientWithCustomListKinds(scheme2.Scheme, gvrMap)
 }
 
 func createUnstructuredTestGameServer(name, namespace string) *unstructured.Unstructured {
