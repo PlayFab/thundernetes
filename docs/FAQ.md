@@ -2,8 +2,6 @@
 
 ## Pod scheduling
 
-By default, Pods are scheduled using the Kubernetes scheduler. However, if you are using a cloud provider (e.g. Azure Kubernetes Service), you'd want to schedule your Game Server Pods as tight as possible. For example, if you have two VMs, you'll want to schedule the Pods on VM 1 till it can't host any more, then you'll schedule the Pods to VM 2. To do that, you can use the [Kubernetes inter-pod affinity strategy](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity).
-
 By default GameServer application pods may schedule on different kubernetes node due nature of kubernetes default scheduler. To optimize and schedule the GameServer pods on the same node using PodAffinity can be beneficial in the PodSpec of CRD
 ``` yaml
   podSpec:
