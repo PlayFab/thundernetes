@@ -22,6 +22,8 @@ var (
 	ip string
 	certFile string
 	keyFile string
+	tlsSet bool
+	ar *AllocationResult
 );
 
 func main () {
@@ -49,31 +51,50 @@ func main () {
 			
 		}
 
+		if len(args) < 5 { // if no more arguments are provided
+			if certFile == "" || keyFile == "" { // If the env vars are not set
+				tlsSet = false
+			} else { // the env vars are set 
+				tlsSet = true
+			}
+		} else { //  all the arguments are provided
+			tlsSet = true
+		}
+
 		if len(output) < 3 { // basically if we don't have a valid IP
-			ip = "https://127.0.0.1"
-		} else {
+			if tlsSet == true {
+				ip = "https://127.0.0.1"
+				cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+				ar, err = allocateTls(ip, args[2], args[3], cert)
+
+				if err != nil {
+					log.Panic(err)
+				}		
+			} else {
+				ip = "http://127.0.0.1"
+				ar, err = allocateNoTls(ip, args[2], args[3])
+
+				if err != nil {
+					log.Panic(err)
+				}		
+			}
+		} else { //  if we retrieve the ip correctly
 			ip = string(output)
-		}
 
-		// get certificates to authenticate to operator API server
-		if len(args) < 5 {
-			certFile = os.Getenv("TLS_PUBLIC")
-			keyFile = os.Getenv("TLS_PRIVATE")
-		} else {
-			certFile = args[4]
-			keyFile = args[5]
-		}
-		
-		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+			if tlsSet == true {
+				cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+				ar, err = allocateTls(ip, args[2], args[3], cert)
 
-		if err != nil {
-			log.Panic(err)
-		}
+				if err != nil {
+					log.Panic(err)
+				}
+			} else {
+				ar, err = allocateNoTls(ip, args[2], args[3])
 
-		ar, err := allocate(ip, args[2], args[3], cert)
-
-		if err != nil {
-			log.Panic(err)
+				if err != nil {
+					log.Panic(err)
+				}
+			}
 		}
 
 		log.Println("IP address: "+ ar.IPV4Address+". Session ID: "+ar.SessionID);
@@ -86,7 +107,7 @@ func main () {
 		if err != nil {
 			fmt.Println(string(output))
 			log.Fatal("Error while fetching the servers: ", err)
-			log.Println("Is required to have kubectl on your $PATH")
+			log.Println("It is required to have kubectl on your $PATH")
 			fmt.Println("Please, make sure you have your cluster configured properly")
 		}
 
@@ -99,13 +120,58 @@ func main () {
 	
 }
 
-func allocate(ip string, buildID string, sessionID string, cert tls.Certificate) (*AllocationResult, error) {
+func allocateTls(ip string, buildID string, sessionID string, cert tls.Certificate) (*AllocationResult, error) {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
 		Certificates:       []tls.Certificate{cert},
 	}
 
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
+	client := &http.Client{Transport: transport}
+
+	postBody, _ := json.Marshal(map[string]interface{}{
+		"buildID":        buildID,
+		"sessionID":      sessionID,
+		"sessionCookie":  "coolRandomCookie",
+		"initialPlayers": []string{"player1", "player2"},
+	})
+
+	postBodyBytes := bytes.NewBuffer(postBody)
+	resp, err := client.Post(ip+":5000/api/v1/allocate", "application/json", postBodyBytes)
+	
+	//Handle Error
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%d", resp.StatusCode)
+	}
+
+	//Read the response body
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	ar := &AllocationResult{}
+	json.Unmarshal(body, ar)
+
+	if ar.IPV4Address == "" {
+		return nil, fmt.Errorf("invalid IPV4Address %s", ar.IPV4Address)
+	}
+
+	if ar.SessionID != sessionID {
+		return nil, fmt.Errorf("invalid SessionID %s", ar.SessionID)
+	}
+
+	return ar, nil
+}
+
+func allocateNoTls(ip string, buildID string, sessionID string) (*AllocationResult, error) {
+
+	transport := &http.Transport{}
 	client := &http.Client{Transport: transport}
 
 	postBody, _ := json.Marshal(map[string]interface{}{
