@@ -34,6 +34,7 @@ const (
 	delayInSecondsForLoopTest int    = 1
 	LabelBuildID                     = "BuildID"
 	invalidStatusCode         string = "invalid status code"
+	containerName             string = "netcore-sample" // this must be the same as the GameServer name
 )
 
 type AllocationResult struct {
@@ -491,7 +492,6 @@ func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Contex
 		}
 	}
 
-	containerName := "netcore-sample" // this must be the same as the GameServer name
 	for _, gameServer := range activeGameServers {
 		err := retry(loopTimes, time.Duration(delayInSecondsForLoopTest)*time.Second, func() error {
 			logs, err := getPodLogs(ctx, coreClient, gameServer.Name, containerName, gameServer.Namespace)
