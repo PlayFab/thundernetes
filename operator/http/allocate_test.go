@@ -27,7 +27,6 @@ var (
 	buildID1   string = "acb84898-cf73-46e2-8057-314ac557d85d"
 	sessionID1 string = "d5f075a4-517b-4bf4-8123-dfa0021aa169"
 	gsName     string = "testgs"
-	sessionID2 string = "d5f075a4-517b-4bf4-8123-dfa0021aa160"
 )
 
 var _ = Describe("API server tests", func() {
@@ -118,9 +117,6 @@ var _ = Describe("API server tests", func() {
 		w := httptest.NewRecorder()
 		h := &allocateHandler{
 			client: client,
-			changeStatusInternalProvider: func(podIP, state, sessionCookie, sessionId string, initialPlayers []string) error {
-				return nil
-			},
 		}
 		h.handle(w, req)
 		res := w.Result()

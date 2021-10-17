@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	mpsv1alpha1 "github.com/playfab/thundernetes/operator/api/v1alpha1"
@@ -29,11 +30,11 @@ var (
 )
 
 const (
-	loopTimes                 int    = 20
-	delayInSecondsForLoopTest int    = 5
-	delayInSeconds            int    = 1
+	loopTimes                 int    = 30
+	delayInSecondsForLoopTest int    = 1
 	LabelBuildID                     = "BuildID"
 	invalidStatusCode         string = "invalid status code"
+	containerName             string = "netcore-sample" // this must be the same as the GameServer name
 )
 
 type AllocationResult struct {
@@ -478,10 +479,10 @@ func stopActiveGameServer(ctx context.Context, buildID string, cfg *rest.Config)
 	return nil
 }
 
-func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Context, buildID string) error {
+func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Context, buildID string) {
 	var gameServers mpsv1alpha1.GameServerList
 	if err := kubeClient.List(ctx, &gameServers, client.MatchingLabels{LabelBuildID: buildID}); err != nil {
-		return err
+		handleError(err)
 	}
 
 	activeGameServers := make([]mpsv1alpha1.GameServer, 0)
@@ -492,13 +493,33 @@ func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Contex
 	}
 
 	for _, gameServer := range activeGameServers {
-		logs, err := getPodLogs(ctx, coreClient, gameServer.Name, gameServer.Namespace)
+		err := retry(loopTimes, time.Duration(delayInSecondsForLoopTest)*time.Second, func() error {
+			logs, err := getPodLogs(ctx, coreClient, gameServer.Name, containerName, gameServer.Namespace)
+
+			if err != nil {
+				return err
+			}
+			if !strings.Contains(logs, "After ReadyForPlayers") { // this string must be the same as the one logged on netcore-sample
+				return fmt.Errorf("ReadyForPlayers still blocked for %s, the GSDK was not notified of the GameServer transitioning to Active", gameServer.Name)
+			}
+			return nil
+		})
 		if err != nil {
-			return err
-		}
-		if !strings.Contains(logs, "After ReadyForPlayers") { // this string must be the same as the one logged on netcore-sample
-			return fmt.Errorf("ReadyForPlayers still blocked for %s, the GSDK was not notified of the GameServer transitioning to Active", gameServer.Name)
+			handleError(err)
 		}
 	}
-	return nil
+}
+
+func retry(attempts int, sleep time.Duration, f func() error) (err error) {
+	for i := 0; ; i++ {
+		err = f()
+		if err == nil {
+			return
+		}
+		if i >= (attempts - 1) {
+			break
+		}
+		time.Sleep(sleep)
+	}
+	return fmt.Errorf("after %d attempts, last error: %s", attempts, err)
 }
