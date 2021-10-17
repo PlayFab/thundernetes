@@ -15,6 +15,11 @@ export OPENARENA_SAMPLE_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-co
 # local e2e with kind
 export KIND_CLUSTER_NAME=kind
 
+# Setting SHELL to bash allows bash commands to be executed by recipes.
+# Options are set to exit when a recipe line exits non-zero or a piped command fails.
+SHELL = /usr/bin/env bash -o pipefail
+.SHELLFLAGS = -ec
+
 docker-compose:
 	rm -rf samples/data/GameLogs/*
 	docker-compose up --build
@@ -66,10 +71,10 @@ cleanall:
 	kubectl delete gsb --all && make -C operator undeploy
 
 create-install-files:
-	export $(grep -v '^#' .versions | xargs -d '\n') && \
-	IMG=$(NS)/$(IMAGE_NAME_OPERATOR):${OPERATOR_TAG} \
+	. .versions && \
+	IMG=$(NS)/$(IMAGE_NAME_OPERATOR):$${OPERATOR_TAG} \
 	IMAGE_NAME_INIT_CONTAINER=$(NS)/$(IMAGE_NAME_INIT_CONTAINER) \
 	IMAGE_NAME_SIDECAR=$(NS)/$(IMAGE_NAME_SIDECAR) \
-	SIDECAR_TAG=$(SIDECAR_TAG) \
-	INIT_CONTAINER_TAG=$(INIT_CONTAINER_TAG) \
+	SIDECAR_TAG=$${SIDECAR_TAG} \
+	INIT_CONTAINER_TAG=$${INIT_CONTAINER_TAG} \
 	make -C operator create-install-files
