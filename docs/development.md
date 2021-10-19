@@ -93,7 +93,7 @@ cd operator && THUNDERNETES_SIDECAR_IMAGE=ghcr.io/playfab/thundernetes-sidecar-g
 You should `git clone` this repository to your local machine. As soon as this is done, you can run the following command to install Thundernetes.
 
 ```bash
-export TAG=0.0.1.2
+export TAG=0.0.2.0
 IMG=ghcr.io/playfab/thundernetes-operator:${TAG} \
   IMAGE_NAME_INIT_CONTAINER=ghcr.io/playfab/thundernetes-initcontainer \
   IMAGE_NAME_SIDECAR=ghcr.io/playfab/thundernetes-sidecar-netcore \
