@@ -250,9 +250,9 @@ func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1
 		}
 	}
 
-	InitializingGameServersGauge.WithLabelValues(gsb.Name).Set(float64(initializingCount))
-	StandingByGameServersGauge.WithLabelValues(gsb.Name).Set(float64(standingByCount))
-	ActiveGameServersGauge.WithLabelValues(gsb.Name).Set(float64(activeCount))
+	CurrentGameServerGauge.WithLabelValues(gsb.Name, InitializingServerStatus).Set(float64(initializingCount))
+	CurrentGameServerGauge.WithLabelValues(gsb.Name, StandingByServerStatus).Set(float64(standingByCount))
+	CurrentGameServerGauge.WithLabelValues(gsb.Name, ActiveServerStatus).Set(float64(activeCount))
 
 	return ctrl.Result{}, nil
 }

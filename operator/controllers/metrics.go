@@ -2,60 +2,52 @@ package controllers
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+const (
+	ActiveServerStatus       = "active"
+	StandingByServerStatus   = "standingby"
+	InitializingServerStatus = "initializing"
 )
 
 var (
-	GameServersCreatedCounter = prometheus.NewCounterVec(
+	GameServersCreatedCounter = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "gameservers_created_total",
 			Help: "Number of GameServers created",
 		},
 		[]string{"BuildName"},
 	)
-	GameServersSessionEndedCounter = prometheus.NewCounterVec(
+	GameServersSessionEndedCounter = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "gameservers_sessionended_total",
 			Help: "Number of GameServer sessions ended",
 		},
 		[]string{"BuildName"},
 	)
-	GameServersCrashedCounter = prometheus.NewCounterVec(
+	GameServersCrashedCounter = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "gameservers_crashed_total",
 			Help: "Number of GameServers sessions crashed",
 		},
 		[]string{"BuildName"},
 	)
-	GameServersDeletedCounter = prometheus.NewCounterVec(
+	GameServersDeletedCounter = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "gameservers_deleted_total",
 			Help: "Number of GameServers deleted",
 		},
 		[]string{"BuildName"},
 	)
-	InitializingGameServersGauge = prometheus.NewGaugeVec(
+	CurrentGameServerGauge = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "gameservers_initializing_total",
-			Help: "Number of initializing GameServers",
+			Name: "gameservers_current",
+			Help: "Current number of GameServers",
 		},
-		[]string{"BuildName"},
+		[]string{"BuildName", "status"},
 	)
-	StandingByGameServersGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "gameservers_standingby_total",
-			Help: "Number of standing by GameServers",
-		},
-		[]string{"BuildName"},
-	)
-	ActiveGameServersGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "gameservers_active_total",
-			Help: "Number of active GameServers",
-		},
-		[]string{"BuildName"},
-	)
-	AllocationsCounter = prometheus.NewCounterVec(
+	AllocationsCounter = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "allocations_total",
 			Help: "Number of GameServers allocations",
@@ -63,15 +55,3 @@ var (
 		[]string{"BuildName"},
 	)
 )
-
-func addMetricsToRegistry() {
-	// Register custom metrics with the global prometheus registry
-	metrics.Registry.MustRegister(GameServersCreatedCounter,
-		GameServersCrashedCounter,
-		GameServersDeletedCounter,
-		GameServersSessionEndedCounter,
-		InitializingGameServersGauge,
-		StandingByGameServersGauge,
-		ActiveGameServersGauge,
-		AllocationsCounter)
-}
