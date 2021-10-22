@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 const (
@@ -12,45 +13,53 @@ const (
 )
 
 var (
-	GameServersCreatedCounter = promauto.NewCounterVec(
+	registry = promauto.With(metrics.Registry)
+
+	GameServersCreatedCounter = registry.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gameservers_created_total",
-			Help: "Number of GameServers created",
+			Namespace: "thundernetes",
+			Name:      "gameservers_created_total",
+			Help:      "Number of GameServers created",
 		},
 		[]string{"BuildName"},
 	)
-	GameServersSessionEndedCounter = promauto.NewCounterVec(
+	GameServersSessionEndedCounter = registry.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gameservers_sessionended_total",
-			Help: "Number of GameServer sessions ended",
+			Namespace: "thundernetes",
+			Name:      "gameservers_sessionended_total",
+			Help:      "Number of GameServer sessions ended",
 		},
 		[]string{"BuildName"},
 	)
-	GameServersCrashedCounter = promauto.NewCounterVec(
+	GameServersCrashedCounter = registry.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gameservers_crashed_total",
-			Help: "Number of GameServers sessions crashed",
+			Namespace: "thundernetes",
+			Name:      "gameservers_crashed_total",
+			Help:      "Number of GameServers sessions crashed",
 		},
 		[]string{"BuildName"},
 	)
-	GameServersDeletedCounter = promauto.NewCounterVec(
+	GameServersDeletedCounter = registry.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gameservers_deleted_total",
-			Help: "Number of GameServers deleted",
+			Namespace: "thundernetes",
+			Name:      "gameservers_deleted_total",
+			Help:      "Number of GameServers deleted",
 		},
 		[]string{"BuildName"},
 	)
-	CurrentGameServerGauge = promauto.NewGaugeVec(
+	CurrentGameServerGauge = registry.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "gameservers_current",
-			Help: "Current number of GameServers",
+			Namespace: "thundernetes",
+			Name:      "gameservers_current_state",
+			Help:      "Gameserver gauges by state",
 		},
-		[]string{"BuildName", "status"},
+		[]string{"BuildName", "state"},
 	)
-	AllocationsCounter = promauto.NewCounterVec(
+	AllocationsCounter = registry.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "allocations_total",
-			Help: "Number of GameServers allocations",
+			Namespace: "thundernetes",
+			Name:      "allocations_total",
+			Help:      "Number of GameServers allocations",
 		},
 		[]string{"BuildName"},
 	)
