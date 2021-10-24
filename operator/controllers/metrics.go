@@ -2,76 +2,65 @@ package controllers
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
+const (
+	ActiveServerStatus       = "active"
+	StandingByServerStatus   = "standingby"
+	InitializingServerStatus = "initializing"
+)
+
 var (
-	GameServersCreatedCounter = prometheus.NewCounterVec(
+	registry = promauto.With(metrics.Registry)
+
+	GameServersCreatedCounter = registry.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gameservers_created_total",
-			Help: "Number of GameServers created",
+			Namespace: "thundernetes",
+			Name:      "gameservers_created_total",
+			Help:      "Number of GameServers created",
 		},
 		[]string{"BuildName"},
 	)
-	GameServersSessionEndedCounter = prometheus.NewCounterVec(
+	GameServersSessionEndedCounter = registry.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gameservers_sessionended_total",
-			Help: "Number of GameServer sessions ended",
+			Namespace: "thundernetes",
+			Name:      "gameservers_sessionended_total",
+			Help:      "Number of GameServer sessions ended",
 		},
 		[]string{"BuildName"},
 	)
-	GameServersCrashedCounter = prometheus.NewCounterVec(
+	GameServersCrashedCounter = registry.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gameservers_crashed_total",
-			Help: "Number of GameServers sessions crashed",
+			Namespace: "thundernetes",
+			Name:      "gameservers_crashed_total",
+			Help:      "Number of GameServers sessions crashed",
 		},
 		[]string{"BuildName"},
 	)
-	GameServersDeletedCounter = prometheus.NewCounterVec(
+	GameServersDeletedCounter = registry.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gameservers_deleted_total",
-			Help: "Number of GameServers deleted",
+			Namespace: "thundernetes",
+			Name:      "gameservers_deleted_total",
+			Help:      "Number of GameServers deleted",
 		},
 		[]string{"BuildName"},
 	)
-	InitializingGameServersGauge = prometheus.NewGaugeVec(
+	CurrentGameServerGauge = registry.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "gameservers_initializing_total",
-			Help: "Number of initializing GameServers",
+			Namespace: "thundernetes",
+			Name:      "gameservers_current_state",
+			Help:      "Gameserver gauges by state",
 		},
-		[]string{"BuildName"},
+		[]string{"BuildName", "state"},
 	)
-	StandingByGameServersGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "gameservers_standingby_total",
-			Help: "Number of standing by GameServers",
-		},
-		[]string{"BuildName"},
-	)
-	ActiveGameServersGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "gameservers_active_total",
-			Help: "Number of active GameServers",
-		},
-		[]string{"BuildName"},
-	)
-	AllocationsCounter = prometheus.NewCounterVec(
+	AllocationsCounter = registry.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "allocations_total",
-			Help: "Number of GameServers allocations",
+			Namespace: "thundernetes",
+			Name:      "allocations_total",
+			Help:      "Number of GameServers allocations",
 		},
 		[]string{"BuildName"},
 	)
 )
-
-func addMetricsToRegistry() {
-	// Register custom metrics with the global prometheus registry
-	metrics.Registry.MustRegister(GameServersCreatedCounter,
-		GameServersCrashedCounter,
-		GameServersDeletedCounter,
-		GameServersSessionEndedCounter,
-		InitializingGameServersGauge,
-		StandingByGameServersGauge,
-		ActiveGameServersGauge,
-		AllocationsCounter)
-}

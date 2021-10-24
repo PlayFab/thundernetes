@@ -65,8 +65,6 @@ func init() {
 	if InitContainerImage == "" {
 		panic("THUNDERNETES_INIT_CONTAINER_IMAGE cannot be empty")
 	}
-
-	addMetricsToRegistry()
 }
 
 // generateName generates a random string concatenated with prefix and a dash
