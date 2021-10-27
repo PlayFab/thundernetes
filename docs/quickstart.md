@@ -1,6 +1,6 @@
 # Quickstart
 
-We've tested thundernetes on Azure Kubernetes Service (AKS) version 1.20.7 and [kind](https://kind.sigs.k8s.io/) but it can theoretically be installed on any Kubernetes cluster with a public IP per Node. Read the relevant section depending on where you want to install thundernetes.
+We've tested thundernetes on Azure Kubernetes Service (AKS) version 1.20.7 and 1.20.9 and [kind](https://kind.sigs.k8s.io/) but it can theoretically be installed on any Kubernetes cluster with a public IP per Node. Read the relevant section depending on where you want to install thundernetes.
 
 > If you are using Windows, we recommend using [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to run the CLI commands listed below.
 
@@ -18,7 +18,7 @@ AKS_LOCATION=westus2 # AKS datacenter location
 # create a resource group
 az group create --name $AKS_RESOURCE_GROUP --location $AKS_LOCATION
 # create a new AKS cluster enabling the feature of Public IP per Node
-az aks create --resource-group $AKS_RESOURCE_GROUP --name $AKS_NAME --ssh-key-value ~/.ssh/id_rsa.pub --kubernetes-version 1.20.5 --enable-node-public-ip
+az aks create --resource-group $AKS_RESOURCE_GROUP --name $AKS_NAME --ssh-key-value ~/.ssh/id_rsa.pub --kubernetes-version 1.20.9 --enable-node-public-ip
 # get credentials for this cluster
 az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_NAME --file ~/.kube/config-thundernetes
 # check that cluster is up and running
