@@ -1,0 +1,20 @@
+# permissions for end users to view gameserverdetails.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gameserverdetail-viewer-role
+rules:
+- apiGroups:
+  - mps.playfab.com
+  resources:
+  - gameserverdetails
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - mps.playfab.com
+  resources:
+  - gameserverdetails/status
+  verbs:
+  - get

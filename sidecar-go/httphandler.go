@@ -23,14 +23,21 @@ var (
 		Version:  "v1alpha1",
 		Resource: "gameservers",
 	}
+
+	gameserverDetailGVR = schema.GroupVersionResource{
+		Group:    "mps.playfab.com",
+		Version:  "v1alpha1",
+		Resource: "gameserverdetails",
+	}
 )
 
 var (
 	userSetSessionDetails = &SessionDetails{
 		State: string(GameStateInvalid),
 	}
-	watchStopper = make(chan struct{})
-	mux          = &sync.RWMutex{}
+	watchStopper              = make(chan struct{})
+	mux                       = &sync.RWMutex{}
+	connectedPlayersCount int = 0
 )
 
 const logEveryHeartbeat = false
@@ -65,13 +72,13 @@ func (h *httpHandler) setupWatch() {
 	dynInformer := dynamicinformer.NewFilteredDynamicSharedInformerFactory(h.k8sClient, 0, h.gameServerNamespace, listOptions)
 	informer := dynInformer.ForResource(gameserverGVR).Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		UpdateFunc: gameServerUpdated,
+		UpdateFunc: h.gameServerUpdated,
 	})
 
 	go informer.Run(watchStopper)
 }
 
-func gameServerUpdated(oldObj, newObj interface{}) {
+func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
 	// dynamic client returns an unstructured object
 	old := oldObj.(*unstructured.Unstructured)
 	new := newObj.(*unstructured.Unstructured)
@@ -95,13 +102,15 @@ func gameServerUpdated(oldObj, newObj interface{}) {
 		return
 	}
 
-	fmt.Printf("CRD instance updated %s:%s,%s,%s\n", old.GetName(), oldState, new.GetName(), newState)
+	fmt.Printf("GameServer CRD instance updated %s:%s,%s,%s\n", old.GetName(), oldState, new.GetName(), newState)
 
 	// if the GameServer was allocated
 	if oldState == string(GameStateStandingBy) && newState == string(GameStateActive) {
-		sessionID, sessionCookie, initialPlayers := getSessionDetails(new)
+		sessionID, sessionCookie := h.getSessionDetails(new)
 
-		fmt.Printf("Got values from allocation, sessionID:%s, sessionCookie:%s, initialPlayers:%#v\n", sessionID, sessionCookie, initialPlayers)
+		fmt.Printf("Got values from allocation, sessionID:%s, sessionCookie:%s\n", sessionID, sessionCookie)
+
+		initialPlayers := h.getInitialPlayersDetails()
 
 		mux.Lock()
 		userSetSessionDetails = &SessionDetails{
@@ -110,6 +119,7 @@ func gameServerUpdated(oldObj, newObj interface{}) {
 			InitialPlayers: initialPlayers,
 			State:          string(GameStateActive),
 		}
+		connectedPlayersCount = len(initialPlayers)
 		mux.Unlock()
 
 		// closing the channel will cause the informer to stop
@@ -118,13 +128,32 @@ func gameServerUpdated(oldObj, newObj interface{}) {
 	}
 }
 
-func getSessionDetails(u *unstructured.Unstructured) (string, string, []string) {
+func (h *httpHandler) getInitialPlayersDetails() []string {
+	obj, err := h.k8sClient.Resource(gameserverDetailGVR).Namespace(h.gameServerNamespace).Get(context.Background(), h.gameServerName, metav1.GetOptions{})
+	if err != nil {
+		fmt.Printf("error getting initial players details %s\n", err.Error())
+		return []string{}
+	}
+
+	initialPlayers, initialPlayersExist, err := unstructured.NestedStringSlice(obj.Object, "spec", "initialPlayers")
+	if err != nil {
+		fmt.Printf("error getting initial players details %s\n", err.Error())
+		return []string{}
+	}
+	if !initialPlayersExist {
+		fmt.Printf("initial players details does not exist\n")
+		return []string{}
+	}
+
+	return initialPlayers
+}
+
+func (h *httpHandler) getSessionDetails(u *unstructured.Unstructured) (string, string) {
 	sessionID, sessionIDExists, sessionIDErr := unstructured.NestedString(u.Object, "status", "sessionID")
 	sessionCookie, sessionCookieExists, SessionCookieErr := unstructured.NestedString(u.Object, "status", "sessionCookie")
-	initialPlayers, initialPlayersExists, initialPlayersErr := unstructured.NestedStringSlice(u.Object, "status", "initialPlayers")
 
-	if !sessionIDExists || !sessionCookieExists || !initialPlayersExists {
-		fmt.Printf("sessionID, sessionCookie, or initialPlayers do not exist, sessionIDExists:%t, sessionCookieExists:%t, initialPlayersExists:%t\n", sessionIDExists, sessionCookieExists, initialPlayersExists)
+	if !sessionIDExists || !sessionCookieExists {
+		fmt.Printf("sessionID or sessionCookie do not exist, sessionIDExists:%t, sessionCookieExists:%t\n", sessionIDExists, sessionCookieExists)
 	}
 
 	if sessionIDErr != nil {
@@ -135,11 +164,7 @@ func getSessionDetails(u *unstructured.Unstructured) (string, string, []string) 
 		fmt.Printf("error getting sessionCookie %s\n", SessionCookieErr.Error())
 	}
 
-	if initialPlayersErr != nil {
-		fmt.Printf("error getting initialPlayers %s\n", initialPlayersErr.Error())
-	}
-
-	return sessionID, sessionCookie, initialPlayers
+	return sessionID, sessionCookie
 }
 
 func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request) {
@@ -169,6 +194,12 @@ func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request)
 	if err := h.updateHealthIfNeeded(ctx, &hb); err != nil {
 		fmt.Printf("error updating health %s\n", err.Error())
 		internalServerError(w, err, "error updating health")
+		return
+	}
+
+	if err := h.updateConnectedPlayersCountIfNeeded(ctx, &hb); err != nil {
+		fmt.Printf("error updating connected players count %s\n", err.Error())
+		internalServerError(w, err, "error updating connected players count")
 		return
 	}
 
@@ -231,6 +262,20 @@ func (h *httpHandler) updateHealthIfNeeded(ctx context.Context, hb *HeartbeatReq
 
 		h.previousGameHealth = hb.CurrentGameHealth
 
+	}
+	return nil
+}
+
+func (h *httpHandler) updateConnectedPlayersCountIfNeeded(ctx context.Context, hb *HeartbeatRequest) error {
+	if connectedPlayersCount != len(hb.CurrentPlayers) {
+		fmt.Printf("ConnectedPlayersCount is different than before, updating. Old connectedPlayersCount %d, new connectedPlayersCount %d\n", connectedPlayersCount, len(hb.CurrentPlayers))
+		payload := fmt.Sprintf("{\"spec\":{\"connectedPlayersCount\":%d}}", len(hb.CurrentPlayers))
+		payloadBytes := []byte(payload)
+		_, err := h.k8sClient.Resource(gameserverDetailGVR).Namespace(h.gameServerNamespace).Patch(ctx, h.gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{})
+		if err != nil {
+			return err
+		}
+		connectedPlayersCount = len(hb.CurrentPlayers)
 	}
 	return nil
 }

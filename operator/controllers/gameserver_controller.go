@@ -58,6 +58,7 @@ type GameServerReconciler struct {
 // we request secret RBAC access here so they can be potentially used by the API service (for GameServer allocations)
 
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverdetails,verbs=create
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
