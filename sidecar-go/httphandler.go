@@ -132,17 +132,17 @@ func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
 func (h *httpHandler) getInitialPlayersDetails() []string {
 	obj, err := h.k8sClient.Resource(gameserverDetailGVR).Namespace(h.gameServerNamespace).Get(context.Background(), h.gameServerName, metav1.GetOptions{})
 	if err != nil {
-		log.Errorf("error getting initial players details %s", err.Error())
+		log.Warnf("error getting initial players details %s", err.Error())
 		return nil
 	}
 
 	initialPlayers, initialPlayersExist, err := unstructured.NestedStringSlice(obj.Object, "spec", "initialPlayers")
 	if err != nil {
-		log.Errorf("error getting initial players %s", err.Error())
+		log.Warnf("error getting initial players %s", err.Error())
 		return nil
 	}
 	if !initialPlayersExist {
-		log.Errorf("initial players does not exist")
+		log.Warnf("initial players does not exist")
 		return nil
 	}
 
@@ -183,11 +183,11 @@ func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request)
 	}
 
 	if logEveryHeartbeat {
-		log.Infof("heartbeat received from sessionHostId %s, data %#v", sessionHostId, hb)
+		log.Debugf("heartbeat received from sessionHostId %s, data %#v", sessionHostId, hb)
 	}
 
 	if err := validateHeartbeatRequestArgs(&hb); err != nil {
-		log.Errorf("error validating heartbeat request %s", err.Error())
+		log.Warnf("error validating heartbeat request %s", err.Error())
 		badRequest(w, err, "invalid heartbeat request")
 		return
 	}
@@ -238,7 +238,8 @@ func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request)
 	if sd.SessionCookie != "" {
 		sc.SessionCookie = sd.SessionCookie
 	}
-	if sd.InitialPlayers != nil && sd.State == string(GameStateActive) {
+
+	if sd.InitialPlayers != nil {
 		sc.InitialPlayers = sd.InitialPlayers
 	}
 
