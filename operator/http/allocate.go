@@ -118,7 +118,7 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 	// pick a random one
 	gs := gameserversStandingBy.Items[rand.Intn(len(gameserversStandingBy.Items))]
 
-	gsd := getConfigMapForGameServer(&gs, args.InitialPlayers)
+	gsd := createGameServerDetailForGameServer(&gs, args.InitialPlayers)
 
 	err = h.client.Create(r.Context(), &gsd)
 	if err != nil {
@@ -150,7 +150,7 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 	controllers.AllocationsCounter.WithLabelValues(gs.Labels[controllers.LabelBuildName]).Inc()
 }
 
-func getConfigMapForGameServer(gs *mpsv1alpha1.GameServer, initialPlayers []string) mpsv1alpha1.GameServerDetail {
+func createGameServerDetailForGameServer(gs *mpsv1alpha1.GameServer, initialPlayers []string) mpsv1alpha1.GameServerDetail {
 	return mpsv1alpha1.GameServerDetail{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      gs.Name,
@@ -166,7 +166,7 @@ func getConfigMapForGameServer(gs *mpsv1alpha1.GameServer, initialPlayers []stri
 		},
 		Spec: mpsv1alpha1.GameServerDetailSpec{
 			InitialPlayers:        initialPlayers,
-			ConnectedPlayersCount: len(initialPlayers),
+			ConnectedPlayersCount: 0,
 		},
 	}
 }

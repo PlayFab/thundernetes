@@ -35,6 +35,7 @@ const (
 	LabelBuildID                     = "BuildID"
 	invalidStatusCode         string = "invalid status code"
 	containerName             string = "netcore-sample" // this must be the same as the GameServer name
+	sidecarName               string = "thundernetes-sidecar"
 )
 
 type AllocationResult struct {
@@ -52,13 +53,14 @@ type buildState struct {
 }
 
 const (
-	testNamespace  = "mynamespace"
-	testBuild1Name = "testbuild1"
-	testBuild2Name = "testbuild2"
-	testBuild3Name = "crashing"
-	test1BuildID   = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f5"
-	test2BuildID   = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
-	test3BuildID   = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f7"
+	testNamespace         = "mynamespace"
+	testBuild1Name        = "testbuild1"
+	testBuild2Name        = "testbuild2"
+	testBuild3Name        = "crashing"
+	test1BuildID          = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f5"
+	test2BuildID          = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
+	test3BuildID          = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f7"
+	connectedPlayersCount = 3
 )
 
 func main() {
@@ -494,14 +496,37 @@ func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Contex
 
 	for _, gameServer := range activeGameServers {
 		err := retry(loopTimes, time.Duration(delayInSecondsForLoopTest)*time.Second, func() error {
-			logs, err := getPodLogs(ctx, coreClient, gameServer.Name, containerName, gameServer.Namespace)
+			sidecarLogs, err := getContainerLogs(ctx, coreClient, gameServer.Name, sidecarName, gameServer.Namespace)
+			if err != nil {
+				return err
+			}
+			if !strings.Contains(sidecarLogs, "sessionCookie:randomCookie") {
+				return fmt.Errorf("expected to find 'sessionCookie:randomCookie' in sidecar logs, got %s", sidecarLogs)
+			}
+
+			containerLogs, err := getContainerLogs(ctx, coreClient, gameServer.Name, containerName, gameServer.Namespace)
 
 			if err != nil {
 				return err
 			}
-			if !strings.Contains(logs, "After ReadyForPlayers") { // this string must be the same as the one logged on netcore-sample
+			if !strings.Contains(containerLogs, "After ReadyForPlayers") { // this string must be the same as the one logged on netcore-sample
 				return fmt.Errorf("ReadyForPlayers still blocked for %s, the GSDK was not notified of the GameServer transitioning to Active", gameServer.Name)
 			}
+			if !strings.Contains(containerLogs, "Config with key sessionId has value") {
+				return fmt.Errorf("sessionId was not set on %s", gameServer.Name)
+			}
+			if !strings.Contains(containerLogs, "Config with key sessionCookie has value randomCookie") {
+				return fmt.Errorf("sessionCookie was not set on %s", gameServer.Name)
+			}
+			if !strings.Contains(containerLogs, "Initial Players: player1-player2") {
+				return fmt.Errorf("initial Players was not logged for %s", gameServer.Name)
+			}
+
+			// check GameServerDetails
+			if err := verifyGameServerDetail(ctx, gameServer.Name, connectedPlayersCount); err != nil {
+				return err
+			}
+
 			return nil
 		})
 		if err != nil {
