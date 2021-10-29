@@ -66,6 +66,7 @@ func NewHttpHandler(k8sClient dynamic.Interface, gameServerName, gameServerNames
 	return hh
 }
 
+// setupWatch sets up the informer to watch the GameServer CRD
 func (h *httpHandler) setupWatch() {
 	// great article for reference https://firehydrant.io/blog/dynamic-kubernetes-informers/
 	listOptions := dynamicinformer.TweakListOptionsFunc(func(options *metav1.ListOptions) {
@@ -80,6 +81,7 @@ func (h *httpHandler) setupWatch() {
 	go informer.Run(watchStopper)
 }
 
+// gameServerUpdated runs when the GameServer CRD has been updated
 func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
 	// dynamic client returns an unstructured object
 	old := oldObj.(*unstructured.Unstructured)
@@ -100,7 +102,7 @@ func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
 	}
 
 	if !oldStateExists || !newStateExists {
-		log.Errorf("state does not exist, oldStateExists:%t, newStateExists:%t", oldStateExists, newStateExists)
+		log.Warnf("state does not exist, oldStateExists:%t, newStateExists:%t", oldStateExists, newStateExists)
 		return
 	}
 
@@ -111,7 +113,7 @@ func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
 		sessionID, sessionCookie := h.parseSessionDetails(new)
 		log.Infof("Got values from allocation, sessionID:%s, sessionCookie:%s", sessionID, sessionCookie)
 
-		initialPlayers := h.getInitialPlayersDetails()
+		initialPlayers := h.getInitialPlayers()
 		log.Infof("Got values from allocation, initialPlayers:%#v", initialPlayers)
 
 		sessionDetailsMutex.Lock()
@@ -129,7 +131,8 @@ func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
 	}
 }
 
-func (h *httpHandler) getInitialPlayersDetails() []string {
+// getInitialPlayers returns the initial players from the GameServerDetail CRD
+func (h *httpHandler) getInitialPlayers() []string {
 	obj, err := h.k8sClient.Resource(gameserverDetailGVR).Namespace(h.gameServerNamespace).Get(context.Background(), h.gameServerName, metav1.GetOptions{})
 	if err != nil {
 		log.Warnf("error getting initial players details %s", err.Error())
@@ -149,6 +152,7 @@ func (h *httpHandler) getInitialPlayersDetails() []string {
 	return initialPlayers
 }
 
+// parseSessionDetails returns the sessionID and sessionCookie from the unstructured GameServer CRD
 func (h *httpHandler) parseSessionDetails(u *unstructured.Unstructured) (string, string) {
 	sessionID, sessionIDExists, sessionIDErr := unstructured.NestedString(u.Object, "status", "sessionID")
 	sessionCookie, sessionCookieExists, SessionCookieErr := unstructured.NestedString(u.Object, "status", "sessionCookie")
@@ -232,16 +236,9 @@ func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request)
 	}
 
 	sc := &SessionConfig{}
-	if sd.SessionID != "" {
-		sc.SessionId = sd.SessionID
-	}
-	if sd.SessionCookie != "" {
-		sc.SessionCookie = sd.SessionCookie
-	}
-
-	if sd.InitialPlayers != nil {
-		sc.InitialPlayers = sd.InitialPlayers
-	}
+	sc.SessionId = sd.SessionID
+	sc.SessionCookie = sd.SessionCookie
+	sc.InitialPlayers = sd.InitialPlayers
 
 	hr := &HeartbeatResponse{
 		Operation:     op,
@@ -253,6 +250,7 @@ func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request)
 	w.Write(json)
 }
 
+// updateHealthIfNeeded updates the health of the GameServer CRD if the game health has changed
 func (h *httpHandler) updateHealthIfNeeded(ctx context.Context, hb *HeartbeatRequest) error {
 	if h.previousGameHealth != hb.CurrentGameHealth {
 		log.Infof("Health is different than before, updating. Old health %s, new health %s", h.previousGameHealth, hb.CurrentGameHealth)
@@ -268,8 +266,9 @@ func (h *httpHandler) updateHealthIfNeeded(ctx context.Context, hb *HeartbeatReq
 	return nil
 }
 
+// updateConnectedPlayersCountIfNeeded updates the connected players count of the GameServer CRD if the connected players count has changed
 func (h *httpHandler) updateConnectedPlayersCountIfNeeded(ctx context.Context, hb *HeartbeatRequest) error {
-	// we're not interested in the connected players count if the game is not active
+	// we're not interested in updating the connected players count if the game is not active
 	if hb.CurrentGameState == GameStateActive && h.connectedPlayersCount != len(hb.CurrentPlayers) {
 		log.Infof("ConnectedPlayersCount is different than before, updating. Old connectedPlayersCount %d, new connectedPlayersCount %d", h.connectedPlayersCount, len(hb.CurrentPlayers))
 		payload := fmt.Sprintf("{\"spec\":{\"connectedPlayersCount\":%d}}", len(hb.CurrentPlayers))
@@ -278,11 +277,13 @@ func (h *httpHandler) updateConnectedPlayersCountIfNeeded(ctx context.Context, h
 		if err != nil {
 			return err
 		}
+		// storing the current number in memory
 		h.connectedPlayersCount = len(hb.CurrentPlayers)
 	}
 	return nil
 }
 
+// transitionStateToStandingBy transitions the state of the GameServer CRD to standingBy
 func (h *httpHandler) transitionStateToStandingBy(ctx context.Context, hb *HeartbeatRequest) error {
 	log.Infof("State is different than before, updating. Old state %s, new state StandingBy", h.previousGameState)
 	payload := fmt.Sprintf("{\"status\":{\"state\":\"%s\"}}", hb.CurrentGameState)
