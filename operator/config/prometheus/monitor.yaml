@@ -5,7 +5,7 @@ metadata:
   labels:
     control-plane: controller-manager
   name: controller-manager-metrics-monitor
-  namespace: thundernetes-system
+  namespace: system
 spec:
   endpoints:
     - path: /metrics
