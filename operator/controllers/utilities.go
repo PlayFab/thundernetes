@@ -283,6 +283,10 @@ func getInitContainerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 			Name:  "PF_GAMESERVER_NAME", // this becomes SessionHostId in gsdkConfig.json file
 			Value: gs.Name,              // GameServer.Name is the same as Pod.Name
 		},
+		{
+			Name:  "PF_GAMESERVER_NAMESPACE",
+			Value: gs.Namespace,
+		},
 	}
 
 	var b bytes.Buffer
