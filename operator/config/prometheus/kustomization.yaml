@@ -1,4 +1,4 @@
 resources:
   - monitor.yaml
   - service-monitor-role.yaml
-  - service-monitor-role-binding.yaml
+  - service-monitor-rolebinding.yaml

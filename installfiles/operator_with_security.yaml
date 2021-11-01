@@ -7964,13 +7964,28 @@ kind: Service
 metadata:
   labels:
     control-plane: controller-manager
-  name: thundernetes-controller-manager-metrics-service
+  name: thundernetes-controller-manager-auth-service
   namespace: thundernetes-system
 spec:
   ports:
   - name: https
     port: 8443
     targetPort: https
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: thundernetes-controller-manager-metrics-service
+  namespace: thundernetes-system
+spec:
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
   selector:
     control-plane: controller-manager
 ---
@@ -8019,6 +8034,7 @@ spec:
         ports:
         - containerPort: 5000
           hostPort: 5000
+        - containerPort: 8080
         readinessProbe:
           httpGet:
             path: /readyz
