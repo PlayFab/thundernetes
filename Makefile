@@ -78,3 +78,6 @@ create-install-files:
 	SIDECAR_TAG=$${SIDECAR_TAG} \
 	INIT_CONTAINER_TAG=$${INIT_CONTAINER_TAG} \
 	make -C operator create-install-files
+
+create-install-files-with-monitoring: create-install-files
+	make -C operator create-install-files-with-monitoring
