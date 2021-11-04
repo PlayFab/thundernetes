@@ -80,6 +80,15 @@ create-install-files:
 	echo "---" >> ../installfiles/operator_with_security.yaml
 	$(KUSTOMIZE) build config/rbac-gameserver-editor >> ../installfiles/operator_with_security.yaml
 
+create-install-files-with-monitoring: create-install-files
+## Add prometheus service monitoring & roles to the kustomize output
+	cp ../installfiles/operator.yaml ../installfiles/operator_with_monitoring.yaml
+	echo "---" >> ../installfiles/operator_with_monitoring.yaml
+	$(KUSTOMIZE) build config/prometheus >> ../installfiles/operator_with_monitoring.yaml
+	cp ../installfiles/operator_with_security.yaml ../installfiles/operator_with_security_and_monitoring.yaml
+	echo "---" >> ../installfiles/operator_with_security_and_monitoring.yaml
+	$(KUSTOMIZE) build config/rbac-gameserver-editor >> ../installfiles/operator_with_security_and_monitoring.yaml
+
 ##@ Deployment
 
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
