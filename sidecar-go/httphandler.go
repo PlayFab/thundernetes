@@ -138,17 +138,17 @@ func (h *httpHandler) getInitialPlayers() []string {
 	obj, err := h.k8sClient.Resource(gameserverDetailGVR).Namespace(h.gameServerNamespace).Get(context.Background(), h.gameServerName, metav1.GetOptions{})
 	if err != nil {
 		h.logger.Warnf("error getting initial players details %s", err.Error())
-		return nil
+		return []string{}
 	}
 
 	initialPlayers, initialPlayersExist, err := unstructured.NestedStringSlice(obj.Object, "spec", "initialPlayers")
 	if err != nil {
 		h.logger.Warnf("error getting initial players %s", err.Error())
-		return nil
+		return []string{}
 	}
 	if !initialPlayersExist {
 		h.logger.Warnf("initial players does not exist")
-		return nil
+		return []string{}
 	}
 
 	return initialPlayers
