@@ -68,6 +68,12 @@ rules:
 - apiGroups:
   - mps.playfab.com
   resources:
+  - gameserverdetails
+  verbs:
+  - create
+- apiGroups:
+  - mps.playfab.com
+  resources:
   - gameservers
   verbs:
   - create

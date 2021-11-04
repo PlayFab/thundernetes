@@ -1,4 +1,4 @@
-# permissions for end users to edit gameservers.
+# permissions for GameServer Pods (specifically the sidecar) to watch and patch GameServer CRs and GameServerDetail
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -16,4 +16,11 @@ rules:
   resources:
   - gameservers/status
   verbs:
+  - patch
+- apiGroups:
+  - mps.playfab.com
+  resources:
+  - gameserverdetails
+  verbs:
+  - get
   - patch

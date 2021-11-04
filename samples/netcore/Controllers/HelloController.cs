@@ -23,7 +23,7 @@ namespace netcore.Controllers
         public string Get()
         {
             Console.WriteLine($"GET /hello at {DateTime.UtcNow}");
-            return $"Hello from fake GameServer with hostname {Dns.GetHostName()}";
+            return $"Hello from fake GameServer with hostname {Dns.GetHostName()}\n";
         }
 
         [HttpGet("terminate")]

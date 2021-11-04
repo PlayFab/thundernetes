@@ -11,6 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,15 +23,17 @@ import (
 )
 
 const (
-	gameServerName      = "testgs"
-	gameServerNamespace = "default"
+	testGameServerName      = "testgs"
+	testGameServerNamespace = "default"
 )
 
 var _ = Describe("API server tests", func() {
 	It("heartbeat with empty body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", nil)
 		w := httptest.NewRecorder()
-		h := NewHttpHandler(newDynamicInterface(), gameServerName, gameServerNamespace)
+		h := NewHttpHandler(newDynamicInterface(), testGameServerName, testGameServerNamespace, &log.Entry{
+			Logger: log.New(),
+		})
 		h.heartbeatHandler(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -43,7 +46,9 @@ var _ = Describe("API server tests", func() {
 		b, _ := json.Marshal(hb)
 		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", bytes.NewReader(b))
 		w := httptest.NewRecorder()
-		h := NewHttpHandler(newDynamicInterface(), gameServerName, gameServerNamespace)
+		h := NewHttpHandler(newDynamicInterface(), testGameServerName, testGameServerNamespace, &log.Entry{
+			Logger: log.New(),
+		})
 		h.heartbeatHandler(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -59,10 +64,12 @@ var _ = Describe("API server tests", func() {
 		b, _ := json.Marshal(hb)
 		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", bytes.NewReader(b))
 		w := httptest.NewRecorder()
-		h := NewHttpHandler(newDynamicInterface(), gameServerName, gameServerNamespace)
-		gs := createUnstructuredTestGameServer(gameServerName, gameServerNamespace)
+		h := NewHttpHandler(newDynamicInterface(), testGameServerName, testGameServerNamespace, &log.Entry{
+			Logger: log.New(),
+		})
+		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
-		_, err := h.k8sClient.Resource(gameserverGVR).Namespace(gameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
+		_, err := h.k8sClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
 
 		Expect(err).ToNot(HaveOccurred())
 		h.heartbeatHandler(w, req)

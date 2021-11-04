@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"sync"
 
+	log "github.com/sirupsen/logrus"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -23,33 +25,42 @@ var (
 		Version:  "v1alpha1",
 		Resource: "gameservers",
 	}
+
+	gameserverDetailGVR = schema.GroupVersionResource{
+		Group:    "mps.playfab.com",
+		Version:  "v1alpha1",
+		Resource: "gameserverdetails",
+	}
 )
 
 var (
-	userSetSessionDetails = &SessionDetails{
+	sessionDetails = &SessionDetails{
 		State: string(GameStateInvalid),
 	}
-	watchStopper = make(chan struct{})
-	mux          = &sync.RWMutex{}
+	watchStopper        = make(chan struct{})
+	sessionDetailsMutex = &sync.RWMutex{}
 )
 
 const logEveryHeartbeat = false
 
 type httpHandler struct {
-	k8sClient           dynamic.Interface
-	previousGameState   GameState
-	previousGameHealth  string
-	gameServerName      string
-	gameServerNamespace string
+	k8sClient             dynamic.Interface
+	previousGameState     GameState
+	previousGameHealth    string
+	gameServerName        string
+	gameServerNamespace   string
+	connectedPlayersCount int
+	logger                *log.Entry
 }
 
-func NewHttpHandler(k8sClient dynamic.Interface, gameServerName, gameServerNamespace string) httpHandler {
+func NewHttpHandler(k8sClient dynamic.Interface, gameServerName, gameServerNamespace string, logger *log.Entry) httpHandler {
 	hh := httpHandler{
 		previousGameState:   GameStateInitializing,
 		previousGameHealth:  "N/A",
 		k8sClient:           k8sClient,
 		gameServerName:      gameServerName,
 		gameServerNamespace: gameServerNamespace,
+		logger:              logger,
 	}
 
 	hh.setupWatch()
@@ -57,6 +68,7 @@ func NewHttpHandler(k8sClient dynamic.Interface, gameServerName, gameServerNames
 	return hh
 }
 
+// setupWatch sets up the informer to watch the GameServer CRD
 func (h *httpHandler) setupWatch() {
 	// great article for reference https://firehydrant.io/blog/dynamic-kubernetes-informers/
 	listOptions := dynamicinformer.TweakListOptionsFunc(func(options *metav1.ListOptions) {
@@ -65,13 +77,14 @@ func (h *httpHandler) setupWatch() {
 	dynInformer := dynamicinformer.NewFilteredDynamicSharedInformerFactory(h.k8sClient, 0, h.gameServerNamespace, listOptions)
 	informer := dynInformer.ForResource(gameserverGVR).Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		UpdateFunc: gameServerUpdated,
+		UpdateFunc: h.gameServerUpdated,
 	})
 
 	go informer.Run(watchStopper)
 }
 
-func gameServerUpdated(oldObj, newObj interface{}) {
+// gameServerUpdated runs when the GameServer CRD has been updated
+func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
 	// dynamic client returns an unstructured object
 	old := oldObj.(*unstructured.Unstructured)
 	new := newObj.(*unstructured.Unstructured)
@@ -81,36 +94,38 @@ func gameServerUpdated(oldObj, newObj interface{}) {
 	newState, newStateExists, newStateErr := unstructured.NestedString(new.Object, "status", "state")
 
 	if oldStateErr != nil {
-		fmt.Printf("error getting old state %s\n", oldStateErr.Error())
+		h.logger.Errorf("error getting old state %s", oldStateErr.Error())
 		return
 	}
 
 	if newStateErr != nil {
-		fmt.Printf("error getting new state %s\n", newStateErr.Error())
+		h.logger.Errorf("error getting new state %s", newStateErr.Error())
 		return
 	}
 
 	if !oldStateExists || !newStateExists {
-		fmt.Printf("state does not exist, oldStateExists:%t, newStateExists:%t\n", oldStateExists, newStateExists)
+		h.logger.Warnf("state does not exist, oldStateExists:%t, newStateExists:%t", oldStateExists, newStateExists)
 		return
 	}
 
-	fmt.Printf("CRD instance updated %s:%s,%s,%s\n", old.GetName(), oldState, new.GetName(), newState)
+	h.logger.Infof("GameServer CRD instance updated %s:%s,%s,%s", old.GetName(), oldState, new.GetName(), newState)
 
 	// if the GameServer was allocated
 	if oldState == string(GameStateStandingBy) && newState == string(GameStateActive) {
-		sessionID, sessionCookie, initialPlayers := getSessionDetails(new)
+		sessionID, sessionCookie := h.parseSessionDetails(new)
+		h.logger.Infof("Got values from allocation, sessionID:%s, sessionCookie:%s", sessionID, sessionCookie)
 
-		fmt.Printf("Got values from allocation, sessionID:%s, sessionCookie:%s, initialPlayers:%#v\n", sessionID, sessionCookie, initialPlayers)
+		initialPlayers := h.getInitialPlayers()
+		h.logger.Infof("Got values from allocation, initialPlayers:%#v", initialPlayers)
 
-		mux.Lock()
-		userSetSessionDetails = &SessionDetails{
+		sessionDetailsMutex.Lock()
+		sessionDetails = &SessionDetails{
 			SessionID:      sessionID,
 			SessionCookie:  sessionCookie,
 			InitialPlayers: initialPlayers,
 			State:          string(GameStateActive),
 		}
-		mux.Unlock()
+		sessionDetailsMutex.Unlock()
 
 		// closing the channel will cause the informer to stop
 		// we don't expect any more state changes so we close the watch to decrease the pressue on Kubernetes API server
@@ -118,28 +133,45 @@ func gameServerUpdated(oldObj, newObj interface{}) {
 	}
 }
 
-func getSessionDetails(u *unstructured.Unstructured) (string, string, []string) {
+// getInitialPlayers returns the initial players from the GameServerDetail CRD
+func (h *httpHandler) getInitialPlayers() []string {
+	obj, err := h.k8sClient.Resource(gameserverDetailGVR).Namespace(h.gameServerNamespace).Get(context.Background(), h.gameServerName, metav1.GetOptions{})
+	if err != nil {
+		h.logger.Warnf("error getting initial players details %s", err.Error())
+		return []string{}
+	}
+
+	initialPlayers, initialPlayersExist, err := unstructured.NestedStringSlice(obj.Object, "spec", "initialPlayers")
+	if err != nil {
+		h.logger.Warnf("error getting initial players %s", err.Error())
+		return []string{}
+	}
+	if !initialPlayersExist {
+		h.logger.Warnf("initial players does not exist")
+		return []string{}
+	}
+
+	return initialPlayers
+}
+
+// parseSessionDetails returns the sessionID and sessionCookie from the unstructured GameServer CRD
+func (h *httpHandler) parseSessionDetails(u *unstructured.Unstructured) (string, string) {
 	sessionID, sessionIDExists, sessionIDErr := unstructured.NestedString(u.Object, "status", "sessionID")
 	sessionCookie, sessionCookieExists, SessionCookieErr := unstructured.NestedString(u.Object, "status", "sessionCookie")
-	initialPlayers, initialPlayersExists, initialPlayersErr := unstructured.NestedStringSlice(u.Object, "status", "initialPlayers")
 
-	if !sessionIDExists || !sessionCookieExists || !initialPlayersExists {
-		fmt.Printf("sessionID, sessionCookie, or initialPlayers do not exist, sessionIDExists:%t, sessionCookieExists:%t, initialPlayersExists:%t\n", sessionIDExists, sessionCookieExists, initialPlayersExists)
+	if !sessionIDExists || !sessionCookieExists {
+		h.logger.Warnf("sessionID or sessionCookie do not exist, sessionIDExists:%t, sessionCookieExists:%t", sessionIDExists, sessionCookieExists)
 	}
 
 	if sessionIDErr != nil {
-		fmt.Printf("error getting sessionID %s\n", sessionIDErr.Error())
+		h.logger.Warnf("error getting sessionID %s", sessionIDErr.Error())
 	}
 
 	if SessionCookieErr != nil {
-		fmt.Printf("error getting sessionCookie %s\n", SessionCookieErr.Error())
+		h.logger.Warnf("error getting sessionCookie %s", SessionCookieErr.Error())
 	}
 
-	if initialPlayersErr != nil {
-		fmt.Printf("error getting initialPlayers %s\n", initialPlayersErr.Error())
-	}
-
-	return sessionID, sessionCookie, initialPlayers
+	return sessionID, sessionCookie
 }
 
 func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request) {
@@ -157,34 +189,41 @@ func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request)
 	}
 
 	if logEveryHeartbeat {
-		fmt.Printf("heartbeat received from sessionHostId %s, data %#v\n", sessionHostId, hb)
+		h.logger.Debugf("heartbeat received from sessionHostId %s, data %#v", sessionHostId, hb)
 	}
 
 	if err := validateHeartbeatRequestArgs(&hb); err != nil {
-		fmt.Printf("error validating heartbeat request %s\n", err.Error())
+		h.logger.Warnf("error validating heartbeat request %s", err.Error())
 		badRequest(w, err, "invalid heartbeat request")
 		return
 	}
 
 	if err := h.updateHealthIfNeeded(ctx, &hb); err != nil {
-		fmt.Printf("error updating health %s\n", err.Error())
+		h.logger.Errorf("error updating health %s", err.Error())
 		internalServerError(w, err, "error updating health")
 		return
 	}
 
+	// game has reached the standingBy state (GSDK ReadyForPlayers has been called)
 	if h.previousGameState != hb.CurrentGameState && hb.CurrentGameState == GameStateStandingBy {
 		if err := h.transitionStateToStandingBy(ctx, &hb); err != nil {
-			fmt.Printf("error updating state %s\n", err.Error())
+			h.logger.Errorf("error updating state %s", err.Error())
 			internalServerError(w, err, "error updating state")
 			return
 		}
 	}
 
+	if err := h.updateConnectedPlayersCountIfNeeded(ctx, &hb); err != nil {
+		h.logger.Errorf("error updating connected players count %s", err.Error())
+		internalServerError(w, err, "error updating connected players count")
+		return
+	}
+
 	var op GameOperation = GameOperationContinue
 
-	mux.RLock()
-	sd := userSetSessionDetails
-	mux.RUnlock()
+	sessionDetailsMutex.RLock()
+	sd := sessionDetails
+	sessionDetailsMutex.RUnlock()
 
 	if sd.State == string(GameStateInvalid) { // user has not set the status yet
 		op = GameOperationContinue
@@ -199,28 +238,24 @@ func (h *httpHandler) heartbeatHandler(w http.ResponseWriter, req *http.Request)
 	}
 
 	sc := &SessionConfig{}
-	if sd.SessionID != "" {
-		sc.SessionId = sd.SessionID
-	}
-	if sd.SessionCookie != "" {
-		sc.SessionCookie = sd.SessionCookie
-	}
-	if sd.InitialPlayers != nil {
-		sc.InitialPlayers = sd.InitialPlayers
-	}
+	sc.SessionId = sd.SessionID
+	sc.SessionCookie = sd.SessionCookie
+	sc.InitialPlayers = sd.InitialPlayers
 
 	hr := &HeartbeatResponse{
 		Operation:     op,
 		SessionConfig: *sc,
 	}
+
 	json, _ := json.Marshal(hr)
 	w.WriteHeader(http.StatusOK)
 	w.Write(json)
 }
 
+// updateHealthIfNeeded updates the health of the GameServer CRD if the game health has changed
 func (h *httpHandler) updateHealthIfNeeded(ctx context.Context, hb *HeartbeatRequest) error {
 	if h.previousGameHealth != hb.CurrentGameHealth {
-		fmt.Printf("Health is different than before, updating. Old health %s, new health %s\n", h.previousGameHealth, hb.CurrentGameHealth)
+		h.logger.Infof("Health is different than before, updating. Old health %s, new health %s", h.previousGameHealth, hb.CurrentGameHealth)
 		payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\"}}", hb.CurrentGameHealth)
 		payloadBytes := []byte(payload)
 		_, err := h.k8sClient.Resource(gameserverGVR).Namespace(h.gameServerNamespace).Patch(ctx, h.gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
@@ -228,19 +263,34 @@ func (h *httpHandler) updateHealthIfNeeded(ctx context.Context, hb *HeartbeatReq
 		if err != nil {
 			return err
 		}
-
 		h.previousGameHealth = hb.CurrentGameHealth
-
 	}
 	return nil
 }
 
+// updateConnectedPlayersCountIfNeeded updates the connected players count of the GameServer CRD if the connected players count has changed
+func (h *httpHandler) updateConnectedPlayersCountIfNeeded(ctx context.Context, hb *HeartbeatRequest) error {
+	// we're not interested in updating the connected players count if the game is not active
+	if hb.CurrentGameState == GameStateActive && h.connectedPlayersCount != len(hb.CurrentPlayers) {
+		h.logger.Infof("ConnectedPlayersCount is different than before, updating. Old connectedPlayersCount %d, new connectedPlayersCount %d", h.connectedPlayersCount, len(hb.CurrentPlayers))
+		payload := fmt.Sprintf("{\"spec\":{\"connectedPlayersCount\":%d}}", len(hb.CurrentPlayers))
+		payloadBytes := []byte(payload)
+		_, err := h.k8sClient.Resource(gameserverDetailGVR).Namespace(h.gameServerNamespace).Patch(ctx, h.gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{})
+		if err != nil {
+			return err
+		}
+		// storing the current number in memory
+		h.connectedPlayersCount = len(hb.CurrentPlayers)
+	}
+	return nil
+}
+
+// transitionStateToStandingBy transitions the state of the GameServer CRD to standingBy
 func (h *httpHandler) transitionStateToStandingBy(ctx context.Context, hb *HeartbeatRequest) error {
-	fmt.Printf("State is different than before, updating. Old state %s, new state StandingBy\n", h.previousGameState)
+	h.logger.Infof("State is different than before, updating. Old state %s, new state StandingBy", h.previousGameState)
 	payload := fmt.Sprintf("{\"status\":{\"state\":\"%s\"}}", hb.CurrentGameState)
 	payloadBytes := []byte(payload)
 	_, err := h.k8sClient.Resource(gameserverGVR).Namespace(h.gameServerNamespace).Patch(ctx, h.gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
-
 	if err != nil {
 		return err
 	}
