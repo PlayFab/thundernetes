@@ -2,13 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // GsdkConfig is the configuration for the GSDK
@@ -48,14 +48,19 @@ var (
 	vmId                    string
 	gamePortsString         string
 	sessionHostId           string
+	crdNamespace            string
+	logger                  *log.Entry
 )
 
 func main() {
-	checkEnvVariables()
+	getGameServerNameNamespaceFromEnv()
+	logger = log.WithFields(log.Fields{"GameServerName": sessionHostId, "GameServerNamespace": crdNamespace})
+
+	getRestEnvVariables()
 
 	gamePorts, gamePortConfiguration, err := parsePorts()
 	if err != nil {
-		log.Fatalf("Could not parse game ports %s", err)
+		logger.Fatalf("Could not parse game ports %s", err)
 	}
 
 	buildMetadata := parseBuildMetadata()
@@ -77,20 +82,20 @@ func main() {
 		FullyQualifiedDomainName: "NOT_APPLICABLE",
 	}
 
-	log.Println("Marshalling to JSON")
+	logger.Info("Marshalling to JSON")
 	configJson, err := json.Marshal(config)
 	handleError(err)
 
-	log.Println("Getting and creating folder(s)")
+	logger.Info("Getting and creating folder(s)")
 	folderPath := filepath.Dir(gsdkConfigFilePath)
 	err = os.MkdirAll(folderPath, os.ModePerm)
 	handleError(err)
 
-	log.Printf("Creating empty GSDK JSON file %s", gsdkConfigFilePath)
+	logger.Infof("Creating empty GSDK JSON file %s", gsdkConfigFilePath)
 	f, err := os.Create(gsdkConfigFilePath)
 	handleError(err)
 
-	log.Printf("Saving GSDK JSON to file %s", gsdkConfigFilePath)
+	logger.Infof("Saving GSDK JSON to file %s", gsdkConfigFilePath)
 	_, err = f.Write(configJson)
 	handleError(err)
 }
@@ -143,38 +148,51 @@ func parsePorts() (map[string]int, []GamePort, error) {
 
 func handleError(e error) {
 	if e != nil {
-		panic(e)
+		logger.Fatalf("panic because error: %s", e)
 	}
 }
 
-func checkEnvOrFail(envName string, envValue string) {
+// checkEnvOrFatal panics if the environment variable is not set
+func checkEnvOrFatal(envName string, envValue string) {
 	if envValue == "" {
-		log.Fatalf("Env %s is empty", envName)
+		logger.Fatalf("Env %s is empty", envName)
 	}
 }
 
-func checkEnvVariables() {
+// getGameServerNameNamespaceFromEnv gets the game server name and namespace from the environment variables
+// we get these variables first so we can initialize the logger
+func getGameServerNameNamespaceFromEnv() {
+	sessionHostId = os.Getenv("PF_GAMESERVER_NAME")
+	if sessionHostId == "" {
+		panic("PF_GAMESERVER_NAME is empty")
+	}
+
+	crdNamespace = os.Getenv("PF_GAMESERVER_NAMESPACE")
+	if crdNamespace == "" {
+		panic("PF_GAMESERVER_NAMESPACE is empty")
+	}
+}
+
+// getRestEnvVariables gets the rest environment variables
+func getRestEnvVariables() {
 	heartbeatEndpoint = os.Getenv("HEARTBEAT_ENDPOINT")
-	checkEnvOrFail("HEARTBEAT_ENDPOINT", heartbeatEndpoint)
+	checkEnvOrFatal("HEARTBEAT_ENDPOINT", heartbeatEndpoint)
 
 	gsdkConfigFilePath = os.Getenv("GSDK_CONFIG_FILE")
-	checkEnvOrFail("GSDK_CONFIG_FILE", gsdkConfigFilePath)
+	checkEnvOrFatal("GSDK_CONFIG_FILE", gsdkConfigFilePath)
 
 	sharedContentFolderPath = os.Getenv("PF_SHARED_CONTENT_FOLDER")
-	checkEnvOrFail("PF_SHARED_CONTENT_FOLDER", sharedContentFolderPath)
+	checkEnvOrFatal("PF_SHARED_CONTENT_FOLDER", sharedContentFolderPath)
 
 	certificateFolderPath = os.Getenv("CERTIFICATE_FOLDER")
-	checkEnvOrFail("CERTIFICATE_FOLDER", certificateFolderPath)
+	checkEnvOrFatal("CERTIFICATE_FOLDER", certificateFolderPath)
 
 	serverLogPath = os.Getenv("PF_SERVER_LOG_DIRECTORY")
-	checkEnvOrFail("PF_SERVER_LOG_DIRECTORY", serverLogPath)
+	checkEnvOrFatal("PF_SERVER_LOG_DIRECTORY", serverLogPath)
 
 	vmId = os.Getenv("PF_VM_ID")
-	checkEnvOrFail("PF_VM_ID", vmId)
+	checkEnvOrFatal("PF_VM_ID", vmId)
 
 	gamePortsString = os.Getenv("PF_GAMESERVER_PORTS")
-	checkEnvOrFail("PF_GAMESERVER_PORTS", gamePortsString)
-
-	sessionHostId = os.Getenv("PF_GAMESERVER_NAME")
-	checkEnvOrFail("PF_GAMESERVER_NAME", sessionHostId)
+	checkEnvOrFatal("PF_GAMESERVER_PORTS", gamePortsString)
 }
