@@ -60,3 +60,5 @@ There are two ways we can accomplish the second step:
 - Have the controller's API service (which accepts the allocation requests) forward the allocation request to the sidecar. This is done via having the sidecar expose its HTTP server inside the cluster. Of course, this assumes that we trust the processes running on the containers in the cluster.
 
 For communicating with the sidecar, we eventually picked the first approach. The second approach was used initially but was abandoned due to security concerns.
+
+Moreover, when the user allocates a GameServer, we create an instance of the GameServerDetail CR which stores the InitialPlayers (if any). The GameServerDetail has a 1:1 relationship with the GameServer CR and share the same name. Moreover, GameServer is the owner of the GameServerDetail instance so both will be deleted, upon GameServer's deletion. The GameServerDetail also tracks the ConnectedPlayersCount, which can be updated by the UpdateConnectedPlayers GSDK method.

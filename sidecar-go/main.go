@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const SidecarPort = 56001
@@ -25,7 +27,9 @@ func main() {
 		panic(err)
 	}
 
-	h := NewHttpHandler(k8sClient, gameServerName, crdNamespace)
+	logger := log.WithFields(log.Fields{"GameServerName": gameServerName, "GameServerNamespace": crdNamespace})
+
+	h := NewHttpHandler(k8sClient, gameServerName, crdNamespace, logger)
 
 	http.HandleFunc("/v1/sessionHosts/", h.heartbeatHandler)
 

@@ -48,12 +48,21 @@ namespace netcore
             });
         }
 
-        private static void ReadyForPlayersTask()
+        private async static Task ReadyForPlayersTask()
         {
             Utils.LogMessage("Before ReadyForPlayers");
             GameserverSDK.ReadyForPlayers();
             Utils.LogMessage("After ReadyForPlayers");
             PrintGSDKInfo();
+            var initialPlayers = GameserverSDK.GetInitialPlayers();
+            Console.WriteLine("Initial Players: " + String.Join("-", initialPlayers));
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            GameserverSDK.UpdateConnectedPlayers(new List<ConnectedPlayer>() 
+            {
+                new ConnectedPlayer("Amie"), 
+                new ConnectedPlayer("Ken"),
+                new ConnectedPlayer("Dimitris")
+            });
         }
 
         private static void PrintGSDKInfo()

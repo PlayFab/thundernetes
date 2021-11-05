@@ -11,9 +11,11 @@ import (
 	mpsv1alpha1 "github.com/playfab/thundernetes/operator/api/v1alpha1"
 	"github.com/playfab/thundernetes/operator/controllers"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -116,11 +118,18 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 	// pick a random one
 	gs := gameserversStandingBy.Items[rand.Intn(len(gameserversStandingBy.Items))]
 
+	gsd := createGameServerDetailForGameServer(&gs, args.InitialPlayers)
+
+	err = h.client.Create(r.Context(), &gsd)
+	if err != nil {
+		internalServerError(ctx, w, err, "cannot create GameServerDetail")
+		return
+	}
+
 	// set the relevant status fields
 	gs.Status.State = mpsv1alpha1.GameServerStateActive
 	gs.Status.SessionID = args.SessionID
 	gs.Status.SessionCookie = args.SessionCookie
-	gs.Status.InitialPlayers = args.InitialPlayers
 
 	err = h.client.Status().Update(r.Context(), &gs)
 	if err != nil {
@@ -139,4 +148,25 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	controllers.AllocationsCounter.WithLabelValues(gs.Labels[controllers.LabelBuildName]).Inc()
+}
+
+func createGameServerDetailForGameServer(gs *mpsv1alpha1.GameServer, initialPlayers []string) mpsv1alpha1.GameServerDetail {
+	return mpsv1alpha1.GameServerDetail{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gs.Name,
+			Namespace: gs.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(gs, schema.GroupVersionKind{
+					Group:   mpsv1alpha1.GroupVersion.Group,
+					Version: mpsv1alpha1.GroupVersion.Version,
+					Kind:    controllers.GameServerKind,
+				}),
+			},
+			Labels: map[string]string{controllers.LabelBuildID: gs.Spec.BuildID, controllers.LabelOwningGameServer: gs.Name},
+		},
+		Spec: mpsv1alpha1.GameServerDetailSpec{
+			InitialPlayers:        initialPlayers,
+			ConnectedPlayersCount: 0,
+		},
+	}
 }

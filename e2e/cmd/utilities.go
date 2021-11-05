@@ -74,7 +74,7 @@ func executeRemoteCommand(coreClient *kubernetes.Clientset, pod *v1.Pod, cfg *re
 	return buf.String(), errBuf.String(), nil
 }
 
-func getPodLogs(ctx context.Context, coreClient *kubernetes.Clientset, podName, containerName, podNamespace string) (string, error) {
+func getContainerLogs(ctx context.Context, coreClient *kubernetes.Clientset, podName, containerName, podNamespace string) (string, error) {
 	podLogOpts := v1.PodLogOptions{
 		Container: containerName,
 	}
@@ -274,4 +274,15 @@ func verifyPods(ctx context.Context, buildID, buildName string, state buildState
 		return nil
 	}
 	return fmt.Errorf("pods not OK, expecting %d, got %d", state.podCount, observedCount)
+}
+
+func verifyGameServerDetail(ctx context.Context, gameServerDetailName string, expectedConnectedPlayersCount int) error {
+	gameServerDetail := mpsv1alpha1.GameServerDetail{}
+	if err := kubeClient.Get(ctx, types.NamespacedName{Name: gameServerDetailName, Namespace: testNamespace}, &gameServerDetail); err != nil {
+		return err
+	}
+	if gameServerDetail.Spec.ConnectedPlayersCount != expectedConnectedPlayersCount {
+		return fmt.Errorf("expected %d connected players, got %d", expectedConnectedPlayersCount, gameServerDetail.Spec.ConnectedPlayersCount)
+	}
+	return nil
 }

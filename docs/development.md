@@ -238,6 +238,7 @@ Project was bootstrapped using [kubebuilder](https://github.com/kubernetes-sigs/
 kubebuilder init --domain playfab.com --repo github.com/playfab/thundernetes/operator
 kubebuilder create api --group mps --version v1alpha1 --kind GameServer
 kubebuilder create api --group mps --version v1alpha1 --plural gameserverbuilds --kind GameServerBuild 
+kubebuilder create api --group mps --version v1alpha1 --plural gameserverdetails --kind GameServerDetail 
 ```
 
 ## env variables sample
