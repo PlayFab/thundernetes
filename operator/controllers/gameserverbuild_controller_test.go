@@ -19,7 +19,7 @@ var _ = Describe("GameServerBuild controller tests", func() {
 
 		// tests here follow the flow
 		// 1. create a gameserverbuild
-		// 2. verify that we have the requested count of GameServer CRD instances
+		// 2. verify that we have the requested count of GameServer CRs
 		// 3. since we don't have containers running (so the sidecar can update the GameServer.Status), we manually
 		//    set the initializing GameServers' .Status to standingBy
 		// 4. verify the number of standingBy and active GameServers
