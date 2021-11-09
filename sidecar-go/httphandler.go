@@ -108,7 +108,7 @@ func (h *httpHandler) gameServerUpdated(oldObj, newObj interface{}) {
 		return
 	}
 
-	h.logger.Infof("GameServer CRD instance updated %s:%s,%s,%s", old.GetName(), oldState, new.GetName(), newState)
+	h.logger.Infof("GameServer CR updated %s:%s,%s,%s", old.GetName(), oldState, new.GetName(), newState)
 
 	// if the GameServer was allocated
 	if oldState == string(GameStateStandingBy) && newState == string(GameStateActive) {
