@@ -1,4 +1,4 @@
-This contains the troublshooting Game Servers related to thundernetes
+This contains the troubleshooting Game Servers related to thundernetes
 
 ## **Category: Game Servers**
 
