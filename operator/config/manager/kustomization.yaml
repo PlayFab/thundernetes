@@ -12,3 +12,4 @@ images:
 - name: controller
   newName: thundernetes-operator
   newTag: 52d2641
+

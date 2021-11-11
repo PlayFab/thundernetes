@@ -8013,7 +8013,7 @@ spec:
         - /manager
         env:
         - name: API_SERVICE_SECURITY
-          value: usetls
+          value: none
         - name: THUNDERNETES_SIDECAR_IMAGE
           value: ghcr.io/playfab/thundernetes-sidecar-go:0.0.2.0
         - name: THUNDERNETES_INIT_CONTAINER_IMAGE
@@ -8093,3 +8093,69 @@ subjects:
 - kind: ServiceAccount
   name: thundernetes-gameserver-editor
   namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: thundernetes-prometheus-k8s
+  namespace: thundernetes-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - endpoints
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: thundernetes-prometheus-k8s
+  namespace: thundernetes-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: thundernetes-prometheus-k8s
+subjects:
+- kind: ServiceAccount
+  name: prometheus-k8s
+  namespace: monitoring
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: thundernetes-controller-manager-metrics-monitor
+  namespace: thundernetes-system
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    path: /metrics
+    port: metrics
+    scheme: http
+    tlsConfig:
+      insecureSkipVerify: true
+  selector:
+    matchLabels:
+      control-plane: controller-manager
