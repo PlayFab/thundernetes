@@ -1,3 +1,3 @@
-This contains the troublshooting Deployment related to thundernetes
+This contains the troubleshooting Deployment related to thundernetes
 
 ## **Category: Deployment**
