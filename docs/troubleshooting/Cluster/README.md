@@ -1,4 +1,4 @@
-This contains the troublshooting Clusters related to thundernetes
+This contains the troubleshooting Clusters related to thundernetes
 
 ## **Category: Cluster**
 
