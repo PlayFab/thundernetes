@@ -21,7 +21,7 @@ type GsdkConfig struct {
 	CertificateFolder        string                   `json:"certificateFolder"`
 	SharedContentFolder      string                   `json:"sharedContentFolder"`
 	BuildMetadata            map[string]string        `json:"buildMetadata"`
-	GamePorts                map[string]int           `json:"gamePorts"`
+	GamePorts                map[string]string        `json:"gamePorts"`
 	PublicIpV4Address        string                   `json:"publicIpV4Address"`
 	GameServerConnectionInfo GameServerConnectionInfo `json:"gameServerConnectionInfo"`
 	ServerInstanceNumber     int                      `json:"serverInstanceNumber"` // Not used
@@ -116,12 +116,12 @@ func parseBuildMetadata() map[string]string {
 	return buildMetadata
 }
 
-func parsePorts() (map[string]int, []GamePort, error) {
+func parsePorts() (map[string]string, []GamePort, error) {
 	// format is port.Name + "," + containerPort + "," + hostPort + "?" + ...
 	// similar to how docker run -p works https://docs.docker.com/config/containers/container-networking/
 	s := strings.Split(gamePortsString, "?")
 	gamePortConfiguration := make([]GamePort, 0)
-	gamePorts := make(map[string]int)
+	gamePorts := make(map[string]string)
 	for _, s2 := range s {
 		if s2 == "" {
 			continue
@@ -141,7 +141,7 @@ func parsePorts() (map[string]int, []GamePort, error) {
 			ServerListeningPort:  containerPort,
 			ClientConnectionPort: hostPort,
 		})
-		gamePorts[s3[0]] = containerPort
+		gamePorts[s3[0]] = strconv.Itoa(containerPort)
 	}
 	return gamePorts, gamePortConfiguration, nil
 }
