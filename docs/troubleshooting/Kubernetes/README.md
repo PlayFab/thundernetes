@@ -1,4 +1,4 @@
-This contains the troublshooting Kubernetes related to thundernetes
+This contains the troubleshooting Kubernetes related to thundernetes
 
 ## **Category: Kubernetes**
 
