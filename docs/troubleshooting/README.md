@@ -1,6 +1,6 @@
 # thundernetes Troubleshooting Guide
 
-This is a public repository for all of thundernetes Troublesooting guides, and is intended to provide a central location for community driven troubleshooting content. 
+This is a public repository for all of thundernetes Troubleshooting guides, and is intended to provide a central location for community driven troubleshooting content. 
 
 ### Table of Contents
 Troubleshooting guides are grouped by categories, and stored in relevantly named subdirectories; each directory containing a README the lists the commonly used and exposed guides through portal as recommendations during ticket creation process. The following are the categories of guides that are stored in reletantly named directories:
