@@ -25,6 +25,10 @@ Thundernetes requires a Kubernetes cluster with Public IP per Node. We've tested
 
 > Quick reminder that you can try Azure (and AKS) for free at [azure.com/free](https://azure.com/free).
 
+## Prerequisites
+
+Check our [prerequisites](docs/prerequisites.md) document that has resources that will fill the knowledge gaps when working with technologies within thundernetes. 
+
 ## Quickstart
 
 Check the [quickstart](docs/quickstart.md) document on how to install thundernetes on your cluster and run the sample game server. 
@@ -37,7 +41,9 @@ Click on the following image for a quick preview of the quickstart:
 
 ## Links
 
+- [Prerequisites](docs/prerequisites.md) - resources that will fill the knowledge gaps when working with technologies within thundernetes
 - [Quickstart](docs/quickstart.md) - Recommended - how to install thundernetes on your cluster and run the sample game server
+- [Troubleshooting Guide](docs/troubleshooting/README.md) - public repository for all of thundernetes Troubleshooting guides
 - [Defining a GameServerBuild](docs/gameserverbuild.md) - Recommended - how to define a GameServerBuild in YAML
 - [Your game server](docs/yourgameserver.md) - Recommended - how to use thundernetes with your own game server
 - [Architecture](docs/architecture.md)
