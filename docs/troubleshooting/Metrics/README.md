@@ -1,4 +1,4 @@
-This contains the troublshooting Metrics related to thundernetes
+This contains the troubleshooting Metrics related to thundernetes
 
 ## **Category: Metrics**
 
