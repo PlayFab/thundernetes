@@ -1,4 +1,4 @@
-This contains the troublshooting Security related to thundernetes
+This contains the troubleshooting Security related to thundernetes
 
 ## **Category: Security**
 
