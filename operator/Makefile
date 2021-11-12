@@ -79,8 +79,6 @@ create-install-files:
 	$(KUSTOMIZE) build config/default | API_SERVICE_SECURITY=usetls envsubst > ../installfiles/operator_with_security.yaml
 	echo "---" >> ../installfiles/operator_with_security.yaml
 	$(KUSTOMIZE) build config/rbac-gameserver-editor >> ../installfiles/operator_with_security.yaml
-
-create-install-files-with-monitoring: create-install-files
 ## Add prometheus service monitoring & roles to the kustomize output
 	cp ../installfiles/operator.yaml ../installfiles/operator_with_monitoring.yaml
 	echo "---" >> ../installfiles/operator_with_monitoring.yaml

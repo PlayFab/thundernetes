@@ -6,6 +6,8 @@
 
 > thundernetes is an experimental project and not recommended for production use. However, we consider it as a great tool for testing your game server before uploading it to Azure PlayFab Multiplayer Servers.
 
+Latest release: **0.1.0**
+
 ## Description
 
 Thundernetes is an preview project from the [Azure PlayFab Multiplayer Servers (MPS)](https://docs.microsoft.com/en-us/gaming/playfab/features/multiplayer/servers/) team that enables you to run Linux game servers that use the [PlayFab Game Server SDK (GSDK)](https://github.com/PlayFab/gsdk) on your Kubernetes cluster. Thundernetes can be useful while developing your game server in the following scenarios:
