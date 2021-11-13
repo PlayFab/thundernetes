@@ -29,9 +29,9 @@ func main() {
 
 	logger := log.WithFields(log.Fields{"GameServerName": gameServerName, "GameServerNamespace": crdNamespace})
 
-	h := NewHttpHandler(k8sClient, gameServerName, crdNamespace, logger)
+	sm := NewSidecarManager(k8sClient, gameServerName, crdNamespace, logger)
 
-	http.HandleFunc("/v1/sessionHosts/", h.heartbeatHandler)
+	http.HandleFunc("/v1/sessionHosts/", sm.heartbeatHandler)
 
 	http.ListenAndServe(fmt.Sprintf(":%d", SidecarPort), nil)
 }
