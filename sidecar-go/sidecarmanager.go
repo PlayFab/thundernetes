@@ -58,8 +58,8 @@ type sidecarManager struct {
 // NewSidecarManager creates a new sidecarManager
 func NewSidecarManager(k8sClient dynamic.Interface, gameServerName, gameServerNamespace string, logger *log.Entry) sidecarManager {
 	sm := sidecarManager{
-		previousGameState:   GameStateInitializing,
-		previousGameHealth:  "N/A",
+		previousGameState:   "",
+		previousGameHealth:  "",
 		k8sClient:           k8sClient,
 		gameServerName:      gameServerName,
 		gameServerNamespace: gameServerNamespace,
@@ -202,19 +202,10 @@ func (sm *sidecarManager) heartbeatHandler(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	if err := sm.updateHealthIfNeeded(ctx, &hb); err != nil {
+	if err := sm.updateHealthAndStateIfNeeded(ctx, &hb); err != nil {
 		sm.logger.Errorf("error updating health %s", err.Error())
 		internalServerError(w, err, "error updating health")
 		return
-	}
-
-	// game has reached the standingBy state (GSDK ReadyForPlayers has been called)
-	if sm.previousGameState != hb.CurrentGameState && hb.CurrentGameState == GameStateStandingBy {
-		if err := sm.transitionStateToStandingBy(ctx, &hb); err != nil {
-			sm.logger.Errorf("error updating state %s", err.Error())
-			internalServerError(w, err, "error updating state")
-			return
-		}
 	}
 
 	if err := sm.updateConnectedPlayersCountIfNeeded(ctx, &hb); err != nil {
@@ -256,11 +247,11 @@ func (sm *sidecarManager) heartbeatHandler(w http.ResponseWriter, req *http.Requ
 	w.Write(json)
 }
 
-// updateHealthIfNeeded updates the health of the GameServer CRD if the game health has changed
-func (sm *sidecarManager) updateHealthIfNeeded(ctx context.Context, hb *HeartbeatRequest) error {
-	if sm.previousGameHealth != hb.CurrentGameHealth {
+// updateHealthAndStateIfNeeded updates both the health and state of the GameServer if any one of them has changed
+func (sm *sidecarManager) updateHealthAndStateIfNeeded(ctx context.Context, hb *HeartbeatRequest) error {
+	if sm.previousGameHealth != hb.CurrentGameHealth || sm.previousGameState != hb.CurrentGameState {
 		sm.logger.Infof("Health is different than before, updating. Old health %s, new health %s", sm.previousGameHealth, hb.CurrentGameHealth)
-		payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\"}}", hb.CurrentGameHealth)
+		payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\",\"state\":\"%s\"}}", hb.CurrentGameHealth, hb.CurrentGameState)
 		payloadBytes := []byte(payload)
 		_, err := sm.k8sClient.Resource(gameserverGVR).Namespace(sm.gameServerNamespace).Patch(ctx, sm.gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
 
@@ -286,18 +277,5 @@ func (sm *sidecarManager) updateConnectedPlayersCountIfNeeded(ctx context.Contex
 		// storing the current number in memory
 		sm.connectedPlayersCount = len(hb.CurrentPlayers)
 	}
-	return nil
-}
-
-// transitionStateToStandingBy transitions the state of the GameServer CRD to standingBy
-func (sm *sidecarManager) transitionStateToStandingBy(ctx context.Context, hb *HeartbeatRequest) error {
-	sm.logger.Infof("State is different than before, updating. Old state %s, new state StandingBy", sm.previousGameState)
-	payload := fmt.Sprintf("{\"status\":{\"state\":\"%s\"}}", hb.CurrentGameState)
-	payloadBytes := []byte(payload)
-	_, err := sm.k8sClient.Resource(gameserverGVR).Namespace(sm.gameServerNamespace).Patch(ctx, sm.gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
-	if err != nil {
-		return err
-	}
-	sm.previousGameState = hb.CurrentGameState
 	return nil
 }
