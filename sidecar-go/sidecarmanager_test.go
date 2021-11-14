@@ -31,10 +31,10 @@ var _ = Describe("API server tests", func() {
 	It("heartbeat with empty body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", nil)
 		w := httptest.NewRecorder()
-		h := NewHttpHandler(newDynamicInterface(), testGameServerName, testGameServerNamespace, &log.Entry{
+		sm := NewSidecarManager(newDynamicInterface(), testGameServerName, testGameServerNamespace, &log.Entry{
 			Logger: log.New(),
 		})
-		h.heartbeatHandler(w, req)
+		sm.heartbeatHandler(w, req)
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
@@ -46,10 +46,10 @@ var _ = Describe("API server tests", func() {
 		b, _ := json.Marshal(hb)
 		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", bytes.NewReader(b))
 		w := httptest.NewRecorder()
-		h := NewHttpHandler(newDynamicInterface(), testGameServerName, testGameServerNamespace, &log.Entry{
+		sm := NewSidecarManager(newDynamicInterface(), testGameServerName, testGameServerNamespace, &log.Entry{
 			Logger: log.New(),
 		})
-		h.heartbeatHandler(w, req)
+		sm.heartbeatHandler(w, req)
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
@@ -64,15 +64,15 @@ var _ = Describe("API server tests", func() {
 		b, _ := json.Marshal(hb)
 		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", bytes.NewReader(b))
 		w := httptest.NewRecorder()
-		h := NewHttpHandler(newDynamicInterface(), testGameServerName, testGameServerNamespace, &log.Entry{
+		sm := NewSidecarManager(newDynamicInterface(), testGameServerName, testGameServerNamespace, &log.Entry{
 			Logger: log.New(),
 		})
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
-		_, err := h.k8sClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
+		_, err := sm.k8sClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
 
 		Expect(err).ToNot(HaveOccurred())
-		h.heartbeatHandler(w, req)
+		sm.heartbeatHandler(w, req)
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
