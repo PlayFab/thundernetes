@@ -50,6 +50,8 @@ namespace netcore
 
         private async static Task ReadyForPlayersTask()
         {
+            Utils.LogMessage("Sleeping for one second");
+            await Task.Delay(1000);
             Utils.LogMessage("Before ReadyForPlayers");
             GameserverSDK.ReadyForPlayers();
             Utils.LogMessage("After ReadyForPlayers");

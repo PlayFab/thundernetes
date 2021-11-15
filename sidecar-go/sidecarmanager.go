@@ -250,7 +250,7 @@ func (sm *sidecarManager) heartbeatHandler(w http.ResponseWriter, req *http.Requ
 // updateHealthAndStateIfNeeded updates both the health and state of the GameServer if any one of them has changed
 func (sm *sidecarManager) updateHealthAndStateIfNeeded(ctx context.Context, hb *HeartbeatRequest) error {
 	if sm.previousGameHealth != hb.CurrentGameHealth || sm.previousGameState != hb.CurrentGameState {
-		sm.logger.Infof("Health is different than before, updating. Old health %s, new health %s", sm.previousGameHealth, hb.CurrentGameHealth)
+		sm.logger.Infof("Health or state is different than before, updating. Old health %s, new health %s, old state %s, new state %s", sm.previousGameHealth, hb.CurrentGameHealth, sm.previousGameState, hb.CurrentGameState)
 		payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\",\"state\":\"%s\"}}", hb.CurrentGameHealth, hb.CurrentGameState)
 		payloadBytes := []byte(payload)
 		_, err := sm.k8sClient.Resource(gameserverGVR).Namespace(sm.gameServerNamespace).Patch(ctx, sm.gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
@@ -259,6 +259,7 @@ func (sm *sidecarManager) updateHealthAndStateIfNeeded(ctx context.Context, hb *
 			return err
 		}
 		sm.previousGameHealth = hb.CurrentGameHealth
+		sm.previousGameState = hb.CurrentGameState
 	}
 	return nil
 }

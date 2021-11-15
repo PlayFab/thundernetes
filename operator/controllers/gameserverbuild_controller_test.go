@@ -198,7 +198,7 @@ func waitTillCountGameServersAreInitializing(ctx context.Context, buildID string
 		var initializingCount int
 		for i := 0; i < len(gameServers.Items); i++ {
 			gs := gameServers.Items[i]
-			if gs.Status.State == "" {
+			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
 				initializingCount++
 			}
 		}

@@ -124,7 +124,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	for i := 0; i < len(gameServers.Items); i++ {
 		gs := gameServers.Items[i]
 
-		if gs.Status.State == "" {
+		if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
 			initializingCount++
 		} else if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 			standingByCount++
