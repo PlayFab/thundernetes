@@ -162,7 +162,7 @@ func validateBuildState(ctx context.Context, state buildState) {
 	if err != nil {
 		handleError(err)
 	}
-	fmt.Printf("    Verifying that we have %d standingBy %d active gameservers for build %s\n", state.standingByCount, state.activeCount, state.buildName)
+	fmt.Printf("    Verifying that we have %d initializing, %d standingBy, %d active gameservers for build %s\n", state.initializingCount, state.standingByCount, state.activeCount, state.buildName)
 	err = loopCheck(verifyGameServers, ctx, state)
 	if err != nil {
 		handleError(err)

@@ -11,5 +11,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: thundernetes-operator
-  newTag: 52d2641
-
+  newTag: ae80381

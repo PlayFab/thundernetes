@@ -44,23 +44,26 @@ type AllocationResult struct {
 }
 
 type buildState struct {
-	activeCount     int
-	standingByCount int
-	podCount        int
-	buildID         string
-	buildName       string
-	crashesCount    int
+	initializingCount int
+	activeCount       int
+	standingByCount   int
+	podCount          int
+	buildID           string
+	buildName         string
+	crashesCount      int
 }
 
 const (
-	testNamespace         = "mynamespace"
-	testBuild1Name        = "testbuild1"
-	testBuild2Name        = "testbuild2"
-	testBuild3Name        = "crashing"
-	test1BuildID          = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f5"
-	test2BuildID          = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
-	test3BuildID          = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f7"
-	connectedPlayersCount = 3
+	testNamespace                     = "mynamespace"
+	testBuild1Name                    = "testbuild1"
+	testBuild2Name                    = "testbuild2"
+	testBuildCrashingName             = "crashing"
+	testBuildWithoutReadyForPlayers   = "withoutreadyforplayers"
+	test1BuildID                      = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f5"
+	test2BuildID                      = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
+	testCrashingBuildID               = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f7"
+	testWithoutReadyForPlayersBuildID = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f8"
+	connectedPlayersCount             = 3
 )
 
 func main() {
@@ -159,13 +162,13 @@ func main() {
 		},
 	}
 
-	build3 := &mpsv1alpha1.GameServerBuild{
+	buildWithCrashingGameServers := &mpsv1alpha1.GameServerBuild{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      testBuild3Name,
+			Name:      testBuildCrashingName,
 			Namespace: testNamespace,
 		},
 		Spec: mpsv1alpha1.GameServerBuildSpec{
-			BuildID:       test3BuildID,
+			BuildID:       testCrashingBuildID,
 			TitleID:       "1E03",
 			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: "myport"}},
 			StandingBy:    2,
@@ -181,6 +184,41 @@ func main() {
 							{
 								Name:          "myport",
 								ContainerPort: 80,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	builtWithoutReadyForPlayers := &mpsv1alpha1.GameServerBuild{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testBuildWithoutReadyForPlayers,
+			Namespace: testNamespace,
+		},
+		Spec: mpsv1alpha1.GameServerBuildSpec{
+			BuildID:       testWithoutReadyForPlayersBuildID,
+			TitleID:       "1E03",
+			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: "myport"}},
+			StandingBy:    2,
+			Max:           4,
+			PodSpec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Image:           imgName,
+						Name:            "netcore-sample",
+						ImagePullPolicy: corev1.PullIfNotPresent,
+						Ports: []corev1.ContainerPort{
+							{
+								Name:          "myport",
+								ContainerPort: 80,
+							},
+						},
+						Env: []corev1.EnvVar{
+							{
+								Name:  "SKIP_READY_FOR_PLAYERS",
+								Value: "true",
 							},
 						},
 					},
@@ -429,12 +467,22 @@ func main() {
 	// -------------- GameServer process exiting with a non-zero code start --------------
 
 	fmt.Println("Creating a Build with failing gameServers")
-	if err := kubeClient.Create(ctx, build3); err != nil {
+	if err := kubeClient.Create(ctx, buildWithCrashingGameServers); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test3BuildID, buildName: testBuild3Name, standingByCount: 0, activeCount: 0, crashesCount: 5})
+	validateBuildState(ctx, buildState{buildID: testCrashingBuildID, buildName: testBuildCrashingName, standingByCount: 0, activeCount: 0, crashesCount: 5})
 
 	// -------------- GameServer process exiting with a non-zero code end --------------
+
+	// -------------- Validating a Build that does not call ReadyForPlayers stays at Initializing state start --------------
+
+	fmt.Println("Creating a Build with gameServers that do not call ReadyForPlayers")
+	if err := kubeClient.Create(ctx, builtWithoutReadyForPlayers); err != nil {
+		handleError(err)
+	}
+	validateBuildState(ctx, buildState{buildID: testWithoutReadyForPlayersBuildID, buildName: testBuildWithoutReadyForPlayers, standingByCount: 0, activeCount: 0, initializingCount: 0})
+
+	// -------------- Validating a Build that does not call ReadyForPlayers stays at Initializing state end --------------
 }
 
 func stopActiveGameServer(ctx context.Context, buildID string, cfg *rest.Config) error {
