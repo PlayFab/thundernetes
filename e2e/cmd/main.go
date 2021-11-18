@@ -211,7 +211,8 @@ func main() {
 			handleError(err)
 		}
 
-		rb := &rbacv1.RoleBinding{
+		// we're updating the ClusterRoleBinding so that the ServiceAccount we're creating in the test namespace has the correct permissions
+		rb := &rbacv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "thundernetes-gameserver-editor-rolebinding",
 				Namespace: testNamespace,
@@ -225,12 +226,17 @@ func main() {
 				{
 					Kind:      "ServiceAccount",
 					Name:      "thundernetes-gameserver-editor",
+					Namespace: "default",
+				},
+				{
+					Kind:      "ServiceAccount",
+					Name:      "thundernetes-gameserver-editor",
 					Namespace: testNamespace,
 				},
 			},
 		}
 		fmt.Println("Creating role binding account gameserver-editor-rolebinding")
-		if err := kubeClient.Create(ctx, rb); err != nil {
+		if err := kubeClient.Update(ctx, rb); err != nil {
 			handleError(err)
 		}
 	}

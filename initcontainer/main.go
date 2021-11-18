@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -9,6 +10,11 @@ import (
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 )
 
 // GsdkConfig is the configuration for the GSDK
@@ -45,10 +51,10 @@ var (
 	sharedContentFolderPath string
 	certificateFolderPath   string
 	serverLogPath           string
-	vmId                    string
 	gamePortsString         string
 	sessionHostId           string
 	crdNamespace            string
+	nodeName                string
 	logger                  *log.Entry
 )
 
@@ -65,18 +71,20 @@ func main() {
 
 	buildMetadata := parseBuildMetadata()
 
+	nodeIpAddress := getPublicIpAddress()
+
 	config := &GsdkConfig{
 		HeartbeatEndpoint:   heartbeatEndpoint,
 		SessionHostId:       sessionHostId,
-		VmId:                vmId,
+		VmId:                nodeName,
 		LogFolder:           serverLogPath,
 		CertificateFolder:   certificateFolderPath,
 		SharedContentFolder: sharedContentFolderPath,
 		BuildMetadata:       buildMetadata,
 		GamePorts:           gamePorts,
-		PublicIpV4Address:   "N/A", // TODO: can we have that here?
+		PublicIpV4Address:   nodeIpAddress,
 		GameServerConnectionInfo: GameServerConnectionInfo{
-			PublicIpV4Address:      "N/A",
+			PublicIpV4Address:      nodeIpAddress,
 			GamePortsConfiguration: gamePortConfiguration,
 		},
 		FullyQualifiedDomainName: "NOT_APPLICABLE",
@@ -98,6 +106,58 @@ func main() {
 	logger.Infof("Saving GSDK JSON to file %s", gsdkConfigFilePath)
 	_, err = f.Write(configJson)
 	handleError(err)
+}
+
+func getPublicIpAddress() string {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
+
+	var node *corev1.Node
+	err = retry.OnError(retry.DefaultRetry, func(_ error) bool { return true }, func() error {
+		node, err = clientset.CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
+		if err != nil {
+			logger.Warnf("Could not get node %s: %s", nodeName, err)
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
+
+	if node.Status.Addresses == nil {
+		logger.Error("Node has no addresses")
+		return "N/A"
+	}
+
+	var externalIp, internalIp string
+
+	for _, address := range node.Status.Addresses {
+		if address.Type == "ExternalIP" {
+			externalIp = address.Address
+		} else if address.Type == "InternalIP" {
+			internalIp = address.Address
+		}
+	}
+
+	if externalIp != "" {
+		return externalIp
+	}
+
+	logger.Info("Node has no external IP address")
+
+	if internalIp != "" {
+		return internalIp
+	}
+
+	logger.Info("Node has no internal IP address either")
+	return "N/A"
 }
 
 func parseBuildMetadata() map[string]string {
@@ -190,9 +250,9 @@ func getRestEnvVariables() {
 	serverLogPath = os.Getenv("PF_SERVER_LOG_DIRECTORY")
 	checkEnvOrFatal("PF_SERVER_LOG_DIRECTORY", serverLogPath)
 
-	vmId = os.Getenv("PF_VM_ID")
-	checkEnvOrFatal("PF_VM_ID", vmId)
-
 	gamePortsString = os.Getenv("PF_GAMESERVER_PORTS")
 	checkEnvOrFatal("PF_GAMESERVER_PORTS", gamePortsString)
+
+	nodeName = os.Getenv("PF_NODE_NAME")
+	checkEnvOrFatal("PF_NODE_NAME", nodeName)
 }

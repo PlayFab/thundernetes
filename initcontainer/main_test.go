@@ -22,6 +22,7 @@ const (
 	testGameServerNamespace = "testGameServerNamespace"
 	testGameServerPorts     = "portName,80,10000?portName2,443,10001"
 	testBuildMetadata       = "key1,value1?key2,value2"
+	testNodeName            = "testNodeName"
 )
 
 type initContainerTestSuite struct {
@@ -81,11 +82,11 @@ func setEnvVariables() {
 	os.Setenv("PF_SHARED_CONTENT_FOLDER", testSharedContentFolder)
 	os.Setenv("CERTIFICATE_FOLDER", testCertificateFolder)
 	os.Setenv("PF_SERVER_LOG_DIRECTORY", testLogDirectory)
-	os.Setenv("PF_VM_ID", testVmId)
 	os.Setenv("PF_GAMESERVER_NAME", testGameServerName)
 	os.Setenv("PF_GAMESERVER_NAMESPACE", testGameServerNamespace)
 	os.Setenv("PF_GAMESERVER_PORTS", testGameServerPorts)
 	os.Setenv("PF_GAMESERVER_BUILD_METADATA", testBuildMetadata)
+	os.Setenv("PF_NODE_NAME", testNodeName)
 }
 
 func unsetEnvVariables() {
@@ -94,9 +95,9 @@ func unsetEnvVariables() {
 	os.Unsetenv("PF_SHARED_CONTENT_FOLDER")
 	os.Unsetenv("CERTIFICATE_FOLDER")
 	os.Unsetenv("PF_SERVER_LOG_DIRECTORY")
-	os.Unsetenv("PF_VM_ID")
 	os.Unsetenv("PF_GAMESERVER_NAME")
 	os.Unsetenv("PF_GAMESERVER_NAMESPACE")
 	os.Unsetenv("PF_GAMESERVER_PORTS")
 	os.Unsetenv("PF_GAMESERVER_BUILD_METADATA")
+	os.Unsetenv("PF_NODE_NAME")
 }
