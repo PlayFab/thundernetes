@@ -6108,6 +6108,7 @@ spec:
               state:
                 description: GameServerState describes the state of the game server
                 enum:
+                - Initializing
                 - Active
                 - StandingBy
                 - Crashed

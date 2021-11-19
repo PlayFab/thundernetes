@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -35,6 +36,7 @@ var _ = Describe("GameServerBuild controller tests", func() {
 			updateInitializingGameServersToStandingBy(ctx, buildID)
 			verifyStandingByActiveByCount(ctx, buildID, 2, 0)
 		})
+
 		// simple scaling test
 		It("should scale game servers", func() {
 			buildName, buildID := getNewBuildNameAndID()
@@ -198,7 +200,7 @@ func waitTillCountGameServersAreInitializing(ctx context.Context, buildID string
 		var initializingCount int
 		for i := 0; i < len(gameServers.Items); i++ {
 			gs := gameServers.Items[i]
-			if gs.Status.State == "" {
+			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
 				initializingCount++
 			}
 		}
@@ -304,7 +306,7 @@ func updateInitializingGameServersToStandingBy(ctx context.Context, buildID stri
 	err := k8sClient.List(ctx, &gameServers, client.InNamespace(testnamespace), client.MatchingLabels{LabelBuildID: buildID})
 	Expect(err).ToNot(HaveOccurred())
 	for _, gameServer := range gameServers.Items {
-		if gameServer.Status.State == "" {
+		if gameServer.Status.State == "" || gameServer.Status.State == mpsv1alpha1.GameServerStateInitializing {
 			gs := getGameServer(ctx, gameServer.Name) // getting the latest updated GameServer object
 			gs.Status.State = mpsv1alpha1.GameServerStateStandingBy
 			gs.Status.Health = mpsv1alpha1.Healthy
@@ -325,7 +327,7 @@ func createTestGameServerBuild(buildName, buildID string, standingBy, max int) m
 				Containers: []corev1.Container{
 					{
 						Name:  "testcontainer",
-						Image: "docker.io/dgkanatsios/thundernetes-netcore-sample:0.1",
+						Image: os.Getenv("THUNDERNETES_SAMPLE_IMAGE"),
 						Ports: []corev1.ContainerPort{
 							{
 								ContainerPort: 80,

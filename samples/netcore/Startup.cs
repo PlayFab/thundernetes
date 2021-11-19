@@ -31,6 +31,9 @@ namespace netcore
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            string skipReadyForPlayers = Environment.GetEnvironmentVariable("SKIP_READY_FOR_PLAYERS");
+            string sleepBeforeReadyForPlayers = Environment.GetEnvironmentVariable("SLEEP_BEFORE_READY_FOR_PLAYERS");
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -40,7 +43,10 @@ namespace netcore
 
             app.UseAuthorization();
 
-            Task.Run(()=>ReadyForPlayersTask());
+            if(string.IsNullOrEmpty(skipReadyForPlayers) || skipReadyForPlayers != "true")
+            {
+                Task.Run(()=>ReadyForPlayersTask(sleepBeforeReadyForPlayers));
+            }
             
             app.UseEndpoints(endpoints =>
             {
@@ -48,8 +54,14 @@ namespace netcore
             });
         }
 
-        private async static Task ReadyForPlayersTask()
+        private async static Task ReadyForPlayersTask(string sleepBeforeReadyForPlayers = null)
         {
+            if(!string.IsNullOrEmpty(sleepBeforeReadyForPlayers) && sleepBeforeReadyForPlayers == "true")
+            {
+                int secondsToSleep = new Random().Next(3,6);
+                Utils.LogMessage($"Sleeping for {secondsToSleep} seconds");
+                await Task.Delay(secondsToSleep * 1000);
+            }
             Utils.LogMessage("Before ReadyForPlayers");
             GameserverSDK.ReadyForPlayers();
             Utils.LogMessage("After ReadyForPlayers");

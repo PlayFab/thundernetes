@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -25,7 +26,7 @@ var _ = Describe("GameServer controller tests", func() {
 						Containers: []corev1.Container{
 							{
 								Name:  "testcontainer",
-								Image: "docker.io/dgkanatsios/thundernetes-netcore-sample:0.1",
+								Image: os.Getenv("THUNDERNETES_SAMPLE_IMAGE"),
 								Ports: []corev1.ContainerPort{
 									{
 										ContainerPort: 80,

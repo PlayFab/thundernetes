@@ -25,11 +25,12 @@ import (
 // GameServerHealth describes the health of the game server
 type GameServerHealth string
 
-//+kubebuilder:validation:Enum=Active;StandingBy;Crashed;GameCompleted
+//+kubebuilder:validation:Enum=Initializing;Active;StandingBy;Crashed;GameCompleted
 // GameServerState describes the state of the game server
 type GameServerState string
 
 const (
+	GameServerStateInitializing  GameServerState = "Initializing"
 	GameServerStateStandingBy    GameServerState = "StandingBy"
 	GameServerStateActive        GameServerState = "Active"
 	GameServerStateCrashed       GameServerState = "Crashed"
