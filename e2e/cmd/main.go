@@ -54,7 +54,7 @@ type buildState struct {
 }
 
 const (
-	testNamespace                           = "default"
+	testNamespace                           = "mynamespace"
 	testBuild1Name                          = "testbuild"
 	testBuildSleepBeforeReadyForPlayersName = "sleepbeforereadyforplayers"
 	testBuildCrashingName                   = "crashing"
@@ -293,7 +293,7 @@ func main() {
 	if err := kubeClient.Create(ctx, buildSleepBeforeReadyForPlayers); err != nil {
 		handleError(err)
 	}
-	return
+
 	fmt.Println("Checking that both Builds have 2 standingBy servers and 2 Pods")
 	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 0, podCount: 2})
 	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 2, activeCount: 0, podCount: 2})
