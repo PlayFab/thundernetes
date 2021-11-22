@@ -91,7 +91,7 @@ func main() {
 		handleError(err)
 	}
 
-	// get certificates to authenticate to operator API server
+	// get certificates to authenticate to operator allocation API service
 	certFile := os.Getenv("TLS_PUBLIC")
 	keyFile := os.Getenv("TLS_PRIVATE")
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)

@@ -131,7 +131,7 @@ func (sm *sidecarManager) gameServerUpdated(oldObj, newObj interface{}) {
 		sessionDetailsMutex.Unlock()
 
 		// closing the channel will cause the informer to stop
-		// we don't expect any more state changes so we close the watch to decrease the pressue on Kubernetes API server
+		// we don't expect any more state changes so we close the watch to decrease the pressure on Kubernetes API server
 		close(watchStopper)
 	}
 }

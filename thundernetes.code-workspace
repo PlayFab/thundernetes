@@ -21,6 +21,10 @@
 			"path": "sidecar-go"
 		},
 		{
+			"name": "gameserverapi",
+			"path": "tools/gameserverapi"
+		},
+		{
 			"name": "thundernetes",
 			"path": "."
 		}
