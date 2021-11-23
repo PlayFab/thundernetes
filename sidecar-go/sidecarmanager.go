@@ -276,7 +276,7 @@ func (sm *sidecarManager) updateConnectedPlayersIfNeeded(ctx context.Context, hb
 		sm.logger.Infof("ConnectedPlayersCount is different than before, updating. Old connectedPlayersCount %d, new connectedPlayersCount %d", sm.connectedPlayersCount, len(hb.CurrentPlayers))
 		var payload string
 		if len(hb.CurrentPlayers) == 0 {
-			payload = "{\"status\":{\"connectedPlayersCount\":0,\"connectedPlayers\":[]}}")
+			payload = "{\"spec\":{\"connectedPlayersCount\":0,\"connectedPlayers\":[]}}"
 		} else {
 			payload = fmt.Sprintf("{\"spec\":{\"connectedPlayersCount\":%d,\"connectedPlayers\":[\"%s\"]}}", len(hb.CurrentPlayers), strings.Join(currentPlayerIDs, "\",\""))
 		}
