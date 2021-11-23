@@ -274,7 +274,12 @@ func (sm *sidecarManager) updateConnectedPlayersIfNeeded(ctx context.Context, hb
 			currentPlayerIDs[i] = hb.CurrentPlayers[i].PlayerId
 		}
 		sm.logger.Infof("ConnectedPlayersCount is different than before, updating. Old connectedPlayersCount %d, new connectedPlayersCount %d", sm.connectedPlayersCount, len(hb.CurrentPlayers))
-		payload := fmt.Sprintf("{\"spec\":{\"connectedPlayersCount\":%d,\"connectedPlayers\":[\"%s\"]}}", len(hb.CurrentPlayers), strings.Join(currentPlayerIDs, "\",\""))
+		var payload string
+		if len(hb.CurrentPlayers) == 0 {
+			payload = "{\"status\":{\"connectedPlayersCount\":0,\"connectedPlayers\":[]}}")
+		} else {
+			payload = fmt.Sprintf("{\"spec\":{\"connectedPlayersCount\":%d,\"connectedPlayers\":[\"%s\"]}}", len(hb.CurrentPlayers), strings.Join(currentPlayerIDs, "\",\""))
+		}
 		payloadBytes := []byte(payload)
 		_, err := sm.k8sClient.Resource(gameserverDetailGVR).Namespace(sm.gameServerNamespace).Patch(ctx, sm.gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{})
 		if err != nil {
