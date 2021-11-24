@@ -276,8 +276,20 @@ func getInitContainerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 			Value: LogDirectory,
 		},
 		{
-			Name:  "PF_VM_ID",
-			Value: "thundernetes-aks-cluster",
+			Name: "PF_VM_ID",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "spec.nodeName",
+				},
+			},
+		},
+		{
+			Name: "PF_NODE_INTERNAL_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
 		},
 		{
 			Name:  "PF_GAMESERVER_NAME", // this becomes SessionHostId in gsdkConfig.json file
