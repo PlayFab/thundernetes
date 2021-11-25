@@ -22,6 +22,7 @@ const (
 	testGameServerNamespace = "testGameServerNamespace"
 	testGameServerPorts     = "portName,80,10000?portName2,443,10001"
 	testBuildMetadata       = "key1,value1?key2,value2"
+	testNodeInternalIP      = "127.0.0.1"
 )
 
 type initContainerTestSuite struct {
@@ -60,6 +61,8 @@ func (suite *initContainerTestSuite) TestInitContainer() {
 	assert.Equal(suite.T(), testLogDirectory, gsdkConfig.LogFolder)
 	assert.Equal(suite.T(), testVmId, gsdkConfig.VmId)
 	assert.Equal(suite.T(), testGameServerName, gsdkConfig.SessionHostId)
+	assert.Equal(suite.T(), testNodeInternalIP, gsdkConfig.PublicIpV4Address)
+	assert.Equal(suite.T(), testNodeInternalIP, gsdkConfig.GameServerConnectionInfo.PublicIpV4Address)
 
 	portsMap, ports, err := parsePorts()
 	assert.NoError(suite.T(), err)
@@ -86,6 +89,7 @@ func setEnvVariables() {
 	os.Setenv("PF_GAMESERVER_NAMESPACE", testGameServerNamespace)
 	os.Setenv("PF_GAMESERVER_PORTS", testGameServerPorts)
 	os.Setenv("PF_GAMESERVER_BUILD_METADATA", testBuildMetadata)
+	os.Setenv("PF_NODE_INTERNAL_IP", testNodeInternalIP)
 }
 
 func unsetEnvVariables() {
@@ -99,4 +103,5 @@ func unsetEnvVariables() {
 	os.Unsetenv("PF_GAMESERVER_NAMESPACE")
 	os.Unsetenv("PF_GAMESERVER_PORTS")
 	os.Unsetenv("PF_GAMESERVER_BUILD_METADATA")
+	os.Unsetenv("PF_NODE_INTERNAL_IP")
 }

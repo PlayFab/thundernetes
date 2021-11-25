@@ -49,6 +49,7 @@ var (
 	gamePortsString         string
 	sessionHostId           string
 	crdNamespace            string
+	nodeInternalIP          string
 	logger                  *log.Entry
 )
 
@@ -74,9 +75,9 @@ func main() {
 		SharedContentFolder: sharedContentFolderPath,
 		BuildMetadata:       buildMetadata,
 		GamePorts:           gamePorts,
-		PublicIpV4Address:   "N/A", // TODO: can we have that here?
+		PublicIpV4Address:   nodeInternalIP, // this is the internal IP of the node
 		GameServerConnectionInfo: GameServerConnectionInfo{
-			PublicIpV4Address:      "N/A",
+			PublicIpV4Address:      nodeInternalIP,
 			GamePortsConfiguration: gamePortConfiguration,
 		},
 		FullyQualifiedDomainName: "NOT_APPLICABLE",
@@ -195,4 +196,7 @@ func getRestEnvVariables() {
 
 	gamePortsString = os.Getenv("PF_GAMESERVER_PORTS")
 	checkEnvOrFatal("PF_GAMESERVER_PORTS", gamePortsString)
+
+	nodeInternalIP = os.Getenv("PF_NODE_INTERNAL_IP")
+	checkEnvOrFatal("PF_NODE_INTERNAL_IP", nodeInternalIP)
 }
