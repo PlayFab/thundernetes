@@ -22,6 +22,7 @@ https://github.com/xmudrii/etcdproxy-controller
 https://github.com/admiraltyio/multicluster-controller#deploymentcopy
 
 Interesting blog posts from Cloudark
+
 - https://medium.com/@cloudark/kubernetes-custom-controllers-b6c7d0668fdf
 - https://medium.com/@cloudark/why-to-write-kubernetes-operators-9b1e32a24814
 - https://itnext.io/analyzing-value-of-operator-framework-for-kubernetes-community-5a65abc259ec
@@ -29,6 +30,7 @@ Interesting blog posts from Cloudark
 - https://medium.com/@cloudark/under-the-hood-of-the-operator-sdk-eebc8fdeebbf
 
 MutatingAdmissionWebhooks
+
 - https://kubernetes.io/docs/admin/extensible-admission-controllers/#admission-webhooks
 - https://medium.com/ibm-cloud/diving-into-kubernetes-mutatingadmissionwebhook-6ef3c5695f74
 - https://github.com/rmars/admission-webhook-example
@@ -36,6 +38,7 @@ MutatingAdmissionWebhooks
 - https://github.com/morvencao/kube-mutating-webhook-tutorial
 
 Scheduling
+
 - https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
 - https://github.com/Huang-Wei/understanding-kube-scheduler
 - https://github.com/Huang-Wei/sample-scheduler-extender
@@ -44,5 +47,6 @@ Scheduling
 - https://thenewstack.io/implementing-advanced-scheduling-techniques-with-kubernetes/
 
 Other
+
 - https://kubeyaml.com/
 - https://github.com/dsalamancaMS/K8sSmokeTest/blob/master/smoke.sh

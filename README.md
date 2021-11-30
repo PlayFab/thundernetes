@@ -5,16 +5,17 @@
 
 # thundernetes
 
-> thundernetes is an experimental project and not recommended for production use. However, we consider it as a great tool for testing your game server before uploading it to Azure PlayFab Multiplayer Servers.
+> thundernetes is an experimental project and not recommended for production use. However, feel free to try it and let us know of any feedback!
 
 Latest release: **0.1.0**
 
 ## Description
 
-Thundernetes is an preview project from the [Azure PlayFab Multiplayer Servers (MPS)](https://docs.microsoft.com/en-us/gaming/playfab/features/multiplayer/servers/) team that enables you to run Linux game servers that use the [PlayFab Game Server SDK (GSDK)](https://github.com/PlayFab/gsdk) on your Kubernetes cluster. Thundernetes can be useful while developing your game server in the following scenarios:
+Thundernetes is a preview project from the [Azure PlayFab Multiplayer Servers (MPS)](https://docs.microsoft.com/en-us/gaming/playfab/features/multiplayer/servers/) team that enables you to run Linux game servers that use the [PlayFab Game Server SDK (GSDK)](https://github.com/PlayFab/gsdk) on your Kubernetes cluster. Thundernetes can be in the following scenarios:
 
-- validate your game server integration with GSDK
+- host your game servers on a Kubernetes cluster, either on a public cloud provider or on-premises
 - do manual allocations of game server sessions
+- validate your game server integration with GSDK
 - as part of your iterative development process, you can use thundernetes to test your game server code before pushing it to the MPS service
 - as part of your CI/CD pipeline, you can publish the game server to a container registry and then have it deploy to a Kubernetes cluster where you can run your tests
 
@@ -24,6 +25,7 @@ Goal for thundernetes is to be portable with MPS - this means that your Linux Ga
 
 Thundernetes requires a Kubernetes cluster with Public IP per Node. We've tested it extensively on [Azure Kubernetes Service - AKS](https://docs.microsoft.com/en-us/azure/aks/intro-kubernetes) as well as in local clusters using [kind](https://kind.sigs.k8s.io/). You also need to have ports 10000-50000 open in your cluster, since these are the ports that Thundernetes will use to receive traffic and forward to your game server.
 
+> You can use a Kubernetes cluster without a Public IP. However, you would need to configure your own network architecture if you want to access your game servers. For example, if you use a cloud provider's Load Balancer, you would need to configure routes from Load Balancer's public endpoints to the internal ones on your Kubernetes cluster.
 > Quick reminder that you can try Azure (and AKS) for free at [azure.com/free](https://azure.com/free).
 
 ## Prerequisites
@@ -44,13 +46,14 @@ Click on the following image for a quick preview of the quickstart:
 
 - [Prerequisites](docs/prerequisites.md) - resources that will fill the knowledge gaps when working with technologies within thundernetes
 - [Quickstart](docs/quickstart.md) - Recommended - how to install thundernetes on your cluster and run the sample game server
-- [Troubleshooting Guide](docs/troubleshooting/README.md) - public repository for all of thundernetes Troubleshooting guides
 - [Defining a GameServerBuild](docs/gameserverbuild.md) - Recommended - how to define a GameServerBuild in YAML
-- [Your game server](docs/yourgameserver.md) - Recommended - how to use thundernetes with your own game server
+- [Your game server](docs/yourgameserver.md) - how to use thundernetes with your own game server
+- [Game Server lifecycle](docs/gameserverlifecycle.md) - game server process lifecycle
 - [Architecture](docs/architecture.md)
 - [Frequently Asked Questions](docs/FAQ.md)
-- [Other Kubernetes resources](docs/resources.md)
+- [Troubleshooting Guide](docs/troubleshooting/README.md) - public repository for all of thundernetes Troubleshooting guides
 - [Development notes](docs/development.md) - useful if you are working on thundernetes development
+- [Other Kubernetes resources](docs/resources.md)
 
 ## Feedback
 
