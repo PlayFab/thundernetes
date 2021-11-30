@@ -43,7 +43,7 @@ curl bot.whatismyipaddress.com
 wget -q -O - checkip.dyndns.org | sed -e 's/[^[:digit:]\|.]//g'
 ```
 
-The above methods work since the Node hosting your Pod has a Public IP.
+The above methods would work properly if the Node hosting your Pod has a Public IP.
 
 [source](https://serversuit.com/community/technical-tips/view/finding-your-external-ip-address.html)
 
@@ -119,16 +119,18 @@ You should add this YAML snippet to any workloads you don't want to be scheduled
 
 There are some features of MPS that are not yet supported on Thundernetes.
 
-1. Thundernetes, for the time being, supports only Linux game servers. Work tracked in #8.
+1. Thundernetes, for the time being, supports only Linux game servers. Work to support Windows is tracked in #8, please leave a comment if that's important for you.
 1. On PlayFab MPS, you can upload a zip file that contains parts of your game server (referred to as assets). This is decompressed on the VM that your game server runs and is automatically mounted. You cannot do that on Thundernetes, however you can always mount a storage volume onto your Pod (e.g. check [here](https://kubernetes.io/docs/concepts/storage/volumes/#azuredisk) on how to mount an Azure Disk). Work tracked in #13.
 
 ### Deleting namespace thundernetes-system stuck in terminating state
+
+Thundernetes creates finalizers for the GameServer custom resource. So, if you delete the thundernetes controller and you try to remove the GameServer Pods and/or the namespace they are in, the namespace will be stuck in terminating state. To fix this, you can run the following commands:
 
 ```bash
  kubectl get namespace thundernetes-system -o json > tmp.json
 ```
 
-Open tmp.json file
+Open tmp.json file and find this section:
 
 ```json
     "spec": {
@@ -141,7 +143,7 @@ Open tmp.json file
     }
 ```
 
-remove the finalizer section
+Remove the finalizer section:
 
 ```json
  "spec": {
@@ -152,7 +154,7 @@ remove the finalizer section
    }
 ```
 
-upload the json file
+Upload the json file:
 
 ```bash
 kubectl proxy
@@ -160,7 +162,7 @@ curl -k -H "Content-Type: application/json" -X PUT --data-binary @tmp.json http:
 kubectl get ns
 ```
 
-For more information about deleting namespaces stuck in terminating state check the [link](https://www.ibm.com/docs/en/cloud-private/3.2.0?topic=console-namespace-is-stuck-in-terminating-state)
+For more information about deleting namespaces stuck in terminating state check the [link](https://www.ibm.com/docs/en/cloud-private/3.2.0?topic=console-namespace-is-stuck-in-terminating-state).
 
 ## Where does the name 'thundernetes' come from?
 
