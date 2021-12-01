@@ -98,15 +98,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	namespace := os.Getenv("POD_NAMESPACE")
-	if namespace == "" {
-		setupLog.Error(err, "unable to start live API client")
-		os.Exit(1)
-	}
 	var crt, key []byte
 	apiServiceSecurity := os.Getenv("API_SERVICE_SECURITY")
 
 	if apiServiceSecurity == "usetls" {
+		namespace := os.Getenv("TLS_SECRET_NAMESPACE")
+		if namespace == "" {
+			setupLog.Error(err, "unable to get TLS_SECRET_NAMESPACE env variable")
+			os.Exit(1)
+		}
 		crt, key, err = getTlsSecret(k8sClient, namespace)
 		if err != nil {
 			setupLog.Error(err, "unable to get TLS secret")
@@ -142,7 +142,7 @@ func main() {
 
 	err = http.NewApiServer(mgr, crt, key)
 	if err != nil {
-		setupLog.Error(err, "unable to create HTTP API Server", "API Server", "HTTP API Server")
+		setupLog.Error(err, "unable to create HTTP allocation API Server", "Allocation API Server", "HTTP Allocation API Server")
 		os.Exit(1)
 	}
 

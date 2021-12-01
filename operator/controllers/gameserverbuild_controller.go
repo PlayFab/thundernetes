@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	mpsv1alpha1 "github.com/playfab/thundernetes/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,8 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	mpsv1alpha1 "github.com/playfab/thundernetes/operator/api/v1alpha1"
 
 	hm "github.com/cornelk/hashmap"
 )
@@ -120,11 +119,13 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// calculate counts by state so we can update .status accordingly
-	var activeCount, standingByCount, crashesCount, initializingCount int
+	var activeCount, standingByCount, crashesCount, initializingCount, pendingCount int
 	for i := 0; i < len(gameServers.Items); i++ {
 		gs := gameServers.Items[i]
 
-		if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
+		if gs.Status.State == "" {
+			pendingCount++
+		} else if gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
 			initializingCount++
 		} else if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 			standingByCount++
@@ -148,20 +149,13 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
-	// if at least one gameServer doesn't have a State, this means that it's initializing
-	// update the gameServerBuild status and exit the reconcile loop
-	// once this gameServer gets a State, the reconcile loop will be re-triggered again
-	if initializingCount > 0 {
-		return r.updateStatus(ctx, &gsb, initializingCount, standingByCount, activeCount, crashesCount)
-	}
-
 	// user has decreased standingBy numbers
 	if standingByCount > gsb.Spec.StandingBy {
 		deletedCount := 0
 		for i := 0; i < standingByCount-gsb.Spec.StandingBy; i++ {
 			gs := gameServers.Items[i]
-			// we're deleting only standingBy servers
-			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
+			// we're deleting only standingBy/initializing servers
+			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 				if err := r.Delete(ctx, &gs); err != nil {
 					return ctrl.Result{}, err
 				}
@@ -185,7 +179,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		for i := 0; i <= standingByCount+activeCount-gsb.Spec.Max; i++ {
 			gs := gameServers.Items[i]
 			// we're deleting only standingBy or initializing servers
-			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
+			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 				if err := r.Delete(ctx, &gs); err != nil {
 					return ctrl.Result{}, err
 				}
@@ -202,7 +196,8 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// we are in need of standingBy servers, so we're creating them here
-	for i := 0; i < gsb.Spec.StandingBy-standingByCount && i+standingByCount+activeCount < gsb.Spec.Max; i++ {
+	for i := 0; i < gsb.Spec.StandingBy-pendingCount-initializingCount-standingByCount &&
+		i+pendingCount+initializingCount+standingByCount+activeCount < gsb.Spec.Max; i++ {
 		newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -216,16 +211,18 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Creating", "Creating GameServer %s", newgs.Name)
 	}
 
-	return r.updateStatus(ctx, &gsb, initializingCount, standingByCount, activeCount, crashesCount)
+	return r.updateStatus(ctx, &gsb, pendingCount, initializingCount, standingByCount, activeCount, crashesCount)
 }
 
-func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1alpha1.GameServerBuild, initializingCount, standingByCount, activeCount, crashesCount int) (ctrl.Result, error) {
+func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1alpha1.GameServerBuild, pendingCount, initializingCount, standingByCount, activeCount, crashesCount int) (ctrl.Result, error) {
 	// update GameServerBuild status only if one of the fields has changed
-	if gsb.Status.CurrentInitializing != initializingCount ||
+	if gsb.Status.CurrentPending != pendingCount ||
+		gsb.Status.CurrentInitializing != initializingCount ||
 		gsb.Status.CurrentActive != activeCount ||
 		gsb.Status.CurrentStandingBy != standingByCount ||
 		crashesCount > 0 {
 
+		gsb.Status.CurrentPending = pendingCount
 		gsb.Status.CurrentInitializing = initializingCount
 		gsb.Status.CurrentActive = activeCount
 		gsb.Status.CurrentStandingBy = standingByCount
@@ -323,9 +320,8 @@ func (r *GameServerBuildReconciler) gameServersUnderDeletionWereDeleted(ctx cont
 			// so it's safe to remove the GameServerBuild entry from the map
 			gameServersUnderDeletion.Del(gsb.Name)
 			return true, nil
-		} else {
-			return false, nil
 		}
+		return false, nil
 	}
 	return true, nil
 }
@@ -354,9 +350,8 @@ func (r *GameServerBuildReconciler) gameServersUnderCreationWereCreated(ctx cont
 			// so it's safe to remove the GameServerBuild entry from the map
 			gameServersUnderCreation.Del(gsb.Name)
 			return true, nil
-		} else {
-			return false, nil
 		}
+		return false, nil
 	}
 	return true, nil
 }

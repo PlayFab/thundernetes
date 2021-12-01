@@ -84,9 +84,10 @@ make deletekindcluster && make builddockerlocal && make createkindcluster && mak
 
 ## Run controller locally
 
-export INIT_CONTAINER_TAG=...
-export SIDECAR_TAG=...
-cd operator && THUNDERNETES_SIDECAR_IMAGE=ghcr.io/playfab/thundernetes-sidecar-go:${SIDECAR_TAG} THUNDERNETES_INIT_CONTAINER_IMAGE=ghcr.io/playfab/thundernetes-initcontainer:${INIT_CONTAINER_TAG} go run main.go
+```bash
+cd operator
+THUNDERNETES_SIDECAR_IMAGE=ghcr.io/playfab/thundernetes-sidecar-go:0.1.0 THUNDERNETES_INIT_CONTAINER_IMAGE=ghcr.io/playfab/thundernetes-initcontainer:0.1.0 go run main.go
+```
 
 ## [ADVANCED] Install thundernetes via cloning this repository
 
