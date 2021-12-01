@@ -6,6 +6,7 @@
 - Run `make create-install-files`
 - Push and merge
 - Run the GitHub Actions workflow [here](https://github.com/PlayFab/thundernetes/actions/workflows/publish.yml)
+- Replace the image on the [netcore-sample YAML files](../samples/netcore)
 
 ## Generate install files
 
