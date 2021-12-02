@@ -98,3 +98,31 @@ spec:
       targetPort: 8080
   selector:
     control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nodeagent
+  namespace: system
+spec:
+  selector:
+    matchLabels:
+      name: nodeagent
+  template:
+    metadata:
+      labels:
+        name: nodeagent
+    spec:
+      hostNetwork: true
+      containers:
+      - name: nodeagent
+        image: ${IMAGE_NAME_NODE_AGENT}:${NODE_AGENT_TAG}
+        resources:
+          limits:
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 500Mi
+        ports:
+        - name: nodeagentport
+          containerPort: 56001

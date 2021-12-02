@@ -25,6 +25,10 @@
 			"path": "tools/gameserverapi"
 		},
 		{
+			"name": "nodeagent",
+			"path": "nodeagent"
+		},
+		{
 			"name": "thundernetes",
 			"path": "."
 		}
