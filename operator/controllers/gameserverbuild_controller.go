@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/operator/api/v1alpha1"
@@ -149,12 +150,18 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
+	// we are sorting GameServers from newest to oldest, since newest have more chances of being in an initializing or pending state
+	// prioritizing deletion of newest GameServers, if this is needed
+	sort.SliceStable(gameServers.Items, func(i, j int) bool {
+		return gameServers.Items[i].GetCreationTimestamp().After(gameServers.Items[j].GetCreationTimestamp().Time)
+	})
+
 	// user has decreased standingBy numbers
 	if standingByCount > gsb.Spec.StandingBy {
 		deletedCount := 0
 		for i := 0; i < standingByCount-gsb.Spec.StandingBy; i++ {
 			gs := gameServers.Items[i]
-			// we're deleting only standingBy/initializing servers
+			// we're deleting only initializing/pending/standingBy servers, never touching active
 			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 				if err := r.Delete(ctx, &gs); err != nil {
 					return ctrl.Result{}, err
@@ -166,8 +173,8 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			}
 		}
 		if deletedCount != standingByCount-gsb.Spec.StandingBy {
-			log.Info("User modified .Spec.StandingBy - No standingBy servers left to delete")
-			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "User modified .Spec.StandingBy - No standingBy servers left to delete", "Tried to delete %d GameServers but deleted only %d", standingByCount-gsb.Spec.StandingBy, deletedCount)
+			log.Info("User modified .Spec.StandingBy - No non-active servers left to delete")
+			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "User modified .Spec.StandingBy - No non-active servers left to delete", "Tried to delete %d GameServers but deleted only %d", standingByCount-gsb.Spec.StandingBy, deletedCount)
 		}
 	}
 
@@ -195,9 +202,9 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
+	nonActiveGameServersCount := standingByCount + initializingCount + pendingCount
 	// we are in need of standingBy servers, so we're creating them here
-	for i := 0; i < gsb.Spec.StandingBy-pendingCount-initializingCount-standingByCount &&
-		i+pendingCount+initializingCount+standingByCount+activeCount < gsb.Spec.Max; i++ {
+	for i := 0; i < gsb.Spec.StandingBy-nonActiveGameServersCount && i+nonActiveGameServersCount+activeCount < gsb.Spec.Max; i++ {
 		newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -229,14 +236,11 @@ func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1
 		gsb.Status.CrashesCount = gsb.Status.CrashesCount + crashesCount
 		gsb.Status.CurrentStandingByReadyDesired = fmt.Sprintf("%d/%d", standingByCount, gsb.Spec.StandingBy)
 
-		var health mpsv1alpha1.GameServerBuildHealth
 		if gsb.Status.CrashesCount >= gsb.Spec.CrashesToMarkUnhealthy {
-			health = mpsv1alpha1.BuildUnhealthy
+			gsb.Status.Health = mpsv1alpha1.BuildUnhealthy
 		} else {
-			health = mpsv1alpha1.BuildHealthy
+			gsb.Status.Health = mpsv1alpha1.BuildHealthy
 		}
-
-		gsb.Status.Health = health
 
 		if err := r.Status().Update(ctx, gsb); err != nil {
 			if apierrors.IsConflict(err) {
@@ -247,6 +251,7 @@ func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1
 		}
 	}
 
+	CurrentGameServerGauge.WithLabelValues(gsb.Name, PendingServerStatus).Set(float64(pendingCount))
 	CurrentGameServerGauge.WithLabelValues(gsb.Name, InitializingServerStatus).Set(float64(initializingCount))
 	CurrentGameServerGauge.WithLabelValues(gsb.Name, StandingByServerStatus).Set(float64(standingByCount))
 	CurrentGameServerGauge.WithLabelValues(gsb.Name, ActiveServerStatus).Set(float64(activeCount))
