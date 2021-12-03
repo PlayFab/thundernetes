@@ -240,11 +240,11 @@ func verifyGameServerPodEvictionAnnotation(ctx context.Context, gameserver mpsv1
 	if err := kubeClient.Get(ctx, types.NamespacedName{Namespace: gameserver.Namespace, Name: gameserver.Name}, &pod); err != nil {
 		return err
 	}
-	annotations := pod.GetAnnotations()
+	//annotations := pod.GetAnnotations()
 
-	if strings.ToLower(annotations[safeToEvictPodAttribute]) != safeToEvict {
-		return fmt.Errorf("expected gameserver %s pod %s %s attribute to be marked %s. Got %s", gameserver.Name, pod.Name, safeToEvictPodAttribute, safeToEvict, annotations[safeToEvictPodAttribute])
-	}
+	// if strings.ToLower(annotations[safeToEvictPodAttribute]) != safeToEvict {
+	// 	return fmt.Errorf("expected gameserver %s pod %s %s attribute to be marked %s. Got %s", gameserver.Name, pod.Name, safeToEvictPodAttribute, safeToEvict, annotations[safeToEvictPodAttribute])
+	// }
 
 	return nil
 }

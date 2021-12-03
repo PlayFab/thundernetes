@@ -41,8 +41,6 @@ const (
 	LabelOwningGameServer = "OwningGameServer"
 	LabelOwningOperator   = "OwningOperator"
 
-	serviceAccountGameServerEditor = "thundernetes-gameserver-editor"
-
 	GsdkConfigFile             = "/data/Config/gsdkConfig.json"
 	LogDirectory               = "/data/GameLogs/"
 	CertificatesDirectory      = "/data/GameCertificates"
@@ -181,32 +179,13 @@ func NewPodForGameServer(gs *mpsv1alpha1.GameServer) *corev1.Pod {
 		attachDataVolumeOnContainer(&pod.Spec.Containers[i])
 		pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, getGameServerEnvVariables(gs)...)
 	}
-	//attachSidecar(gs, pod)
 	attachInitContainer(gs, pod)
-	addServiceAccountName(pod)
 
 	return pod
 }
 
 func modifyRestartPolicy(pod *corev1.Pod) {
 	pod.Spec.RestartPolicy = corev1.RestartPolicyNever
-}
-
-// attachSidecar attaches the sidecar container to the GameServer Pod
-func attachSidecar(gs *mpsv1alpha1.GameServer, pod *corev1.Pod) {
-	sidecar := corev1.Container{
-		Name:            SidecarContainerName,
-		ImagePullPolicy: corev1.PullIfNotPresent,
-		Image:           SidecarImage,
-		Env:             getGameServerEnvVariables(gs),
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      DataVolumeName,
-				MountPath: DataVolumeMountPath,
-			},
-		},
-	}
-	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 }
 
 // attachInitContainer attaches the init container to the GameServer Pod
@@ -244,12 +223,6 @@ func attachDataVolumeOnContainer(container *corev1.Container) {
 		Name:      DataVolumeName,
 		MountPath: DataVolumeMountPath,
 	})
-}
-
-// addServiceAccountName customizes the ServiceAccountName field of the Pod
-// We add special RBAC permissions since the sidecar has to modify the GameServer.Status.State field
-func addServiceAccountName(pod *corev1.Pod) {
-	pod.Spec.ServiceAccountName = serviceAccountGameServerEditor
 }
 
 // getInitContainerEnvVariables returns the environment variables for the init container

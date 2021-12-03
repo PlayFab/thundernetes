@@ -17,3 +17,7 @@ resources:
 - auth_proxy_role.yaml
 - auth_proxy_role_binding.yaml
 - auth_proxy_client_clusterrole.yaml
+# nodeagent
+- nodeagent_editor_role_binding.yaml
+- nodeagent_editor_role.yaml
+

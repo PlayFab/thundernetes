@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
@@ -35,20 +34,15 @@ func validateHeartbeatRequestArgs(hb *HeartbeatRequest) error {
 	return nil
 }
 
-func initializeKubernetesClient() (*kubernetes.Clientset, dynamic.Interface, error) {
+func initializeKubernetesClient() (dynamic.Interface, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, nil, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return clientset, client, nil
+	return client, nil
 }

@@ -1,9 +1,0 @@
-# Adds namespace to all resources.
-#namespace: default
-
-namePrefix: thundernetes-
-
-resources:
-- ./gameserver_editor_role_binding.yaml
-- ./gameserver_editor_role.yaml
-- ./service_account.yaml

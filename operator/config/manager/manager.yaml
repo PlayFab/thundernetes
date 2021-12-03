@@ -113,7 +113,7 @@ spec:
       labels:
         name: nodeagent
     spec:
-      serviceAccountName: controller-manager
+      serviceAccountName: nodeagent
       containers:
       - name: nodeagent
         image: ${IMAGE_NAME_NODE_AGENT}:${NODE_AGENT_TAG}

@@ -1,5 +1,7 @@
 package main
 
+import "sync"
+
 // GameState represents the current state of the game.
 type GameState string
 
@@ -55,10 +57,12 @@ type ConnectedPlayer struct {
 
 // GameServerDetails contains data regarding the details for the session that occurs when the GameServer state changes
 type GameServerDetails struct {
-	SessionID           string
-	SessionCookie       string
-	InitialPlayers      []string
-	CurrentState        GameState
-	CurrentHealth       string
-	GameServerNamespace string
+	SessionID             string
+	SessionCookie         string
+	InitialPlayers        []string
+	CurrentState          GameState
+	CurrentHealth         string
+	GameServerNamespace   string
+	Mutex                 *sync.RWMutex
+	ConnectedPlayersCount int
 }

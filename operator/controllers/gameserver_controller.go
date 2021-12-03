@@ -189,11 +189,32 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+
 		gs.Status.PublicIP = publicIP
 		gs.Status.Ports = getContainerHostPortTuples(&pod)
 		err = r.Status().Update(ctx, &gs)
 		if err != nil {
-			if apierrors.IsConflict(err) { // there might be a conflict because the sidecar can update the .Status of the GameServer
+			if apierrors.IsConflict(err) {
+				log.Info("Conflict updating GameServer status " + err.Error())
+				return ctrl.Result{Requeue: true}, nil
+			} else {
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
+	// we're adding the Label here so the DaemonSet watch can get the update information about the GameServer
+	// unfortunately, we can't track CRDs on a Watch via .status
+	// https://github.com/kubernetes/kubernetes/issues/53459
+	if _, exists := gs.Labels["NodeName"]; !exists {
+		if gs.Labels == nil {
+			gs.Labels = make(map[string]string)
+		}
+		gs.Labels["NodeName"] = pod.Spec.NodeName
+		err := r.Update(ctx, &gs)
+		if err != nil {
+			if apierrors.IsConflict(err) {
+				log.Info("Conflict updating GameServer labels " + err.Error())
 				return ctrl.Result{Requeue: true}, nil
 			} else {
 				return ctrl.Result{}, err
