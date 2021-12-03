@@ -3,6 +3,7 @@ module github.com/playfab/thundernetes/nodeagent
 go 1.17
 
 require (
+	github.com/cornelk/hashmap v1.0.1
 	github.com/sirupsen/logrus v1.8.1
 	k8s.io/api v0.22.4
 	k8s.io/apimachinery v0.22.4
@@ -11,6 +12,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dchest/siphash v1.1.0 // indirect
 	github.com/go-logr/logr v0.4.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect

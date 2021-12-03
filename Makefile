@@ -5,12 +5,14 @@ export IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer
 export IMAGE_NAME_SIDECAR=thundernetes-sidecar-go
 export IMAGE_NAME_NETCORE_SAMPLE=thundernetes-netcore-sample
 export IMAGE_NAME_OPENARENA_SAMPLE=thundernetes-openarena-sample
+export IMAGE_NAME_NODE_AGENT=thundernetes-nodeagent
 
 export OPERATOR_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
 export INIT_CONTAINER_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
 export SIDECAR_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
 export NETCORE_SAMPLE_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
 export OPENARENA_SAMPLE_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
+export NODE_AGENT_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
 
 # local e2e with kind
 export KIND_CLUSTER_NAME=kind
@@ -30,6 +32,7 @@ build:
 	docker build -f ./sidecar-go/Dockerfile -t $(NS)/$(IMAGE_NAME_SIDECAR):$(SIDECAR_TAG) ./sidecar-go
 	docker build -f ./samples/netcore/Dockerfile -t $(NS)/$(IMAGE_NAME_NETCORE_SAMPLE):$(NETCORE_SAMPLE_TAG) ./samples/netcore
 	docker build -f ./samples/openarena/Dockerfile -t $(NS)/$(IMAGE_NAME_OPENARENA_SAMPLE):$(OPENARENA_SAMPLE_TAG) ./samples/openarena
+	docker build -f ./nodeagent/Dockerfile -t $(NS)/$(IMAGE_NAME_NODE_AGENT):$(NODE_AGENT_TAG) ./nodeagent
 
 push:
 	docker push $(NS)/$(IMAGE_NAME_OPERATOR):$(OPERATOR_TAG)
@@ -37,6 +40,7 @@ push:
 	docker push $(NS)/$(IMAGE_NAME_SIDECAR):$(SIDECAR_TAG)
 	docker push $(NS)/$(IMAGE_NAME_NETCORE_SAMPLE):$(NETCORE_SAMPLE_TAG)
 	docker push $(NS)/$(IMAGE_NAME_OPENARENA_SAMPLE):$(OPENARENA_SAMPLE_TAG)
+	docker push $(NS)/$(IMAGE_NAME_NODE_AGENT):$(NODE_AGENT_TAG)
 
 builddockerlocal:
 	docker build -f operator/Dockerfile -t $(IMAGE_NAME_OPERATOR):$(OPERATOR_TAG) ./operator 
@@ -44,6 +48,7 @@ builddockerlocal:
 	docker build -f sidecar-go/Dockerfile -t $(IMAGE_NAME_SIDECAR):$(SIDECAR_TAG) ./sidecar-go 
 	docker build -f samples/netcore/Dockerfile -t $(IMAGE_NAME_NETCORE_SAMPLE):$(NETCORE_SAMPLE_TAG) ./samples/netcore	
 	docker build -f samples/openarena/Dockerfile -t $(IMAGE_NAME_OPENARENA_SAMPLE):$(OPENARENA_SAMPLE_TAG) ./samples/openarena	
+	docker build -f nodeagent/Dockerfile -t $(IMAGE_NAME_NODE_AGENT):$(NODE_AGENT_TAG) ./nodeagent
 
 installkind:
 	curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64
@@ -74,9 +79,8 @@ create-install-files:
 	. .versions && \
 	IMG=$(NS)/$(IMAGE_NAME_OPERATOR):$${OPERATOR_TAG} \
 	IMAGE_NAME_INIT_CONTAINER=$(NS)/$(IMAGE_NAME_INIT_CONTAINER) \
-	IMAGE_NAME_SIDECAR=$(NS)/$(IMAGE_NAME_SIDECAR) \
-	SIDECAR_TAG=$${SIDECAR_TAG} \
-	INIT_CONTAINER_TAG=$${INIT_CONTAINER_TAG} \
+	IMAGE_NAME_NODE_AGENT=$(NS)/$(IMAGE_NAME_NODE_AGENT) \
+	NODE_AGENT_TAG=$${NODE_AGENT_TAG} \
 	make -C operator create-install-files
 
 create-install-files-dev:
@@ -85,6 +89,5 @@ create-install-files-dev:
 	IMG=$(NS)/$(IMAGE_NAME_OPERATOR):$${OPERATOR_TAG} \
 	IMAGE_NAME_INIT_CONTAINER=$(NS)/$(IMAGE_NAME_INIT_CONTAINER) \
 	IMAGE_NAME_NODE_AGENT=$(NS)/$(IMAGE_NAME_NODE_AGENT) \
-	INIT_CONTAINER_TAG=$${INIT_CONTAINER_TAG} \
 	NODE_AGENT_TAG=$${NODE_AGENT_TAG} \
 	make -C operator create-install-files

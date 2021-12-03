@@ -53,10 +53,12 @@ type ConnectedPlayer struct {
 	PlayerId string
 }
 
-// SessionDetails contains data regarding the details for the session that occurs when the GameServer state changes from StandingBy to Active
-type SessionDetails struct {
-	SessionID      string
-	SessionCookie  string
-	InitialPlayers []string
-	State          string
+// GameServerDetails contains data regarding the details for the session that occurs when the GameServer state changes
+type GameServerDetails struct {
+	SessionID           string
+	SessionCookie       string
+	InitialPlayers      []string
+	CurrentState        GameState
+	CurrentHealth       string
+	GameServerNamespace string
 }

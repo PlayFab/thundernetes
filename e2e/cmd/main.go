@@ -341,7 +341,7 @@ func main() {
 	// -------------- Scaling tests end --------------
 
 	// -------------- Allocation tests start --------------
-
+	return
 	fmt.Printf("Allocating on Build %s\n", testBuild1Name)
 	sessionID1 := uuid.New().String()
 	if err := allocate(test1BuildID, sessionID1, cert); err != nil {

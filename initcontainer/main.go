@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -40,7 +41,7 @@ type GamePort struct {
 }
 
 var (
-	heartbeatEndpoint       string
+	heartbeatEndpointPort   string
 	gsdkConfigFilePath      string
 	sharedContentFolderPath string
 	certificateFolderPath   string
@@ -67,7 +68,7 @@ func main() {
 	buildMetadata := parseBuildMetadata()
 
 	config := &GsdkConfig{
-		HeartbeatEndpoint:   heartbeatEndpoint,
+		HeartbeatEndpoint:   fmt.Sprintf("%s:%s", nodeInternalIP, heartbeatEndpointPort),
 		SessionHostId:       sessionHostId,
 		VmId:                vmId,
 		LogFolder:           serverLogPath,
@@ -176,8 +177,8 @@ func getGameServerNameNamespaceFromEnv() {
 
 // getRestEnvVariables gets the rest environment variables
 func getRestEnvVariables() {
-	heartbeatEndpoint = os.Getenv("HEARTBEAT_ENDPOINT")
-	checkEnvOrFatal("HEARTBEAT_ENDPOINT", heartbeatEndpoint)
+	heartbeatEndpointPort = os.Getenv("HEARTBEAT_ENDPOINT_PORT")
+	checkEnvOrFatal("HEARTBEAT_ENDPOINT_PORT", heartbeatEndpointPort)
 
 	gsdkConfigFilePath = os.Getenv("GSDK_CONFIG_FILE")
 	checkEnvOrFatal("GSDK_CONFIG_FILE", gsdkConfigFilePath)

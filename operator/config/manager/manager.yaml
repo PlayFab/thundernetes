@@ -113,7 +113,7 @@ spec:
       labels:
         name: nodeagent
     spec:
-      hostNetwork: true
+      serviceAccountName: controller-manager
       containers:
       - name: nodeagent
         image: ${IMAGE_NAME_NODE_AGENT}:${NODE_AGENT_TAG}
@@ -126,3 +126,13 @@ spec:
         ports:
         - name: nodeagentport
           containerPort: 56001
+          hostPort: 56001
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NODE_INTERNAL_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP

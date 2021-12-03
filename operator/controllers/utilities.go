@@ -181,7 +181,7 @@ func NewPodForGameServer(gs *mpsv1alpha1.GameServer) *corev1.Pod {
 		attachDataVolumeOnContainer(&pod.Spec.Containers[i])
 		pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, getGameServerEnvVariables(gs)...)
 	}
-	attachSidecar(gs, pod)
+	//attachSidecar(gs, pod)
 	attachInitContainer(gs, pod)
 	addServiceAccountName(pod)
 
@@ -256,8 +256,8 @@ func addServiceAccountName(pod *corev1.Pod) {
 func getInitContainerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 	envList := []corev1.EnvVar{
 		{
-			Name:  "HEARTBEAT_ENDPOINT",
-			Value: fmt.Sprintf("localhost:%d", SidecarPort),
+			Name:  "HEARTBEAT_ENDPOINT_PORT",
+			Value: fmt.Sprintf("%d", SidecarPort),
 		},
 		{
 			Name:  "GSDK_CONFIG_FILE",
