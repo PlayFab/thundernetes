@@ -55,7 +55,7 @@ type GameServerReconciler struct {
 	GetPublicIpForNodeProvider func(ctx context.Context, r client.Reader, nodeName string) (string, error) // we abstract this for testing purposes
 }
 
-// we request secret RBAC access here so they can be potentially used by the API service (for GameServer allocations)
+// we request secret RBAC access here so they can be potentially used by the allocation API service (for GameServer allocations)
 
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverdetails,verbs=create

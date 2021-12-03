@@ -38,7 +38,7 @@ type RequestMultiplayerServerResponse struct {
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
 // connections. It's used by ListenAndServe and ListenAndServeTLS so
 // dead TCP connections (e.g. closing laptop mid-download) eventually
-// go away. We use if for TLS-auth enabled API server
+// go away. We use if for TLS-auth enabled allocation API service
 type tcpKeepAliveListener struct {
 	*net.TCPListener
 }

@@ -73,12 +73,12 @@ func (s *ApiServer) setupIndexers(mgr ctrl.Manager) error {
 	return nil
 }
 
-// NeedLeaderElection returns false since we need the API server to run all on controller Pods
+// NeedLeaderElection returns false since we need the allocation API service to run all on controller Pods
 func (s *ApiServer) NeedLeaderElection() bool {
 	return false
 }
 
-// Start starts the HTTP(S) API Server
+// Start starts the HTTP(S) allocation API service
 // if user has provided public/private cert details, it will create a TLS-auth HTTPS server
 // otherwise it will create a HTTP server with no auth
 func (s *ApiServer) Start(ctx context.Context) error {
@@ -95,7 +95,7 @@ func (s *ApiServer) Start(ctx context.Context) error {
 		scheme: s.scheme,
 	})
 
-	log.Info("serving API server", "addr", addr, "port", listeningPort)
+	log.Info("serving allocation API service", "addr", addr, "port", listeningPort)
 
 	srv := &http.Server{
 		Addr:    addr,
@@ -105,7 +105,7 @@ func (s *ApiServer) Start(ctx context.Context) error {
 	done := make(chan struct{})
 	go func() {
 		<-ctx.Done()
-		log.Info("shutting down API server")
+		log.Info("shutting down allocation API service")
 
 		// TODO: use a context with reasonable timeout
 		if err := srv.Shutdown(context.Background()); err != nil {
@@ -116,12 +116,12 @@ func (s *ApiServer) Start(ctx context.Context) error {
 	}()
 
 	if crtBytes != nil && keyBytes != nil {
-		log.Info("starting TLS enabled API server")
+		log.Info("starting TLS enabled allocation API service")
 		if err := customListenAndServeTLS(srv, crtBytes, keyBytes); err != nil && err != http.ErrServerClosed {
 			return err
 		}
 	} else {
-		log.Info("starting insecure API server")
+		log.Info("starting insecure allocation API service")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			return err
 		}

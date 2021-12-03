@@ -32,7 +32,7 @@ fi
 # trap finish EXIT
 
 # certificate generation for the TLS security on the allocation API server
-echo "-----Creating temp certificates for TLS security on the operator's API server-----"
+echo "-----Creating temp certificates for TLS security on the operator's allocation API service-----"
 export TLS_PRIVATE=/tmp/${RANDOM}.pem
 export TLS_PUBLIC=/tmp/${RANDOM}.pem
 openssl req -x509 -newkey rsa:4096 -nodes -keyout ${TLS_PRIVATE} -out ${TLS_PUBLIC} -days 365 -subj '/CN=localhost'

@@ -63,7 +63,7 @@ You can use a variety of options to run Kubernetes locally, either [kind](https:
 * Install kind using the instructions [here](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 * Create a "kind-config.yaml" file to configure the cluster, using the contents listed below. 
 
-Special attention is needed on the ports you will forward (the "containerPort" listed below). First of all, you need to expose port 5000 since this is the port used by the thundernetes API service. You will use this port to do game server allocations.
+Special attention is needed on the ports you will forward (the "containerPort" listed below). First of all, you need to expose port 5000 since this is the port used by the thundernetes GameServer allocation API service. You will use this port to do game server allocations.
 After that, you can optionally specify ports to test your game server by sending traffic to it. Thundernetes dynamically allocates ports for your game server, ranging from 10000 to 50000. Port assignment from this range is sequential. For example, if you use two game servers with each one having a single port, the first game server port will be mapped to port 10000 and the second will be mapped to port 10001. Be aware that if you scale down your GameServerBuild and scale it up again, you probably will not get the same port. Consequently, pay special attention to the ports that you will use in your kind configuration.
 
 Save this content to a file called `kind-config.yaml`.
@@ -109,7 +109,7 @@ Read the following section if you want to have TLS based authentication for the 
 
 ### Install thundernetes with TLS authentication
 
-You need to create/configure the certificate that will be used to protect the thundernetes API service.
+You need to create/configure the certificate that will be used to protect the allocation API service.
 
 For testing purposes, you can generate a self-signed certificate and use it to secure the allocation API service. You can use OpenSSL to create a self-signed certificate and key (of course, this scenario is not recommended for production).
 
@@ -125,7 +125,7 @@ kubectl create namespace thundernetes-system
 kubectl create secret tls tls-secret -n thundernetes-system --cert=/path/to/public.pem --key=/path/to/private.pem
 ```
 
-Then, you can run the following script to install thundernetes with TLS security for the API service.
+Then, you can run the following script to install thundernetes with TLS security for the allocation API service.
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/master/installfiles/operator_with_security.yaml
@@ -177,7 +177,7 @@ Allocating a GameServer will transition its state from "StandingBy" to "Active" 
 If you are running on Azure Kubernetes Service, you can use the following command to allocate a game server:
 
 ```bash
-# grab the IP of the external load balancer that is used to route traffic to the thundernetes API service
+# grab the IP of the external load balancer that is used to route traffic to the allocation API service
 IP=$(kubectl get svc -n thundernetes-system thundernetes-controller-manager -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 # do the allocation call. Make sure the buildID is the same as the one that you created your Build with
 curl -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f6","sessionID":"ac1b7082-d811-47a7-89ae-fe1a9c48a6da"}' http://${IP}:5000/api/v1/allocate
