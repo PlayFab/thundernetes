@@ -42,6 +42,10 @@ spec:
           spec:
             description: GameServerDetailSpec defines the desired state of GameServerDetail
             properties:
+              connectedPlayers:
+                items:
+                  type: string
+                type: array
               connectedPlayersCount:
                 type: integer
               initialPlayers:
