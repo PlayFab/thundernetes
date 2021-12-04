@@ -18,7 +18,7 @@ spec:
       portName: gameport # must be the same as the port name described below
   podSpec:
     containers:
-      - image: ghcr.io/playfab/thundernetes-netcore-sample:0.0.1.2
+      - image: ghcr.io/playfab/thundernetes-netcore-sample:0.1.0
         name: thundernetes-sample-netcore
         ports:
         - containerPort: 80 # your game server port

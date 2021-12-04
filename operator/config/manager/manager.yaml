@@ -38,7 +38,7 @@ spec:
               value: ${IMAGE_NAME_SIDECAR}:${SIDECAR_TAG}
             - name: THUNDERNETES_INIT_CONTAINER_IMAGE
               value: ${IMAGE_NAME_INIT_CONTAINER}:${INIT_CONTAINER_TAG}
-            - name: POD_NAMESPACE
+            - name: TLS_SECRET_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace

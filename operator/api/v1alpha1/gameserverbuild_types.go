@@ -73,6 +73,7 @@ type GameServerBuildSpec struct {
 type GameServerBuildStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	CurrentPending                int                   `json:"currentPending,omitempty"`
 	CurrentInitializing           int                   `json:"currentInitializing"`
 	CurrentStandingBy             int                   `json:"currentStandingBy"`
 	CurrentStandingByReadyDesired string                `json:"currentStandingByReadyDesired"`

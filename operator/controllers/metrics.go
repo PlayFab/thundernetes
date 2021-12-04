@@ -10,6 +10,7 @@ const (
 	ActiveServerStatus       = "active"
 	StandingByServerStatus   = "standingby"
 	InitializingServerStatus = "initializing"
+	PendingServerStatus      = "pending"
 )
 
 var (

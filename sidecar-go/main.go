@@ -33,5 +33,5 @@ func main() {
 
 	http.HandleFunc("/v1/sessionHosts/", sm.heartbeatHandler)
 
-	http.ListenAndServe(fmt.Sprintf(":%d", SidecarPort), nil)
+	http.ListenAndServe(fmt.Sprintf("localhost:%d", SidecarPort), nil)
 }
