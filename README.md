@@ -58,3 +58,7 @@ Click on the following image for a quick preview of the quickstart:
 ## Feedback
 
 As mentioned, thundernetes is in preview and a work in progress. If you find a bug or have a feature request, please file an issue [here](https://github.com/PlayFab/thundernetes/issues) and we will try to get back to you as soon as possible. You can also reach us on [Game Stack server on Discord](https://discord.gg/gamestack).
+
+## Contributing
+
+If you are interested in contributing to thundernetes, please read our [Contributing Guide](docs/contributing.md).
