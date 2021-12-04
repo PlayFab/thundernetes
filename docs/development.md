@@ -103,7 +103,7 @@ IMG=ghcr.io/playfab/thundernetes-operator:${TAG} \
    make -C operator install deploy
 ```
 
-Note that this will install thundernetes without any security for the api service. If you want to enable security for the api service, you can should provide a certificate and key for the api service.
+Note that this will install thundernetes without any security for the allocation API service. If you want to enable security for the allocation API service, you can should provide a certificate and key for the allocation API service.
 
 You can use OpenSSL to create a self-signed certificate and key (not recommended for production).
 
@@ -119,7 +119,7 @@ kubectl create namespace thundernetes-system
 kubectl create secret tls tls-secret -n thundernetes-system --cert=/home/dgkanatsios/public.pem --key=/home/dgkanatsios/private.pem
 ```
 
-Then, you need to install the operator enabling TLS authentication for the API service.
+Then, you need to install the operator enabling TLS authentication for the allocation API service.
 
 ```bash
 export TAG=0.0.1.2
@@ -179,7 +179,7 @@ thundernetes-controller-manager   LoadBalancer   10.0.62.144   20.83.72.255   50
 
 The External-Ip field is the Public IP of the LoadBalancer that we can use to call the allocation API.
 
-If you have configured your API service with no security:
+If you have configured your allocation API service with no security:
 
 ```bash
 IP=...

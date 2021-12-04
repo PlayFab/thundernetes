@@ -63,8 +63,10 @@ const (
 	testBuildSleepBeforeReadyForPlayersID   = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
 	testCrashingBuildID                     = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f7"
 	testWithoutReadyForPlayersBuildID       = "85ffe8da-c82f-4035-86c5-9d2b5f42d6f8"
-	connectedPlayersCount                   = 3
+	connectedPlayersCount                   = 3 // this should the same as in the netcore sample
 )
+
+var connectedPlayers = []string{"Amie", "Ken", "Dimitris"} // this should the same as in the netcore sample
 
 func main() {
 	if len(os.Args) < 1 {
@@ -91,7 +93,7 @@ func main() {
 		handleError(err)
 	}
 
-	// get certificates to authenticate to operator API server
+	// get certificates to authenticate to operator allocation API service
 	certFile := os.Getenv("TLS_PUBLIC")
 	keyFile := os.Getenv("TLS_PRIVATE")
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
@@ -584,7 +586,7 @@ func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Contex
 			}
 
 			// check GameServerDetails
-			if err := verifyGameServerDetail(ctx, gameServer.Name, connectedPlayersCount); err != nil {
+			if err := verifyGameServerDetail(ctx, gameServer.Name, connectedPlayersCount, connectedPlayers); err != nil {
 				return err
 			}
 

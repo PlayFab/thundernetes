@@ -29,7 +29,7 @@ var (
 	gsName     string = "testgs"
 )
 
-var _ = Describe("API server tests", func() {
+var _ = Describe("allocation API service tests", func() {
 	It("empty body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", nil)
 		w := httptest.NewRecorder()
@@ -158,7 +158,7 @@ func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	RunSpecsWithDefaultAndCustomReporters(t,
-		"API Server Suite",
+		"Allocation API Service Suite",
 		[]Reporter{printer.NewlineReporter{}})
 }
 

@@ -27,7 +27,7 @@ const (
 	testGameServerNamespace = "default"
 )
 
-var _ = Describe("API server tests", func() {
+var _ = Describe("allocation API service tests", func() {
 	It("heartbeat with empty body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", nil)
 		w := httptest.NewRecorder()

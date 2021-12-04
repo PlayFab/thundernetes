@@ -58,7 +58,7 @@ When you allocate a GameServer, thundernetes needs to do two things:
 There are two ways we can accomplish the second step:
 
 - Have a [Kubernetes watch](https://kubernetes.io/docs/reference/using-api/api-concepts/#efficient-detection-of-changes) from the sidecar to the Kubernetes' API server which will be notified when the GameServer is updated. This approach works well from a security perspective, since you can configure RBAC rules for the GameServer Pod.
-- Have the controller's API service (which accepts the allocation requests) forward the allocation request to the sidecar. This is done via having the sidecar expose its HTTP server inside the cluster. Of course, this assumes that we trust the processes running on the containers in the cluster.
+- Have the controller's allocation API service forward the allocation request to the sidecar. This is done via having the sidecar expose its HTTP server inside the cluster. Of course, this assumes that we trust the processes running on the containers in the cluster.
 
 For communicating with the sidecar, we eventually picked the first approach. The second approach was used initially but was abandoned due to security concerns.
 

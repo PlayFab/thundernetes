@@ -30,6 +30,8 @@ jobs:
           go-version: 1.16.5
       - name: build Docker images
         run: make builddockerlocal
+      - name: GameServer API service unit tests
+        run: cd tools/gameserverapi && GIN_MODE=release go test
       - name: initcontainer unit tests
         run: cd initcontainer && go test
       - name: sidecar unit tests

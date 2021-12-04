@@ -276,7 +276,7 @@ func verifyPods(ctx context.Context, buildID, buildName string, state buildState
 	return fmt.Errorf("pods not OK, expecting %d, got %d", state.podCount, observedCount)
 }
 
-func verifyGameServerDetail(ctx context.Context, gameServerDetailName string, expectedConnectedPlayersCount int) error {
+func verifyGameServerDetail(ctx context.Context, gameServerDetailName string, expectedConnectedPlayersCount int, expectedConnectedPlayers []string) error {
 	gameServerDetail := mpsv1alpha1.GameServerDetail{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: gameServerDetailName, Namespace: testNamespace}, &gameServerDetail); err != nil {
 		return err
@@ -284,5 +284,15 @@ func verifyGameServerDetail(ctx context.Context, gameServerDetailName string, ex
 	if gameServerDetail.Spec.ConnectedPlayersCount != expectedConnectedPlayersCount {
 		return fmt.Errorf("expected %d connected players, got %d", expectedConnectedPlayersCount, gameServerDetail.Spec.ConnectedPlayersCount)
 	}
+	if len(gameServerDetail.Spec.ConnectedPlayers) != len(expectedConnectedPlayers) {
+		return fmt.Errorf("expected %d connected players, got %d", len(expectedConnectedPlayers), len(gameServerDetail.Spec.ConnectedPlayers))
+	}
+
+	for i := 0; i < len(gameServerDetail.Spec.ConnectedPlayers); i++ {
+		if gameServerDetail.Spec.ConnectedPlayers[i] != expectedConnectedPlayers[i] {
+			return fmt.Errorf("expected connected player %s, got %s", expectedConnectedPlayers[i], gameServerDetail.Spec.ConnectedPlayers[i])
+		}
+	}
+
 	return nil
 }

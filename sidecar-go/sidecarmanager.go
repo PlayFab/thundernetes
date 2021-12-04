@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
@@ -131,7 +132,7 @@ func (sm *sidecarManager) gameServerUpdated(oldObj, newObj interface{}) {
 		sessionDetailsMutex.Unlock()
 
 		// closing the channel will cause the informer to stop
-		// we don't expect any more state changes so we close the watch to decrease the pressue on Kubernetes API server
+		// we don't expect any more state changes so we close the watch to decrease the pressure on Kubernetes API server
 		close(watchStopper)
 	}
 }
@@ -208,7 +209,7 @@ func (sm *sidecarManager) heartbeatHandler(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	if err := sm.updateConnectedPlayersCountIfNeeded(ctx, &hb); err != nil {
+	if err := sm.updateConnectedPlayersIfNeeded(ctx, &hb); err != nil {
 		sm.logger.Errorf("error updating connected players count %s", err.Error())
 		internalServerError(w, err, "error updating connected players count")
 		return
@@ -264,12 +265,21 @@ func (sm *sidecarManager) updateHealthAndStateIfNeeded(ctx context.Context, hb *
 	return nil
 }
 
-// updateConnectedPlayersCountIfNeeded updates the connected players count of the GameServer CRD if the connected players count has changed
-func (sm *sidecarManager) updateConnectedPlayersCountIfNeeded(ctx context.Context, hb *HeartbeatRequest) error {
+// updateConnectedPlayersIfNeeded updates the connected players count of the GameServer CRD if the connected players count has changed
+func (sm *sidecarManager) updateConnectedPlayersIfNeeded(ctx context.Context, hb *HeartbeatRequest) error {
 	// we're not interested in updating the connected players count if the game is not active
 	if hb.CurrentGameState == GameStateActive && sm.connectedPlayersCount != len(hb.CurrentPlayers) {
+		currentPlayerIDs := make([]string, len(hb.CurrentPlayers))
+		for i := 0; i < len(hb.CurrentPlayers); i++ {
+			currentPlayerIDs[i] = hb.CurrentPlayers[i].PlayerId
+		}
 		sm.logger.Infof("ConnectedPlayersCount is different than before, updating. Old connectedPlayersCount %d, new connectedPlayersCount %d", sm.connectedPlayersCount, len(hb.CurrentPlayers))
-		payload := fmt.Sprintf("{\"spec\":{\"connectedPlayersCount\":%d}}", len(hb.CurrentPlayers))
+		var payload string
+		if len(hb.CurrentPlayers) == 0 {
+			payload = "{\"spec\":{\"connectedPlayersCount\":0,\"connectedPlayers\":[]}}"
+		} else {
+			payload = fmt.Sprintf("{\"spec\":{\"connectedPlayersCount\":%d,\"connectedPlayers\":[\"%s\"]}}", len(hb.CurrentPlayers), strings.Join(currentPlayerIDs, "\",\""))
+		}
 		payloadBytes := []byte(payload)
 		_, err := sm.k8sClient.Resource(gameserverDetailGVR).Namespace(sm.gameServerNamespace).Patch(ctx, sm.gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{})
 		if err != nil {
