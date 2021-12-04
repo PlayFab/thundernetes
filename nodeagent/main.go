@@ -185,6 +185,11 @@ func heartbeatHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateHeartbeatRequestArgs(&hb); err != nil {
+		badRequest(w, err, "invalid heartbeat request")
+		return
+	}
+
 	gsdi, exists := gameServerMap.Get(gameServerName)
 	if !exists {
 		internalServerError(w, fmt.Errorf("game server %s not found", gameServerName), "gameserver not found")
@@ -196,12 +201,6 @@ func heartbeatHandler(w http.ResponseWriter, r *http.Request) {
 
 	if logEveryHeartbeat {
 		logger.Infof("heartbeat received from sessionHostId %s, data %#v", gameServerName, hb)
-	}
-
-	if err := validateHeartbeatRequestArgs(&hb); err != nil {
-		logger.Warnf("error validating heartbeat request %s", err.Error())
-		badRequest(w, err, "invalid heartbeat request")
-		return
 	}
 
 	if err := updateHealthAndStateIfNeeded(ctx, &hb, gameServerName, gsd); err != nil {
@@ -250,10 +249,13 @@ func heartbeatHandler(w http.ResponseWriter, r *http.Request) {
 
 // updateHealthAndStateIfNeeded updates both the health and state of the GameServer if any one of them has changed
 func updateHealthAndStateIfNeeded(ctx context.Context, hb *HeartbeatRequest, gameServerName string, gsd *GameServerDetails) error {
-	if hb.CurrentGameState == GameStateStandingBy && gsd.CurrentState == GameStateActive {
+	logger := getLogger(gameServerName, gsd.GameServerNamespace)
+	ok := isValidStateTransition(gsd.CurrentState, hb.CurrentGameState)
+	if !ok {
+		logger.Warnf("invalid state transition from %s to %s", gsd.CurrentState, hb.CurrentGameState)
 		return nil
 	}
-	logger := getLogger(gameServerName, gsd.GameServerNamespace)
+
 	if gsd.CurrentHealth != hb.CurrentGameHealth || gsd.CurrentState != hb.CurrentGameState {
 		logger.Infof("Health or state is different than before, updating. Old health %s, new health %s, old state %s, new state %s", gsd.CurrentHealth, hb.CurrentGameHealth, gsd.CurrentState, hb.CurrentGameState)
 		payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\",\"state\":\"%s\"}}", hb.CurrentGameHealth, hb.CurrentGameState)

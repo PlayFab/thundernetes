@@ -46,3 +46,19 @@ func initializeKubernetesClient() (dynamic.Interface, error) {
 	}
 	return client, nil
 }
+
+func isValidStateTransition(old, new GameState) bool {
+	if old == "" && new == GameStateInitializing {
+		return true
+	}
+	if old == "" && new == GameStateStandingBy {
+		return true
+	}
+	if old == GameStateInitializing && new == GameStateStandingBy {
+		return true
+	}
+	if old == GameStateStandingBy && new == GameStateActive {
+		return true
+	}
+	return false
+}
