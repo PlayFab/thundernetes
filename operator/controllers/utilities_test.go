@@ -32,15 +32,6 @@ var _ = Describe("Utilities tests", func() {
 								},
 							},
 						},
-						{
-							Name: SidecarContainerName,
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          "http",
-									ContainerPort: 81,
-								},
-							},
-						},
 					},
 				},
 			}
@@ -133,7 +124,7 @@ var _ = Describe("Utilities tests", func() {
 			}
 
 			s := getInitContainerEnvVariables(gs)
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "HEARTBEAT_ENDPOINT_PORT", Value: fmt.Sprintf("%d", SidecarPort)})).To(BeTrue())
+			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "HEARTBEAT_ENDPOINT_PORT", Value: fmt.Sprintf("%d", DaemonSetPort)})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "GSDK_CONFIG_FILE", Value: GsdkConfigFile})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_SHARED_CONTENT_FOLDER", Value: GameSharedContentDirectory})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "CERTIFICATE_FOLDER", Value: CertificatesDirectory})).To(BeTrue())

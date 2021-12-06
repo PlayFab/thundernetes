@@ -60,9 +60,9 @@ type GameServerDetails struct {
 	SessionID             string
 	SessionCookie         string
 	InitialPlayers        []string
-	CurrentState          GameState
-	CurrentHealth         string
+	CurrentGameState      GameState
+	CurrentGameHealth     string
 	GameServerNamespace   string
-	Mutex                 *sync.RWMutex
 	ConnectedPlayersCount int
+	Mutex                 *sync.RWMutex
 }

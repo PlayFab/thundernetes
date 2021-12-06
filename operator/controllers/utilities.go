@@ -20,8 +20,7 @@ import (
 )
 
 const (
-	SidecarContainerName = "thundernetes-sidecar"
-	InitContainerName    = "initcontainer"
+	InitContainerName = "initcontainer"
 
 	GameServerKind      = "GameServer"
 	GameServerBuildKind = "GameServerBuild"
@@ -40,25 +39,21 @@ const (
 	LabelBuildName        = "BuildName"
 	LabelOwningGameServer = "OwningGameServer"
 	LabelOwningOperator   = "OwningOperator"
+	LabelNodeName         = "NodeName"
 
 	GsdkConfigFile             = "/data/Config/gsdkConfig.json"
 	LogDirectory               = "/data/GameLogs/"
 	CertificatesDirectory      = "/data/GameCertificates"
 	GameSharedContentDirectory = "/data/GameSharedContent"
 
-	SidecarPort int32 = 56001
+	DaemonSetPort int32 = 56001
 )
 
-var SidecarImage string
 var InitContainerImage string
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano()) //randomize name creation
 
-	SidecarImage = os.Getenv("THUNDERNETES_SIDECAR_IMAGE")
-	if SidecarImage == "" {
-		panic("THUNDERNETES_SIDECAR_IMAGE cannot be empty")
-	}
 	InitContainerImage = os.Getenv("THUNDERNETES_INIT_CONTAINER_IMAGE")
 	if InitContainerImage == "" {
 		panic("THUNDERNETES_INIT_CONTAINER_IMAGE cannot be empty")
@@ -230,7 +225,7 @@ func getInitContainerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 	envList := []corev1.EnvVar{
 		{
 			Name:  "HEARTBEAT_ENDPOINT_PORT",
-			Value: fmt.Sprintf("%d", SidecarPort),
+			Value: fmt.Sprintf("%d", DaemonSetPort),
 		},
 		{
 			Name:  "GSDK_CONFIG_FILE",
@@ -277,9 +272,6 @@ func getInitContainerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 	var b bytes.Buffer
 	// get game ports
 	for _, container := range gs.Spec.PodSpec.Containers {
-		if container.Name == SidecarContainerName {
-			continue
-		}
 		for _, port := range container.Ports {
 			containerPort := strconv.Itoa(int(port.ContainerPort))
 			hostPort := strconv.Itoa(int(port.HostPort))
@@ -358,10 +350,6 @@ func containsString(slice []string, s string) bool {
 func getContainerHostPortTuples(pod *corev1.Pod) string {
 	var ports strings.Builder
 	for _, container := range pod.Spec.Containers {
-		// ignore the sidecar, since we don't want its ports to be visible
-		if container.Name == SidecarContainerName {
-			continue
-		}
 		for _, portInfo := range container.Ports {
 			ports.WriteString(fmt.Sprintf("%d:%d,", portInfo.ContainerPort, portInfo.HostPort))
 		}

@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"net/http"
 
+	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
 
 func internalServerError(w http.ResponseWriter, err error, msg string) {
-	fmt.Printf("Error %s because of %s\n", msg, err.Error())
+	log.Debugf("Error %s because of %s \n", msg, err.Error())
 	w.WriteHeader(http.StatusInternalServerError)
 	w.Write([]byte("500 - " + msg + " " + err.Error()))
 }
@@ -61,4 +62,8 @@ func isValidStateTransition(old, new GameState) bool {
 		return true
 	}
 	return false
+}
+
+func getLogger(gameServerName, gameServerNamespace string) *log.Entry {
+	return log.WithFields(log.Fields{"GameServerName": gameServerName, "GameServerNamespace": gameServerNamespace})
 }

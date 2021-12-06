@@ -34,6 +34,7 @@ const (
 	LabelBuildID                     = "BuildID"
 	invalidStatusCode         string = "invalid status code"
 	containerName             string = "netcore-sample" // this must be the same as the GameServer name
+	nodeAgentName             string = "nodeagent"
 )
 
 type AllocationResult struct {
@@ -525,15 +526,26 @@ func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Contex
 		}
 	}
 
+	var nodeAgentPodList corev1.PodList
+	if err := kubeClient.List(ctx, &nodeAgentPodList, client.MatchingLabels{"name": nodeAgentName}); err != nil {
+		handleError(err)
+	}
+
+	if len(nodeAgentPodList.Items) != 1 {
+		handleError(fmt.Errorf("expected 1 node agent pod, got %d", len(nodeAgentPodList.Items)))
+	}
+	nodeAgentPod := nodeAgentPodList.Items[0]
+
+	nodeAgentLogs, err := getContainerLogs(ctx, coreClient, nodeAgentPod.Name, nodeAgentName, "thundernetes-system")
+	if err != nil {
+		handleError(err)
+	}
+
 	for _, gameServer := range activeGameServers {
 		err := retry(loopTimes, time.Duration(delayInSecondsForLoopTest)*time.Second, func() error {
-			// sidecarLogs, err := getContainerLogs(ctx, coreClient, gameServer.Name, sidecarName, gameServer.Namespace)
-			// if err != nil {
-			// 	return err
-			// }
-			// if !strings.Contains(sidecarLogs, "sessionCookie:randomCookie") {
-			// 	return fmt.Errorf("expected to find 'sessionCookie:randomCookie' in sidecar logs, got %s", sidecarLogs)
-			// }
+			if !strings.Contains(nodeAgentLogs, "sessionCookie:randomCookie") {
+				return fmt.Errorf("expected to find 'sessionCookie:randomCookie' in nodeAgent logs, got %s", nodeAgentLogs)
+			}
 
 			containerLogs, err := getContainerLogs(ctx, coreClient, gameServer.Name, containerName, gameServer.Namespace)
 

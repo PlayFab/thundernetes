@@ -34,12 +34,10 @@ jobs:
         run: cd tools/gameserverapi && GIN_MODE=release go test
       - name: initcontainer unit tests
         run: cd initcontainer && go test
-      - name: sidecar unit tests
-        run: cd sidecar-go && go test
       - name: nodeagent unit tests
         run: cd nodeagent && go test
       - name: operator unit tests
-        run: IMAGE_NAME_SAMPLE=thundernetes-netcore-sample IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer IMAGE_NAME_SIDECAR=thundernetes-sidecar-go TAG=$(git rev-list HEAD --max-count=1 --abbrev-commit) make -C operator test
+        run: IMAGE_NAME_SAMPLE=thundernetes-netcore-sample IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer TAG=$(git rev-list HEAD --max-count=1 --abbrev-commit) make -C operator test
       - name: install kind binaries
         run: make installkind
       - name: create kind cluster

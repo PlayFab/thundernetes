@@ -3,7 +3,6 @@ module github.com/playfab/thundernetes/nodeagent
 go 1.16
 
 require (
-	github.com/cornelk/hashmap v1.0.1
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.15.0
 	github.com/sirupsen/logrus v1.8.1

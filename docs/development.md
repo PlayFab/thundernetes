@@ -262,6 +262,7 @@ PF_SERVER_LOG_DIRECTORY=/data/GameLogs/
 PF_TITLE_ID=1E03
 _=/usr/bin/env
 ```
+<<<<<<< HEAD
 
 ## Docker compose
 
@@ -278,3 +279,5 @@ To test your changes to thundernetes to a Kubernetes cluster, you can use the fo
 - Checkout the `installfilesdev` folder for the generated install files. This file is included in .gitignore so it will never be committed.
 - Test your changes as required.
  
+=======
+>>>>>>> use sync.map
