@@ -315,6 +315,7 @@ func main() {
 	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 2, activeCount: 0, podCount: 2})
 
 	fmt.Printf("Updating build %s with 3 standingBy\n", testBuildSleepBeforeReadyForPlayersName)
+	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuildSleepBeforeReadyForPlayersName, Namespace: testNamespace}, &gsb); err != nil {
 		handleError(err)
 	}
@@ -326,6 +327,7 @@ func main() {
 	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podCount: 3})
 
 	fmt.Printf("Updating build %s with 3 standingBy - 1 standingBy should be removed\n", testBuild1Name)
+	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
 		panic(err)
 	}
@@ -403,7 +405,8 @@ func main() {
 	// -------------- Allocation tests end --------------
 
 	// -------------- More scaling tests start --------------
-	fmt.Printf("Updating build %s with 3 max - since we have 4 actives, noone should be removed", testBuild1Name)
+	fmt.Printf("Updating build %s with 3 max - since we have 4 actives, none should be removed", testBuild1Name)
+	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
 		panic(err)
 	}
@@ -415,6 +418,7 @@ func main() {
 	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
 
 	fmt.Printf("Updating build %s with 5 max - we should have 1 standingBy\n", testBuild1Name)
+	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
 		panic(err)
 	}
