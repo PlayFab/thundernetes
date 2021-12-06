@@ -275,5 +275,5 @@ To test your changes to thundernetes to a Kubernetes cluster, you can use the fo
 - Login to your container registry (`docker login`)
 - Run `make build push` to build the container images and push them to your container registry
 - Run `create-install-files-dev` to create the install files for the cluster
-- Checkout the `installfiles` folder for the generated install files
-- Test your changes and be careful not to commit these files to the repository
+- Checkout the `installfilesdev` folder for the generated install files. This file is included in .gitignore so it will never be committed.
+- Test your changes and be careful not to commit the container registry URL change 

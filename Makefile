@@ -80,6 +80,8 @@ create-install-files:
 	make -C operator create-install-files
 
 create-install-files-dev:
+	mkdir -p ./installfilesdev && \
+	INSTALL_FILES_FOLDER=installfilesdev \
 	IMG=$(NS)/$(IMAGE_NAME_OPERATOR):$${OPERATOR_TAG} \
 	IMAGE_NAME_INIT_CONTAINER=$(NS)/$(IMAGE_NAME_INIT_CONTAINER) \
 	IMAGE_NAME_NODE_AGENT=$(NS)/$(IMAGE_NAME_NODE_AGENT) \
