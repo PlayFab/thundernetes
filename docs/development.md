@@ -266,3 +266,14 @@ _=/usr/bin/env
 ## Docker compose
 
 The docker-compose.yml file on the root of this repo was created to facilitate sidecar development.
+
+## Test your changes to a cluster
+
+To test your changes to thundernetes to a Kubernetes cluster, you can use the following steps:
+
+- Go to the Makefile on the root of the project and change the container registry url to the one you have access to. It is stored in the variable `NS`
+- Login to your container registry (`docker login`)
+- Run `make build push` to build the container images and push them to your container registry
+- Run `create-install-files-dev` to create the install files for the cluster
+- Checkout the `installfiles` folder for the generated install files
+- Test your changes and be careful not to commit these files to the repository
