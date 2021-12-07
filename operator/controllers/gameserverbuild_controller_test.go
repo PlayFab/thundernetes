@@ -195,7 +195,7 @@ func verifyThatBuildIsUnhealthy(ctx context.Context, buildName string) {
 		err := k8sClient.Get(ctx, types.NamespacedName{Name: buildName, Namespace: testnamespace}, &gameServerBuild)
 		Expect(err).ShouldNot(HaveOccurred())
 		return gameServerBuild.Status.Health == mpsv1alpha1.BuildUnhealthy
-	})
+	}, assertTimeout, assertPollingInterval).Should(BeTrue())
 }
 
 func waitTillCountGameServersAreInitializing(ctx context.Context, buildID string, count int) {
