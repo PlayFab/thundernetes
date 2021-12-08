@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"strconv"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -173,19 +174,10 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// When using the cluster autoscaler, an annotation will be added
 	// to prevent the node from being scaled down.
 	r.Recorder.Eventf(&gs, corev1.EventTypeNormal, "Update", "Gameserver %s state is %s", gs.Name, gs.Status.State)
-	podAnnotations := pod.GetAnnotations()
-	if podAnnotations == nil {
-		podAnnotations = make(map[string]string)
+	err := r.addSafeToEvictAnnotationIfNecessary(ctx, &gs, &pod)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
-	if gs.Status.State == mpsv1alpha1.GameServerStateActive {
-		// if the game is active, mark the pod as unsafe to be evicted
-		podAnnotations[safeToEvictPodAttribute] = "false"
-	} else {
-		// game is not active, it is safe to evict this pod
-		podAnnotations[safeToEvictPodAttribute] = "true"
-	}
-	pod.SetAnnotations(podAnnotations)
-	r.Update(ctx, &pod)
 
 	// if we don't have a Public IP set, we need to get and set it on the status
 	if gs.Status.PublicIP == "" {
@@ -251,4 +243,33 @@ func (r *GameServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Pod{}).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 10}).
 		Complete(r)
+}
+
+func (r *GameServerReconciler) addSafeToEvictAnnotationIfNecessary(ctx context.Context, gs *mpsv1alpha1.GameServer, pod *corev1.Pod) error {
+	// we don't need to check if pod.ObjectMeta.Annotations is nil since the check below accomodates for that
+	// https://go.dev/play/p/O9QmzPnKsOK
+	if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
+		if _, ok := pod.ObjectMeta.Annotations[safeToEvictPodAttribute]; !ok {
+			return r.patchPodSafeToEvictAnnotation(ctx, pod, true)
+		}
+	} else if gs.Status.State == mpsv1alpha1.GameServerStateActive {
+		val, ok := pod.ObjectMeta.Annotations[safeToEvictPodAttribute]
+		if !ok || val == strconv.FormatBool(true) {
+			return r.patchPodSafeToEvictAnnotation(ctx, pod, false)
+		}
+	}
+	return nil
+}
+
+func (r *GameServerReconciler) patchPodSafeToEvictAnnotation(ctx context.Context, pod *corev1.Pod, safeToEvict bool) error {
+	patch := client.MergeFrom(pod.DeepCopy())
+	if pod.ObjectMeta.Annotations == nil {
+		pod.ObjectMeta.Annotations = map[string]string{}
+	}
+	pod.ObjectMeta.Annotations[safeToEvictPodAttribute] = strconv.FormatBool(safeToEvict)
+	err := r.Patch(ctx, pod, patch)
+	if err != nil {
+		return err
+	}
+	return nil
 }
