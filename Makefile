@@ -1,4 +1,4 @@
-NS=ghcr.io/playfab
+NS ?= ghcr.io/playfab
 
 export IMAGE_NAME_OPERATOR=thundernetes-operator
 export IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer
@@ -77,4 +77,14 @@ create-install-files:
 	IMAGE_NAME_SIDECAR=$(NS)/$(IMAGE_NAME_SIDECAR) \
 	SIDECAR_TAG=$${SIDECAR_TAG} \
 	INIT_CONTAINER_TAG=$${INIT_CONTAINER_TAG} \
+	make -C operator create-install-files
+
+create-install-files-dev:
+	mkdir -p ./installfilesdev && \
+	INSTALL_FILES_FOLDER=installfilesdev \
+	IMG=$(NS)/$(IMAGE_NAME_OPERATOR):$${OPERATOR_TAG} \
+	IMAGE_NAME_INIT_CONTAINER=$(NS)/$(IMAGE_NAME_INIT_CONTAINER) \
+	IMAGE_NAME_NODE_AGENT=$(NS)/$(IMAGE_NAME_NODE_AGENT) \
+	INIT_CONTAINER_TAG=$${INIT_CONTAINER_TAG} \
+	NODE_AGENT_TAG=$${NODE_AGENT_TAG} \
 	make -C operator create-install-files
