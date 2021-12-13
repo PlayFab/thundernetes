@@ -1,4 +1,4 @@
-NS=ghcr.io/playfab
+NS ?= ghcr.io/playfab
 
 export IMAGE_NAME_OPERATOR=thundernetes-operator
 export IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer

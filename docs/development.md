@@ -271,9 +271,10 @@ The docker-compose.yml file on the root of this repo was created to facilitate s
 
 To test your changes to thundernetes to a Kubernetes cluster, you can use the following steps:
 
-- Go to the Makefile on the root of the project and change the container registry url to the one you have access to. It is stored in the variable `NS`
+- The Makefile on the root of the project contains a variable `NS` that points to the container registry that you use during development. So you'd need to either set the variable in your environment (`export NS=<your-container-registry>`) or set it before calling `make` (like `NS=<your-container-registry> make build push`).
 - Login to your container registry (`docker login`)
 - Run `make build push` to build the container images and push them to your container registry
 - Run `create-install-files-dev` to create the install files for the cluster
 - Checkout the `installfilesdev` folder for the generated install files. This file is included in .gitignore so it will never be committed.
-- Test your changes and be careful not to commit the container registry URL change 
+- Test your changes as required.
+ 
