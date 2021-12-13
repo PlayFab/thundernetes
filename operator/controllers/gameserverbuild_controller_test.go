@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -12,6 +13,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	assertPollingInterval = 20 * time.Millisecond
+	assertTimeout         = 2 * time.Second
 )
 
 var _ = Describe("GameServerBuild controller tests", func() {
@@ -189,7 +195,7 @@ func verifyThatBuildIsUnhealthy(ctx context.Context, buildName string) {
 		err := k8sClient.Get(ctx, types.NamespacedName{Name: buildName, Namespace: testnamespace}, &gameServerBuild)
 		Expect(err).ShouldNot(HaveOccurred())
 		return gameServerBuild.Status.Health == mpsv1alpha1.BuildUnhealthy
-	})
+	}, assertTimeout, assertPollingInterval).Should(BeTrue())
 }
 
 func waitTillCountGameServersAreInitializing(ctx context.Context, buildID string, count int) {
@@ -205,7 +211,7 @@ func waitTillCountGameServersAreInitializing(ctx context.Context, buildID string
 			}
 		}
 		return initializingCount == count
-	}).Should(BeTrue())
+	}, assertTimeout, assertPollingInterval).Should(BeTrue())
 }
 
 func terminateActiveSession(ctx context.Context, buildID string, gracefulTermination bool) {
