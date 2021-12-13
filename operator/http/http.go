@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -98,8 +99,11 @@ func (s *ApiServer) Start(ctx context.Context) error {
 	log.Info("serving allocation API service", "addr", addr, "port", listeningPort)
 
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: mux,
+		Addr:           addr,
+		Handler:        mux,
+		ReadTimeout:    5 * time.Second,
+		WriteTimeout:   5 * time.Second,
+		MaxHeaderBytes: http.DefaultMaxHeaderBytes,
 	}
 
 	done := make(chan struct{})
