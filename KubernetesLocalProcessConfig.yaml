@@ -1,0 +1,7 @@
+version: 0.1
+#volumeMounts:
+#  - name: kube-api-access-*
+#    localPath: /var/run/secrets/kubernetes.io/serviceaccount
+env:
+  - name: KUBERNETES_IN_CLUSTER_CONFIG_OVERRIDE
+    value: $(volumeMounts:kube-api-access-*)

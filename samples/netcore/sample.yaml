@@ -14,9 +14,9 @@ spec:
     - key: "buildMetadataKey1"
       value: "buildMetadataValue1"
   portsToExpose:
-    - 80
-  template:
-    spec:
+    - containerName: thundernetes-sample-netcore
+      portName: gameport
+  podSpec:
       containers:
         - image: ghcr.io/playfab/thundernetes-netcore:0.4.1
           name: thundernetes-sample-netcore
