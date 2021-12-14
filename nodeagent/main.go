@@ -45,6 +45,7 @@ func main() {
 	n := NewNodeAgentManager(dynamicClient, nodeName)
 	log.Debug("Starting HTTP server")
 	http.HandleFunc("/v1/sessionHosts/", n.heartbeatHandler)
+	http.HandleFunc("/healthz", healthzHandler)
 
 	srv := &http.Server{
 		ReadTimeout:    5 * time.Second,
@@ -58,4 +59,9 @@ func main() {
 		log.Fatal(err)
 	}
 	close(n.watchStopper)
+}
+
+func healthzHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }

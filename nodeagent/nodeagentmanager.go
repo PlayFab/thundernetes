@@ -86,6 +86,11 @@ func (n *NodeAgentManager) gameServerCreated(objUnstructured interface{}) {
 		GameServerNamespace: gameServerNamespace,
 		Mutex:               &sync.RWMutex{},
 	})
+
+	log.WithFields(log.Fields{
+		GameServerName:      gameServerName,
+		GameServerNamespace: gameServerNamespace,
+	}).Infof("GameServer %s/%s created", gameServerNamespace, gameServerName)
 }
 
 func (n *NodeAgentManager) gameServerUpdated(oldObj, newObj interface{}) {
@@ -118,7 +123,7 @@ func (n *NodeAgentManager) gameServerUpdated(oldObj, newObj interface{}) {
 		return
 	}
 
-	logger.Infof("GameServer CR updated %s:%s,%s,%s", old.GetName(), oldState, new.GetName(), newState)
+	logger.Infof("GameServer CR updated name %s, old state:%s, new state:%s", old.GetName(), oldState, newState)
 
 	gsdi, exists := n.gameServerMap.Load(gameServerName)
 
