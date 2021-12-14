@@ -209,7 +209,7 @@ func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Reque
 	currentState := gsd.CurrentGameState
 	gsd.Mutex.RUnlock()
 
-	if currentState == GameStateInvalid { // user has not set the status yet
+	if currentState == GameStateInvalid { // status has not been set yet
 		op = GameOperationContinue
 	} else if currentState == GameStateInitializing {
 		op = GameOperationContinue
@@ -232,7 +232,12 @@ func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Reque
 		SessionConfig: *sc,
 	}
 
-	json, _ := json.Marshal(hr)
+	json, err := json.Marshal(hr)
+
+	if err != nil {
+		internalServerError(w, err, "error marshalling heartbeat response")
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(json)
