@@ -15,7 +15,7 @@ COPY *.go ./
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o thundernetes-nodeagent 
 
-# Use distroless as minimal base image to package the sidecar binary
+# Use distroless as minimal base image to package the binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
