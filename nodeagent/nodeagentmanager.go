@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -61,7 +62,9 @@ func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string) *Node
 	return n
 }
 
+// startWatch starts a watch on the GameServer CRs that reside on this Node
 func (n *NodeAgentManager) startWatch() {
+	// we watch for GameServers which Pods have been scheduled to the same Node as this NodeAgent DaemonSet Pod
 	listOptions := dynamicinformer.TweakListOptionsFunc(func(options *metav1.ListOptions) {
 		options.LabelSelector = fmt.Sprintf("%s=%s", LabelNodeName, n.nodeName)
 	})
@@ -77,22 +80,42 @@ func (n *NodeAgentManager) startWatch() {
 	go informer.Run(n.watchStopper)
 }
 
+// gameServerCreated is called when a GameServer CR is created
 func (n *NodeAgentManager) gameServerCreated(objUnstructured interface{}) {
 	obj := objUnstructured.(*unstructured.Unstructured)
 	gameServerName := obj.GetName()
 	gameServerNamespace := obj.GetNamespace()
 
+	logger := getLogger(gameServerName, gameServerNamespace)
+	// we should check if the object already has its .status set with state
+	// this can happen if NodeAgent crashes and starts again
+	// in this case, only the Created event will trigger
+
+	state, err := n.parseState(obj)
+	if err != nil {
+		logger.Warnf("error parsing state %s", err.Error())
+	}
+
+	var sessionID, sessionCookie string
+
+	if state == string(GameStateActive) {
+		//if the saved state is active, this means that NodeAgent crashed
+		sessionID, sessionCookie = n.parseSessionDetails(obj, gameServerName, gameServerNamespace)
+		// current players will be parsed/updated in the next heartbeat
+	}
+
 	n.gameServerMap.Store(gameServerName, &GameServerDetails{
 		GameServerNamespace: gameServerNamespace,
 		Mutex:               &sync.RWMutex{},
+		CurrentGameState:    GameState(state),
+		SessionID:           sessionID,
+		SessionCookie:       sessionCookie,
 	})
 
-	log.WithFields(log.Fields{
-		GameServerName:      gameServerName,
-		GameServerNamespace: gameServerNamespace,
-	}).Infof("GameServer %s/%s created", gameServerNamespace, gameServerName)
+	logger.Infof("GameServer %s/%s created", gameServerNamespace, gameServerName)
 }
 
+// gameServerUpdated is called when a GameServer CR is updated
 func (n *NodeAgentManager) gameServerUpdated(oldObj, newObj interface{}) {
 	ctx := context.Background()
 	// dynamic client returns an unstructured object
@@ -104,22 +127,15 @@ func (n *NodeAgentManager) gameServerUpdated(oldObj, newObj interface{}) {
 
 	logger := getLogger(gameServerName, gameServerNamespace)
 
-	// get the old and the new state from .status.state
-	oldState, oldStateExists, oldStateErr := unstructured.NestedString(old.Object, "status", "state")
-	newState, newStateExists, newStateErr := unstructured.NestedString(new.Object, "status", "state")
-
+	oldState, oldStateErr := n.parseState(old)
 	if oldStateErr != nil {
-		logger.Errorf("error getting old state: %s", oldStateErr.Error())
+		logger.Warnf("error parsing old state %s", oldStateErr.Error())
 		return
 	}
 
+	newState, newStateErr := n.parseState(new)
 	if newStateErr != nil {
-		logger.Errorf("error getting new state: %s", newStateErr.Error())
-		return
-	}
-
-	if !oldStateExists || !newStateExists {
-		logger.Warnf("state does not exist, oldStateExists:%t, newStateExists:%t", oldStateExists, newStateExists)
+		logger.Warnf("error parsing new state %s", newStateErr.Error())
 		return
 	}
 
@@ -150,6 +166,7 @@ func (n *NodeAgentManager) gameServerUpdated(oldObj, newObj interface{}) {
 	}
 }
 
+// gameServerDeleted is called when a GameServer CR is deleted
 func (n *NodeAgentManager) gameServerDeleted(objUnstructured interface{}) {
 	obj := objUnstructured.(*unstructured.Unstructured)
 	gameServerName := obj.GetName()
@@ -163,6 +180,7 @@ func (n *NodeAgentManager) gameServerDeleted(objUnstructured interface{}) {
 	n.gameServerMap.Delete(gameServerName)
 }
 
+// heartbeatHandler is the http handler handling heartbeats from the GameServer Pods running on this Node
 func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	re := regexp.MustCompile(`.*/v1/sessionHosts\/(.*?)(/heartbeats|$)`)
@@ -262,7 +280,8 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 		logger.Debugf("Health or state is different than before, updating. Old health %s, new health %s, old state %s, new state %s", gsd.CurrentGameHealth, hb.CurrentGameHealth, gsd.CurrentGameState, hb.CurrentGameState)
 		payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\",\"state\":\"%s\"}}", hb.CurrentGameHealth, hb.CurrentGameState)
 		payloadBytes := []byte(payload)
-		ctxWithTimeout, _ := context.WithTimeout(ctx, time.Second*timeout)
+		ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*timeout)
+		defer cancel()
 		_, err := n.dynamicClient.Resource(gameserverGVR).Namespace(gsd.GameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
 
 		if err != nil {
@@ -279,7 +298,8 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 // getInitialPlayers returns the initial players from the unstructured GameServerDetail CR
 func (n *NodeAgentManager) getInitialPlayers(ctx context.Context, gameServerName, gameServerNamespace string) []string {
 	logger := getLogger(gameServerName, gameServerNamespace)
-	ctxWithTimeout, _ := context.WithTimeout(ctx, time.Second*timeout)
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*timeout)
+	defer cancel()
 	obj, err := n.dynamicClient.Resource(gameserverDetailGVR).Namespace(gameServerNamespace).Get(ctxWithTimeout, gameServerName, metav1.GetOptions{})
 	if err != nil {
 		logger.Warnf("error getting initial players details %s", err.Error())
@@ -315,7 +335,8 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 			payload = fmt.Sprintf("{\"spec\":{\"connectedPlayersCount\":%d,\"connectedPlayers\":[\"%s\"]}}", len(hb.CurrentPlayers), strings.Join(currentPlayerIDs, "\",\""))
 		}
 		payloadBytes := []byte(payload)
-		ctxWithTimeout, _ := context.WithTimeout(ctx, time.Second*timeout)
+		ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*timeout)
+		defer cancel()
 		_, err := n.dynamicClient.Resource(gameserverDetailGVR).Namespace(gsd.GameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{})
 		if err != nil {
 			return err
@@ -347,4 +368,18 @@ func (n *NodeAgentManager) parseSessionDetails(u *unstructured.Unstructured, gam
 	}
 
 	return sessionID, sessionCookie
+}
+
+// parseState parses the GameServer state from the unstructured GameServer CR
+func (n *NodeAgentManager) parseState(u *unstructured.Unstructured) (string, error) {
+	state, stateExists, stateErr := unstructured.NestedString(u.Object, "status", "state")
+
+	if stateErr != nil {
+		return "", stateErr
+	}
+
+	if !stateExists {
+		return "", errors.New("state does not exist")
+	}
+	return state, nil
 }
