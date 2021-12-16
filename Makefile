@@ -1,4 +1,5 @@
-NS ?= ghcr.io/playfab
+
+NS ?= ghcr.io/playfab/
 
 export IMAGE_NAME_OPERATOR=thundernetes-operator
 export IMAGE_NAME_NODE_AGENT=thundernetes-nodeagent
@@ -6,11 +7,7 @@ export IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer
 export IMAGE_NAME_NETCORE_SAMPLE=thundernetes-netcore-sample
 export IMAGE_NAME_OPENARENA_SAMPLE=thundernetes-openarena-sample
 
-export OPERATOR_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
-export NODE_AGENT_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
-export INIT_CONTAINER_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
-export NETCORE_SAMPLE_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
-export OPENARENA_SAMPLE_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
+export IMAGE_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
 
 # local e2e with kind
 export KIND_CLUSTER_NAME=kind
@@ -20,12 +17,31 @@ export KIND_CLUSTER_NAME=kind
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-build:
-	docker build -f ./operator/Dockerfile -t $(NS)/$(IMAGE_NAME_OPERATOR):$(OPERATOR_TAG) ./operator
-	docker build -f ./nodeagent/Dockerfile -t $(NS)/$(IMAGE_NAME_NODE_AGENT):$(NODE_AGENT_TAG) ./nodeagent
-	docker build -f ./initcontainer/Dockerfile -t $(NS)/$(IMAGE_NAME_INIT_CONTAINER):$(INIT_CONTAINER_TAG) ./initcontainer
-	docker build -f ./samples/netcore/Dockerfile -t $(NS)/$(IMAGE_NAME_NETCORE_SAMPLE):$(NETCORE_SAMPLE_TAG) ./samples/netcore
-	docker build -f ./samples/openarena/Dockerfile -t $(NS)/$(IMAGE_NAME_OPENARENA_SAMPLE):$(OPENARENA_SAMPLE_TAG) ./samples/openarena
+GIT_REVISION := $(shell git rev-parse --short HEAD)
+UPTODATE := .uptodate
+# Automated DockerFile building
+# By convention, every directory with a Dockerfile in it will build an image called ghcr.io/playfab/<directory name>
+# An .uptodate file will be created in the directory to indicate that the Dockerfile has been built.
+%/$(UPTODATE): %/Dockerfile
+	@echo
+	$(SUDO) docker build --build-arg=revision=$(GIT_REVISION) -t $(NS)$(shell basename $(@D)) -t $(NS)$(shell basename $(@D)):$(IMAGE_TAG) $(@D)/
+	@echo
+	touch $@
+
+# We don't want find to scan inside a bunch of directories, to speed up Dockerfile dectection.
+DONT_FIND := -name vendor -prune -o -name .git -prune -o -name .cache -prune -o -name .pkg -prune -o -name packaging -prune -o
+
+# Get a list of directories containing Dockerfiles
+DOCKERFILES := $(shell find . $(DONT_FIND) -type f -name 'Dockerfile' -print)
+UPTODATE_FILES := $(patsubst %/Dockerfile,%/$(UPTODATE),$(DOCKERFILES))
+DOCKER_IMAGE_DIRS := $(patsubst %/Dockerfile,%,$(DOCKERFILES))
+IMAGE_NAMES := $(foreach dir,$(DOCKER_IMAGE_DIRS),$(patsubst %,$(IMAGE_PREFIX)%,$(shell basename $(dir))))
+images:
+	$(info $(IMAGE_NAMES))
+	@echo > /dev/null
+
+build: $(UPTODATE_FILES)
+
 	
 push:
 	docker push $(NS)/$(IMAGE_NAME_OPERATOR):$(OPERATOR_TAG)
