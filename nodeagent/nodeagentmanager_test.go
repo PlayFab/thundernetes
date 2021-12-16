@@ -122,12 +122,8 @@ var _ = Describe("nodeagent tests", func() {
 			if !ok {
 				return false
 			}
-			return tempgs.(*GameServerDetails).PreviousGameState == GameStateActive
+			return tempgs.(*GameServerDetails).WasActivated && tempgs.(*GameServerDetails).PreviousGameState == GameStateStandingBy
 		}).Should(BeTrue())
-
-		tempgs, ok := n.gameServerMap.Load(testGameServerName)
-		Expect(ok).To(BeTrue())
-		Expect(tempgs.(*GameServerDetails).PreviousGameState).To(Equal(GameStateActive))
 
 		// heartbeat from the game is still StandingBy
 		hb := &HeartbeatRequest{
@@ -138,7 +134,7 @@ var _ = Describe("nodeagent tests", func() {
 		req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/sessionHosts/%s", testGameServerName), bytes.NewReader(b))
 		w := httptest.NewRecorder()
 
-		// but the response should be active
+		// but the response from NodeAgent should be active
 		n.heartbeatHandler(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -210,7 +206,7 @@ var _ = Describe("nodeagent tests", func() {
 					if !ok {
 						return false
 					}
-					return tempgs.(*GameServerDetails).PreviousGameState == GameStateActive
+					return tempgs.(*GameServerDetails).WasActivated && tempgs.(*GameServerDetails).PreviousGameState == GameStateStandingBy
 				}).Should(BeTrue())
 
 				// heartbeat from the game is still StandingBy

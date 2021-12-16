@@ -81,7 +81,7 @@ func (n *NodeAgentManager) gameServerCreated(objUnstructured interface{}) {
 	// in this case, only the Created event will trigger
 	state, health, err := n.parseStateHealth(obj)
 	if err != nil {
-		logger.Warnf("error parsing state/health: %s", err.Error())
+		logger.Warnf("parsing state/health: %s", err.Error())
 	}
 
 	var sessionID, sessionCookie string
@@ -142,7 +142,7 @@ func (n *NodeAgentManager) gameServerUpdated(oldObj, newObj interface{}) {
 
 	gsd := gsdi.(*GameServerDetails)
 
-	// game server was allocated
+	// we're only interested if the game server was allocated
 	if gsd.PreviousGameState == GameStateStandingBy && newState == string(GameStateActive) {
 		sessionID, sessionCookie := n.parseSessionDetails(new, gameServerName, gameServerNamespace)
 		logger.Infof("setting values from allocation - GameServer CR, sessionID:%s, sessionCookie:%s", sessionID, sessionCookie)
@@ -318,7 +318,7 @@ func (n *NodeAgentManager) getInitialPlayers(ctx context.Context, gameServerName
 func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, hb *HeartbeatRequest, gameServerName string, gsd *GameServerDetails) error {
 	logger := getLogger(gameServerName, gsd.GameServerNamespace)
 	// we're not interested in updating the connected players count if the game is not active or if the player population has not changed
-	if hb.CurrentGameState != GameStateActive || gsd.ConnectedPlayersCount != len(hb.CurrentPlayers) {
+	if hb.CurrentGameState != GameStateActive || gsd.ConnectedPlayersCount == len(hb.CurrentPlayers) {
 		return nil
 	}
 	currentPlayerIDs := make([]string, len(hb.CurrentPlayers))
