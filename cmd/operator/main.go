@@ -35,7 +35,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mpsv1alpha1 "github.com/playfab/thundernetes/operator/api/v1alpha1"
-	"github.com/playfab/thundernetes/operator/controllers"
+	"github.com/playfab/thundernetes/pkg/operator/controllers"
 
 	//+kubebuilder:scaffold:imports
 
