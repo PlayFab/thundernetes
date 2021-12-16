@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	mpsv1alpha1 "github.com/playfab/thundernetes/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,7 +34,7 @@ const (
 	LabelBuildID                     = "BuildID"
 	invalidStatusCode         string = "invalid status code"
 	containerName             string = "netcore-sample" // this must be the same as the GameServer name
-	sidecarName               string = "thundernetes-sidecar"
+	nodeAgentName             string = "nodeagent"
 )
 
 type AllocationResult struct {
@@ -251,40 +250,6 @@ func main() {
 		if err := kubeClient.Create(ctx, ns); err != nil {
 			handleError(err)
 		}
-
-		sa := &corev1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "thundernetes-gameserver-editor",
-				Namespace: testNamespace,
-			},
-		}
-		fmt.Println("Creating service account gameserver-editor")
-		if err := kubeClient.Create(ctx, sa); err != nil {
-			handleError(err)
-		}
-
-		rb := &rbacv1.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "thundernetes-gameserver-editor-rolebinding",
-				Namespace: testNamespace,
-			},
-			RoleRef: rbacv1.RoleRef{
-				APIGroup: "rbac.authorization.k8s.io",
-				Kind:     "ClusterRole",
-				Name:     "thundernetes-gameserver-editor-role",
-			},
-			Subjects: []rbacv1.Subject{
-				{
-					Kind:      "ServiceAccount",
-					Name:      "thundernetes-gameserver-editor",
-					Namespace: testNamespace,
-				},
-			},
-		}
-		fmt.Println("Creating role binding account gameserver-editor-rolebinding")
-		if err := kubeClient.Create(ctx, rb); err != nil {
-			handleError(err)
-		}
 	}
 
 	fmt.Println("Creating 2 GameServerBuilds")
@@ -351,7 +316,7 @@ func main() {
 	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podCount: 3})
 	validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, test1BuildID)
 
-	fmt.Printf("Allocating on Build %s with same sessionID - should not convert another standingBy to active", testBuild1Name)
+	fmt.Printf("Allocating on Build %s with same sessionID - should not convert another standingBy to active\n", testBuild1Name)
 	if err := allocate(test1BuildID, sessionID1, cert); err != nil {
 		handleError(err)
 	}
@@ -405,7 +370,7 @@ func main() {
 	// -------------- Allocation tests end --------------
 
 	// -------------- More scaling tests start --------------
-	fmt.Printf("Updating build %s with 3 max - since we have 4 actives, none should be removed", testBuild1Name)
+	fmt.Printf("Updating build %s with 3 max - since we have 4 actives, none should be removed\n", testBuild1Name)
 	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
 		panic(err)
@@ -561,14 +526,25 @@ func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Contex
 		}
 	}
 
+	var nodeAgentPodList corev1.PodList
+	if err := kubeClient.List(ctx, &nodeAgentPodList, client.MatchingLabels{"name": nodeAgentName}); err != nil {
+		handleError(err)
+	}
+
+	if len(nodeAgentPodList.Items) != 1 {
+		handleError(fmt.Errorf("expected 1 node agent pod, got %d", len(nodeAgentPodList.Items)))
+	}
+	nodeAgentPod := nodeAgentPodList.Items[0]
+
+	nodeAgentLogs, err := getContainerLogs(ctx, coreClient, nodeAgentPod.Name, nodeAgentName, "thundernetes-system")
+	if err != nil {
+		handleError(err)
+	}
+
 	for _, gameServer := range activeGameServers {
 		err := retry(loopTimes, time.Duration(delayInSecondsForLoopTest)*time.Second, func() error {
-			sidecarLogs, err := getContainerLogs(ctx, coreClient, gameServer.Name, sidecarName, gameServer.Namespace)
-			if err != nil {
-				return err
-			}
-			if !strings.Contains(sidecarLogs, "sessionCookie:randomCookie") {
-				return fmt.Errorf("expected to find 'sessionCookie:randomCookie' in sidecar logs, got %s", sidecarLogs)
+			if !strings.Contains(nodeAgentLogs, "sessionCookie:randomCookie") {
+				return fmt.Errorf("expected to find 'sessionCookie:randomCookie' in nodeAgent logs, got %s", nodeAgentLogs)
 			}
 
 			containerLogs, err := getContainerLogs(ctx, coreClient, gameServer.Name, containerName, gameServer.Namespace)

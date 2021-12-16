@@ -39,9 +39,6 @@ func NewPortRegistry(gameServers mpsv1alpha1.GameServerList, min, max int32, set
 			}
 
 			for _, container := range gs.Spec.PodSpec.Containers {
-				if container.Name == SidecarContainerName {
-					continue
-				}
 
 				portsExposed := make([]int32, len(container.Ports))
 				portsExposedIndex := 0

@@ -17,12 +17,12 @@
 			"path": "samples"
 		},
 		{
-			"name": "sidecar-go",
-			"path": "sidecar-go"
-		},
-		{
 			"name": "gameserverapi",
 			"path": "tools/gameserverapi"
+		},
+		{
+			"name": "nodeagent",
+			"path": "nodeagent"
 		},
 		{
 			"name": "thundernetes",

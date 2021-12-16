@@ -55,7 +55,7 @@ ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: manifests generate fmt vet ## Run tests.
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); THUNDERNETES_SAMPLE_IMAGE=$(IMAGE_NAME_SAMPLE):$(NETCORE_SAMPLE_TAG) THUNDERNETES_SIDECAR_IMAGE=$(IMAGE_NAME_SIDECAR):$(SIDECAR_TAG) THUNDERNETES_INIT_CONTAINER_IMAGE=$(IMAGE_NAME_INIT_CONTAINER):$(INIT_CONTAINER_TAG) go test -v ./... -coverprofile cover.out
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); THUNDERNETES_SAMPLE_IMAGE=$(IMAGE_NAME_SAMPLE):$(NETCORE_SAMPLE_TAG) THUNDERNETES_INIT_CONTAINER_IMAGE=$(IMAGE_NAME_INIT_CONTAINER):$(INIT_CONTAINER_TAG) go test -v ./... -coverprofile cover.out
 
 ##@ Build
 
@@ -75,19 +75,13 @@ create-install-files:
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 ## Create install files for thundernetes installed without API security
 	$(KUSTOMIZE) build config/default | API_SERVICE_SECURITY=none envsubst > ../${INSTALL_FILES_FOLDER}/operator.yaml
-	echo "---" >> ../${INSTALL_FILES_FOLDER}/operator.yaml
-	$(KUSTOMIZE) build config/rbac-gameserver-editor >> ../${INSTALL_FILES_FOLDER}/operator.yaml
 ## Create install files for thundernetes installed with API security	
 	$(KUSTOMIZE) build config/default | API_SERVICE_SECURITY=usetls envsubst > ../${INSTALL_FILES_FOLDER}/operator_with_security.yaml
-	echo "---" >> ../${INSTALL_FILES_FOLDER}/operator_with_security.yaml
-	$(KUSTOMIZE) build config/rbac-gameserver-editor >> ../${INSTALL_FILES_FOLDER}/operator_with_security.yaml
 ## Add prometheus service monitoring & roles to the kustomize output
 	cp ../${INSTALL_FILES_FOLDER}/operator.yaml ../${INSTALL_FILES_FOLDER}/operator_with_monitoring.yaml
 	echo "---" >> ../${INSTALL_FILES_FOLDER}/operator_with_monitoring.yaml
 	$(KUSTOMIZE) build config/prometheus >> ../${INSTALL_FILES_FOLDER}/operator_with_monitoring.yaml
 	cp ../${INSTALL_FILES_FOLDER}/operator_with_security.yaml ../${INSTALL_FILES_FOLDER}/operator_with_security_and_monitoring.yaml
-	echo "---" >> ../${INSTALL_FILES_FOLDER}/operator_with_security_and_monitoring.yaml
-	$(KUSTOMIZE) build config/rbac-gameserver-editor >> ../${INSTALL_FILES_FOLDER}/operator_with_security_and_monitoring.yaml
 
 ##@ Deployment
 
@@ -100,11 +94,9 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | envsubst | kubectl apply -f -
-	$(KUSTOMIZE) build config/rbac-gameserver-editor | kubectl apply -f -
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
-	$(KUSTOMIZE) build config/rbac-gameserver-editor | kubectl delete -f -
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.

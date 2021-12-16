@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,17 +13,17 @@ import (
 )
 
 const (
-	testGsdkConfigFile      = "/tmp/GsdkConfig.json"
-	testHeartbeatEndpoint   = "http://localhost:8080/heartbeat"
-	testSharedContentFolder = "testSharedContentFolder"
-	testCertificateFolder   = "testCertificateFolder"
-	testLogDirectory        = "testLogDirectory"
-	testVmId                = "testVmId"
-	testGameServerName      = "testGameServerName"
-	testGameServerNamespace = "testGameServerNamespace"
-	testGameServerPorts     = "portName,80,10000?portName2,443,10001"
-	testBuildMetadata       = "key1,value1?key2,value2"
-	testNodeInternalIP      = "127.0.0.1"
+	testGsdkConfigFile        = "/tmp/GsdkConfig.json"
+	testHeartbeatEndpointPort = "56001"
+	testSharedContentFolder   = "testSharedContentFolder"
+	testCertificateFolder     = "testCertificateFolder"
+	testLogDirectory          = "testLogDirectory"
+	testVmId                  = "testVmId"
+	testGameServerName        = "testGameServerName"
+	testGameServerNamespace   = "testGameServerNamespace"
+	testGameServerPorts       = "portName,80,10000?portName2,443,10001"
+	testBuildMetadata         = "key1,value1?key2,value2"
+	testNodeInternalIP        = "127.0.0.1"
 )
 
 type initContainerTestSuite struct {
@@ -55,7 +56,7 @@ func (suite *initContainerTestSuite) TestInitContainer() {
 	err = json.Unmarshal(byteValue, &gsdkConfig)
 	assert.NoError(suite.T(), err)
 
-	assert.Equal(suite.T(), testHeartbeatEndpoint, gsdkConfig.HeartbeatEndpoint)
+	assert.Equal(suite.T(), fmt.Sprintf("%s:%s", nodeInternalIP, heartbeatEndpointPort), gsdkConfig.HeartbeatEndpoint)
 	assert.Equal(suite.T(), testSharedContentFolder, gsdkConfig.SharedContentFolder)
 	assert.Equal(suite.T(), testCertificateFolder, gsdkConfig.CertificateFolder)
 	assert.Equal(suite.T(), testLogDirectory, gsdkConfig.LogFolder)
@@ -80,7 +81,7 @@ func TestInitContainerSuite(t *testing.T) {
 
 func setEnvVariables() {
 	os.Setenv("GSDK_CONFIG_FILE", testGsdkConfigFile)
-	os.Setenv("HEARTBEAT_ENDPOINT", testHeartbeatEndpoint)
+	os.Setenv("HEARTBEAT_ENDPOINT_PORT", testHeartbeatEndpointPort)
 	os.Setenv("PF_SHARED_CONTENT_FOLDER", testSharedContentFolder)
 	os.Setenv("CERTIFICATE_FOLDER", testCertificateFolder)
 	os.Setenv("PF_SERVER_LOG_DIRECTORY", testLogDirectory)
@@ -94,7 +95,7 @@ func setEnvVariables() {
 
 func unsetEnvVariables() {
 	os.Unsetenv("GSDK_CONFIG_FILE")
-	os.Unsetenv("HEARTBEAT_ENDPOINT")
+	os.Unsetenv("HEARTBEAT_ENDPOINT_PORT")
 	os.Unsetenv("PF_SHARED_CONTENT_FOLDER")
 	os.Unsetenv("CERTIFICATE_FOLDER")
 	os.Unsetenv("PF_SERVER_LOG_DIRECTORY")

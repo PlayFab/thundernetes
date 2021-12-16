@@ -1,5 +1,25 @@
 package main
 
+import (
+	"sync"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
+)
+
+var (
+	gameserverGVR = schema.GroupVersionResource{
+		Group:    "mps.playfab.com",
+		Version:  "v1alpha1",
+		Resource: "gameservers",
+	}
+
+	gameserverDetailGVR = schema.GroupVersionResource{
+		Group:    "mps.playfab.com",
+		Version:  "v1alpha1",
+		Resource: "gameserverdetails",
+	}
+)
+
 // GameState represents the current state of the game.
 type GameState string
 
@@ -53,10 +73,15 @@ type ConnectedPlayer struct {
 	PlayerId string
 }
 
-// SessionDetails contains data regarding the details for the session that occurs when the GameServer state changes from StandingBy to Active
-type SessionDetails struct {
-	SessionID      string
-	SessionCookie  string
-	InitialPlayers []string
-	State          string
+// GameServerDetails contains data regarding the details for the session that occurs when the GameServer state changes
+type GameServerDetails struct {
+	WasActivated          bool // set to true when
+	SessionID             string
+	SessionCookie         string
+	InitialPlayers        []string
+	PreviousGameState     GameState // the GameState on the previous heartbeat
+	PreviousGameHealth    string    // the GameHealth on the previous heartbeat
+	GameServerNamespace   string
+	ConnectedPlayersCount int
+	Mutex                 *sync.RWMutex
 }

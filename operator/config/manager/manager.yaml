@@ -34,8 +34,6 @@ spec:
           env:
             - name: API_SERVICE_SECURITY
               value: ${API_SERVICE_SECURITY}
-            - name: THUNDERNETES_SIDECAR_IMAGE
-              value: ${IMAGE_NAME_SIDECAR}:${SIDECAR_TAG}
             - name: THUNDERNETES_INIT_CONTAINER_IMAGE
               value: ${IMAGE_NAME_INIT_CONTAINER}:${INIT_CONTAINER_TAG}
             - name: TLS_SECRET_NAMESPACE
@@ -98,3 +96,47 @@ spec:
       targetPort: 8080
   selector:
     control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nodeagent
+  namespace: system
+spec:
+  selector:
+    matchLabels:
+      name: nodeagent
+  template:
+    metadata:
+      labels:
+        name: nodeagent
+    spec:
+      serviceAccountName: nodeagent
+      containers:
+      - name: nodeagent
+        image: ${IMAGE_NAME_NODE_AGENT}:${NODE_AGENT_TAG}
+        resources:
+          limits:
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 56001
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        ports:
+        - name: nodeagentport
+          containerPort: 56001
+          hostPort: 56001
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NODE_INTERNAL_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP

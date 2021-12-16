@@ -33,18 +33,6 @@ kubectl create namespace thundernetes-system
 kubectl create secret tls tls-secret -n thundernetes-system --cert=/home/dgkanatsios/public.pem --key=/home/dgkanatsios/private.pem
 ```
 
-### Install/deploy a specific commit
-
-```bash
-export TAG=$(git rev-list HEAD --max-count=1 --abbrev-commit)
-make build push
-IMG=ghcr.io/playfab/thundernetes-operator:${TAG} \
-  IMAGE_NAME_INIT_CONTAINER=docker.io/dgkanatsios/thundernetes-initcontainer \
-  IMAGE_NAME_SIDECAR=docker.io/dgkanatsios/thundernetes-sidecar-go \
-  API_SERVICE_SECURITY=none \
-   make -C operator install deploy
-```
-
 ### Allocate a game server
 
 #### With TLS auth
@@ -87,7 +75,7 @@ make deletekindcluster && make builddockerlocal && make createkindcluster && mak
 
 ```bash
 cd operator
-THUNDERNETES_SIDECAR_IMAGE=ghcr.io/playfab/thundernetes-sidecar-go:0.1.0 THUNDERNETES_INIT_CONTAINER_IMAGE=ghcr.io/playfab/thundernetes-initcontainer:0.1.0 go run main.go
+THUNDERNETES_INIT_CONTAINER_IMAGE=ghcr.io/playfab/thundernetes-initcontainer:0.1.0 go run main.go
 ```
 
 ## [ADVANCED] Install thundernetes via cloning this repository

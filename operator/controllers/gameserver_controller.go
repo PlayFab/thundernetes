@@ -148,9 +148,6 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// check if the pod process has exited (i.e. GameServer session has exited gracefully or crashed)
 	for _, containerStatus := range pod.Status.ContainerStatuses {
-		if containerStatus.Name == SidecarContainerName {
-			continue
-		}
 		if !containerStatus.Ready && containerStatus.State.Terminated != nil {
 			exitCode := containerStatus.State.Terminated.ExitCode
 			r.Recorder.Eventf(&gs, corev1.EventTypeNormal, "GameServerProcessExited", "GameServer process exited with code %d", exitCode)
@@ -167,7 +164,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	// other status updates on the GameServer state are provided by the sidecar
+	// other status updates on the GameServer state are provided by the daemonset
 	// which calls the K8s API server
 
 	// if a game server is active, there are players present.
@@ -189,13 +186,39 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+
 		gs.Status.PublicIP = publicIP
 		gs.Status.Ports = getContainerHostPortTuples(&pod)
 		err = r.Status().Update(ctx, &gs)
 		if err != nil {
-			if apierrors.IsConflict(err) { // there might be a conflict because the sidecar can update the .Status of the GameServer
+			if apierrors.IsConflict(err) {
+				log.Info("Conflict updating GameServer status " + err.Error())
 				return ctrl.Result{Requeue: true}, nil
 			} else {
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
+	// we're adding the Label here so the DaemonSet watch can get the update information about the GameServer
+	// unfortunately, we can't track CRDs on a Watch via .status
+	// https://github.com/kubernetes/kubernetes/issues/53459
+	if _, exists := gs.Labels[LabelNodeName]; !exists {
+		// code from: https://sdk.operatorframework.io/docs/building-operators/golang/references/client/#patch
+		// also: https://github.com/coderanger/controller-utils/blob/main/core/reconciler.go#L306-L330
+		patch := client.MergeFrom(gs.DeepCopy())
+		if gs.Labels == nil {
+			gs.Labels = make(map[string]string)
+		}
+		gs.Labels[LabelNodeName] = pod.Spec.NodeName
+		err := r.Patch(ctx, &gs, patch)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				// object was probably deleted, no reason to reconcile again
+				log.Info("Trying to update Labels for deleted GameServer: " + err.Error())
+				return ctrl.Result{}, nil
+			} else {
+				log.Error(err, "Error updating GameServer labels")
 				return ctrl.Result{}, err
 			}
 		}

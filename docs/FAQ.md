@@ -66,38 +66,9 @@ Scaling in Kubernetes is two fold. Pod autoscaling and Cluster autoscaling. Thun
 
 In conjuction with cluster autoscaler, you can use [Virtual Kubelet](https://github.com/virtual-kubelet/virtual-kubelet) project to accelerate the addition of new Pods to the cluster. If you are using Azure Kubernetes Service, you can easily enable Virtual Nodes feature (which is based on Virtual Kubelet) using the instructions [here](https://docs.microsoft.com/en-us/azure/aks/virtual-nodes).
 
-## How can I run my game server pods in a non-default namespace?
+## Can I run my game server pods in a non-default namespace?
 
-By default, thundernetes monitors the `default` namespace. If you want to run your game servers in a different namespace, you should first install the necessary ServiceAccount/RoleBinding RBAC roles on this namespace. This is because the sidecar running on the GameServer Pod needs access to talk to the Kubernetes API server. For information on Kubernetes RBAC, check [here](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
-
-You can save the following configuration on a yaml file and then run `kubectl apply -f /path/to/file.yaml` to create the namespace and RBAC objects
-
-```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: mynamespace
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: gameserver-editor
-  namespace: mynamespace
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: gameserver-editor-rolebinding
-  namespace: mynamespace
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: gameserver-editor-role
-subjects:
-- kind: ServiceAccount
-  name: gameserver-editor
-  namespace: mynamespace  
-```
+You don't need to anything special to run your game server Pods in a namespace different than the "default". Old versions of thundernetes (up to 0.1) made use of a sidecar to access the Kubernetes API Server, so you need to create special RoleBinding and ServiceAccount in your namespace. With the transition to DaemonSet NodeAgent in 0.2, this is no longer necessary.
 
 ## How do I schedule thundernetes Pods and GameServer Pods into different Nodes?
 

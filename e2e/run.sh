@@ -17,8 +17,8 @@ BUILD=${2:-remote} # setting a default value for $BUILD
 if [ "$BUILD" = "local" ]; then
   	./operator/testbin/bin/kind load docker-image ${IMAGE_NAME_OPERATOR}:${OPERATOR_TAG} --name kind
 	./operator/testbin/bin/kind load docker-image ${IMAGE_NAME_INIT_CONTAINER}:${INIT_CONTAINER_TAG} --name kind
-	./operator/testbin/bin/kind load docker-image ${IMAGE_NAME_SIDECAR}:${SIDECAR_TAG} --name kind
 	./operator/testbin/bin/kind load docker-image ${IMAGE_NAME_NETCORE_SAMPLE}:${NETCORE_SAMPLE_TAG} --name kind
+	./operator/testbin/bin/kind load docker-image ${IMAGE_NAME_NODE_AGENT}:${NODE_AGENT_TAG} --name kind
 fi
 
 # function finish {

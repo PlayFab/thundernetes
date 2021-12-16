@@ -32,15 +32,6 @@ var _ = Describe("Utilities tests", func() {
 								},
 							},
 						},
-						{
-							Name: SidecarContainerName,
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          "http",
-									ContainerPort: 81,
-								},
-							},
-						},
 					},
 				},
 			}
@@ -133,18 +124,13 @@ var _ = Describe("Utilities tests", func() {
 			}
 
 			s := getInitContainerEnvVariables(gs)
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "HEARTBEAT_ENDPOINT", Value: fmt.Sprintf("localhost:%d", SidecarPort)})).To(BeTrue())
+			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "HEARTBEAT_ENDPOINT_PORT", Value: fmt.Sprintf("%d", DaemonSetPort)})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "GSDK_CONFIG_FILE", Value: GsdkConfigFile})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_SHARED_CONTENT_FOLDER", Value: GameSharedContentDirectory})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "CERTIFICATE_FOLDER", Value: CertificatesDirectory})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_SERVER_LOG_DIRECTORY", Value: LogDirectory})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_GAMESERVER_NAME", Value: gs.Name})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_GAMESERVER_PORTS", Value: "port1,80,123?port2,443,456"})).To(BeTrue())
-		})
-		It("should modify serviceAccount", func() {
-			pod := &corev1.Pod{}
-			addServiceAccountName(pod)
-			Expect(pod.Spec.ServiceAccountName).To(Equal(serviceAccountGameServerEditor))
 		})
 		It("should attach data volume", func() {
 			container := &corev1.Container{}
@@ -186,23 +172,6 @@ var _ = Describe("Utilities tests", func() {
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Image:           InitContainerImage,
 				Env:             getInitContainerEnvVariables(gs),
-				VolumeMounts: []corev1.VolumeMount{
-					{
-						Name:      DataVolumeName,
-						MountPath: DataVolumeMountPath,
-					},
-				},
-			}))
-		})
-		It("should attach sidecar", func() {
-			gs := &mpsv1alpha1.GameServer{}
-			pod := &corev1.Pod{}
-			attachSidecar(gs, pod)
-			Expect(pod.Spec.Containers[len(pod.Spec.Containers)-1]).To(BeEquivalentTo(corev1.Container{
-				Name:            SidecarContainerName,
-				ImagePullPolicy: corev1.PullIfNotPresent,
-				Image:           SidecarImage,
-				Env:             getGameServerEnvVariables(gs),
 				VolumeMounts: []corev1.VolumeMount{
 					{
 						Name:      DataVolumeName,
