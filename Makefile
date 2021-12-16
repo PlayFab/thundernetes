@@ -24,7 +24,7 @@ UPTODATE := .uptodate
 # An .uptodate file will be created in the directory to indicate that the Dockerfile has been built.
 %/$(UPTODATE): %/Dockerfile
 	@echo
-	$(SUDO) docker build --build-arg=revision=$(GIT_REVISION) -t $(NS)$(shell basename $(@D)) -t $(NS)$(shell basename $(@D)):$(IMAGE_TAG) $(@D)/
+	$(SUDO) docker build --build-arg=revision=$(GIT_REVISION) -t $(NS)$(shell basename $(@D)) -t $(NS)$(shell basename $(@D)):$(IMAGE_TAG) -f $(@D)/Dockerfile .
 	@echo
 	touch $@
 
@@ -40,8 +40,10 @@ images:
 	$(info $(IMAGE_NAMES))
 	@echo > /dev/null
 
-build: $(UPTODATE_FILES)
+buildimage:
+	docker build -t thundernetes-src:$(GIT_REVISION) -f build-env/Dockerfile .
 
+build: buildimage $(UPTODATE_FILES)
 	
 push:
 	docker push $(NS)/$(IMAGE_NAME_OPERATOR):$(OPERATOR_TAG)
