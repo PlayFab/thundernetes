@@ -33,6 +33,7 @@ func main() {
 	log.Debug("Starting HTTP server")
 	http.HandleFunc("/v1/sessionHosts/", n.heartbeatHandler)
 	http.HandleFunc("/healthz", healthzHandler)
+	http.Handle("/metrics", promhttp.Handler())
 
 	// main api server
 	srv := &http.Server{
@@ -41,15 +42,9 @@ func main() {
 		MaxHeaderBytes: http.DefaultMaxHeaderBytes,
 		Addr:           fmt.Sprintf(":%d", port),
 	}
-	// create another server on a different port for prometheus metrics
-	metricsSrv := &http.Server{
-		Addr:    ":9090",
-		Handler: promhttp.Handler(),
-	}
 
-	// starts the servers in goroutines
+	// starts the server in a goroutine
 	startHttpServer(srv)
-	startHttpServer(metricsSrv)
 
 	// create a channel and wait for SIGINT or SIGTERM
 	sig := make(chan os.Signal, 1)
@@ -61,7 +56,6 @@ func main() {
 
 	// shut down gracefully, but wait no longer than 5 seconds before halting
 	stopHttpServer(srv, ctx)
-	stopHttpServer(metricsSrv, ctx)
 
 	close(n.watchStopper)
 }
