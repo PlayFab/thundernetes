@@ -236,6 +236,8 @@ func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1
 		gsb.Status.CrashesCount = gsb.Status.CrashesCount + crashesCount
 		gsb.Status.CurrentStandingByReadyDesired = fmt.Sprintf("%d/%d", standingByCount, gsb.Spec.StandingBy)
 
+		r.Recorder.Event(gsb, corev1.EventTypeNormal, "Status Updated", fmt.Sprintf("pending %d, initializing %d, active %d, standingBy %d, crashes %d, total crashes %d", pendingCount, initializingCount, activeCount, standingByCount, crashesCount, gsb.Status.CrashesCount))
+
 		if gsb.Status.CrashesCount >= gsb.Spec.CrashesToMarkUnhealthy {
 			gsb.Status.Health = mpsv1alpha1.BuildUnhealthy
 		} else {
