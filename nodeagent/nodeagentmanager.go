@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +32,13 @@ const (
 	GameServerNamespace = "GameServerNamespace"
 	timeout             = 4
 	LabelNodeName       = "NodeName"
+)
+
+var (
+	GameServerStates = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "game_server_states",
+		Help: "Game server states",
+	}, []string{"name", "state"})
 )
 
 type NodeAgentManager struct {
@@ -141,6 +150,11 @@ func (n *NodeAgentManager) gameServerUpdated(oldObj, newObj interface{}) {
 	}
 
 	gsd := gsdi.(*GameServerDetails)
+
+	GameServerStates.WithLabelValues(gameServerName, newState).Set(1)
+	if gsd.PreviousGameState != "" {
+		GameServerStates.WithLabelValues(gameServerName, string(gsd.PreviousGameState)).Set(0)
+	}
 
 	// we're only interested if the game server was allocated
 	if gsd.PreviousGameState == GameStateStandingBy && newState == string(GameStateActive) {

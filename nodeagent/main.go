@@ -46,12 +46,8 @@ func main() {
 	// starts the server in a goroutine
 	startHttpServer(srv)
 
-	// create a channel and wait for SIGINT or SIGTERM
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	<-sig
-	log.Info("Shutting down")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// wait for SIGINT or SIGTERM
+	ctx, cancel := waitForShutdownSignal()
 	defer cancel()
 
 	// shut down gracefully, but wait no longer than 5 seconds before halting
@@ -65,8 +61,16 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
+func waitForShutdownSignal() (context.Context, context.CancelFunc) {
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	<-sig
+	log.Info("Shutting down")
+	return context.WithTimeout(context.Background(), 5*time.Second)
+}
+
 func getEnv(key string, required bool) string {
-	if value, ok := os.LookupEnv(key); !ok {
+	if value, ok := os.LookupEnv(key); ok {
 		return value
 	}
 	if required {
