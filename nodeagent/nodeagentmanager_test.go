@@ -107,8 +107,8 @@ var _ = Describe("nodeagent tests", func() {
 		}).Should(BeTrue())
 
 		// simulate subsequent updates by GSDK
-		gsdetails.(*GameServerDetails).CurrentGameState = GameStateStandingBy
-		gsdetails.(*GameServerDetails).CurrentGameHealth = "Healthy"
+		gsdetails.(*GameServerDetails).PreviousGameState = GameStateStandingBy
+		gsdetails.(*GameServerDetails).PreviousGameHealth = "Healthy"
 
 		// update GameServer CR to active
 		gs.Object["status"].(map[string]interface{})["state"] = "Active"
@@ -122,12 +122,12 @@ var _ = Describe("nodeagent tests", func() {
 			if !ok {
 				return false
 			}
-			return tempgs.(*GameServerDetails).CurrentGameState == GameStateActive
+			return tempgs.(*GameServerDetails).PreviousGameState == GameStateActive
 		}).Should(BeTrue())
 
 		tempgs, ok := n.gameServerMap.Load(testGameServerName)
 		Expect(ok).To(BeTrue())
-		Expect(tempgs.(*GameServerDetails).CurrentGameState).To(Equal(GameStateActive))
+		Expect(tempgs.(*GameServerDetails).PreviousGameState).To(Equal(GameStateActive))
 
 		// heartbeat from the game is still StandingBy
 		hb := &HeartbeatRequest{
@@ -194,8 +194,8 @@ var _ = Describe("nodeagent tests", func() {
 				}).Should(BeTrue())
 
 				// simulate subsequent updates by GSDK
-				gsdetails.(*GameServerDetails).CurrentGameState = GameStateStandingBy
-				gsdetails.(*GameServerDetails).CurrentGameHealth = "Healthy"
+				gsdetails.(*GameServerDetails).PreviousGameState = GameStateStandingBy
+				gsdetails.(*GameServerDetails).PreviousGameHealth = "Healthy"
 
 				// update GameServer CR to active
 				gs.Object["status"].(map[string]interface{})["state"] = "Active"
@@ -210,7 +210,7 @@ var _ = Describe("nodeagent tests", func() {
 					if !ok {
 						return false
 					}
-					return tempgs.(*GameServerDetails).CurrentGameState == GameStateActive
+					return tempgs.(*GameServerDetails).PreviousGameState == GameStateActive
 				}).Should(BeTrue())
 
 				// heartbeat from the game is still StandingBy

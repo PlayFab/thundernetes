@@ -61,6 +61,9 @@ func isValidStateTransition(old, new GameState) bool {
 	if old == GameStateStandingBy && new == GameStateActive {
 		return true
 	}
+	if old == new {
+		return true
+	}
 	return false
 }
 
