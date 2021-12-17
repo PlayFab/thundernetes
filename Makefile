@@ -17,6 +17,10 @@ export KIND_CLUSTER_NAME=kind
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
+# Support gsed on OSX (installed via brew), falling back to sed. On Linux
+# systems gsed won't be installed, so will use sed as expected.
+SED ?= $(shell which gsed 2>/dev/null || which sed)
+
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 UPTODATE := .uptodate
 # Automated DockerFile building
@@ -29,18 +33,18 @@ UPTODATE := .uptodate
 	touch $@
 
 # We don't want find to scan inside a bunch of directories, to speed up Dockerfile dectection.
-DONT_FIND := -name vendor -prune -o -name .git -prune -o -name .cache -prune -o -name .pkg -prune -o -name packaging -prune -o
+DONT_FIND := -name vendor -prune -o -name .git -prune -o -name .cache -prune -o -name .pkg -prune -o -name packaging -prune -o -name build-env -prune -o
 
 # Get a list of directories containing Dockerfiles
 DOCKERFILES := $(shell find . $(DONT_FIND) -type f -name 'Dockerfile' -print)
 UPTODATE_FILES := $(patsubst %/Dockerfile,%/$(UPTODATE),$(DOCKERFILES))
 DOCKER_IMAGE_DIRS := $(patsubst %/Dockerfile,%,$(DOCKERFILES))
-IMAGE_NAMES := $(foreach dir,$(DOCKER_IMAGE_DIRS),$(patsubst %,$(IMAGE_PREFIX)%,$(shell basename $(dir))))
+IMAGE_NAMES := $(foreach dir,$(DOCKER_IMAGE_DIRS),$(patsubst %,$(NS)%,$(shell basename $(dir))))
 images:
 	$(info $(IMAGE_NAMES))
 	@echo > /dev/null
 
-buildimage:
+buildimage: #creates a docker image as a build environment for thundernetes
 	docker build -t thundernetes-src:$(GIT_REVISION) -f build-env/Dockerfile .
 
 build: buildimage $(UPTODATE_FILES)
@@ -52,12 +56,21 @@ push:
 	docker push $(NS)/$(IMAGE_NAME_NETCORE_SAMPLE):$(NETCORE_SAMPLE_TAG)
 	docker push $(NS)/$(IMAGE_NAME_OPENARENA_SAMPLE):$(OPENARENA_SAMPLE_TAG)
 
-builddockerlocal:
-	docker build -f operator/Dockerfile -t $(IMAGE_NAME_OPERATOR):$(OPERATOR_TAG) ./operator
-	docker build -f nodeagent/Dockerfile -t $(IMAGE_NAME_NODE_AGENT):$(NODE_AGENT_TAG) ./nodeagent
-	docker build -f initcontainer/Dockerfile -t $(IMAGE_NAME_INIT_CONTAINER):$(INIT_CONTAINER_TAG) ./initcontainer	
-	docker build -f samples/netcore/Dockerfile -t $(IMAGE_NAME_NETCORE_SAMPLE):$(NETCORE_SAMPLE_TAG) ./samples/netcore	
-	docker build -f samples/openarena/Dockerfile -t $(IMAGE_NAME_OPENARENA_SAMPLE):$(OPENARENA_SAMPLE_TAG) ./samples/openarena	
+builddockerlocal: build 
+# for each value in the IMAGE_NAMES variable, replace part of the string value with a blank space and then build the docker image
+
+	for image in $(IMAGE_NAMES); do \
+		localname=`echo $$image| $(SED) -e 's:$(NS)::g'`; \
+		docker tag $$image:$(IMAGE_TAG) $$localname:$(IMAGE_TAG); \
+	done
+
+
+
+
+
+
+
+
 
 installkind:
 	curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64
@@ -102,3 +115,7 @@ create-install-files-dev:
 	INIT_CONTAINER_TAG=$${INIT_CONTAINER_TAG} \
 	NODE_AGENT_TAG=$${NODE_AGENT_TAG} \
 	make -C operator create-install-files
+
+clean:
+	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
+	go clean ./...
