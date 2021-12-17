@@ -57,20 +57,10 @@ push:
 	docker push $(NS)/$(IMAGE_NAME_OPENARENA_SAMPLE):$(OPENARENA_SAMPLE_TAG)
 
 builddockerlocal: build 
-# for each value in the IMAGE_NAMES variable, replace part of the string value with a blank space and then build the docker image
-
 	for image in $(IMAGE_NAMES); do \
 		localname=`echo $$image| $(SED) -e 's:$(NS)::g'`; \
 		docker tag $$image:$(IMAGE_TAG) $$localname:$(IMAGE_TAG); \
 	done
-
-
-
-
-
-
-
-
 
 installkind:
 	curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64
@@ -118,4 +108,5 @@ create-install-files-dev:
 
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
+	rm -rf -- $(UPTODATE_FILES) $(EXES) .cache dist
 	go clean ./...
