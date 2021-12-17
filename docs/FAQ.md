@@ -62,6 +62,10 @@ You can use the following steps to setup fluentbit to capture logs from your Gam
 
 Scaling in Kubernetes is two fold. Pod autoscaling and Cluster autoscaling. Thundernetes enables pod autoscaling by default utilizing the standby mechanism. For Node autoscaling, Kubernetes cluster autoscaler can be potentially used, especially with the use of [overprovisioning](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-can-i-configure-overprovisioning-with-cluster-autoscaler). If you are using Azure Kubernetes Service, you can [easily enable cluster autoscaler](https://docs.microsoft.com/en-us/azure/aks/cluster-autoscaler).
 
+## Can I run a Unity or Unreal game server on thundernetes?
+
+You can run any game server that supports the [PlayFab GameServer SDK](https://github.com/PlayFab/gsdk). Check a Unity sample [here](../samples/unity/README.md).
+
 ## Virtual Kubelet
 
 In conjuction with cluster autoscaler, you can use [Virtual Kubelet](https://github.com/virtual-kubelet/virtual-kubelet) project to accelerate the addition of new Pods to the cluster. If you are using Azure Kubernetes Service, you can easily enable Virtual Nodes feature (which is based on Virtual Kubelet) using the instructions [here](https://docs.microsoft.com/en-us/azure/aks/virtual-nodes).

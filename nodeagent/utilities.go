@@ -22,10 +22,12 @@ func badRequest(w http.ResponseWriter, err error, msg string) {
 }
 
 func validateHeartbeatRequestArgs(hb *HeartbeatRequest) error {
-	var msg string
+	// some GSDKs (e.g. Unity) send empty string as Health
+	// we should accept it and set it to Healthy, till this is fixed
 	if hb.CurrentGameHealth == "" {
-		msg = "CurrentGameHealth cannot be empty"
+		hb.CurrentGameHealth = "Healthy"
 	}
+	var msg string
 	if hb.CurrentGameState == "" {
 		msg = fmt.Sprintf("%s - CurrentGameState cannot be empty", msg)
 	}
