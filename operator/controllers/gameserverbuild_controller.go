@@ -137,14 +137,14 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			if err := r.Delete(ctx, &gs); err != nil {
 				return ctrl.Result{}, err
 			}
-			GameServersSessionEndedCounter.WithLabelValues(gsb.Name).Inc()
+			GameServersCrashedCounter.WithLabelValues(gsb.Name).Inc()
 			addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Crashed", "GameServer %s crashed", gs.Name)
 		} else if gs.Status.State == mpsv1alpha1.GameServerStateGameCompleted {
 			if err := r.Delete(ctx, &gs); err != nil {
 				return ctrl.Result{}, err
 			}
-			GameServersCrashedCounter.WithLabelValues(gsb.Name).Inc()
+			GameServersSessionEndedCounter.WithLabelValues(gsb.Name).Inc()
 			addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Exited", "GameServer %s session completed", gs.Name)
 		}
