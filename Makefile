@@ -4,8 +4,8 @@ NS ?= ghcr.io/playfab/
 export IMAGE_NAME_OPERATOR=thundernetes-operator
 export IMAGE_NAME_NODE_AGENT=thundernetes-nodeagent
 export IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer
-export IMAGE_NAME_NETCORE_SAMPLE=thundernetes-netcore-sample
-export IMAGE_NAME_OPENARENA_SAMPLE=thundernetes-openarena-sample
+export IMAGE_NAME_NETCORE_SAMPLE=thundernetes-netcore
+export IMAGE_NAME_OPENARENA_SAMPLE=thundernetes-openarena
 
 export IMAGE_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
 
@@ -28,7 +28,7 @@ UPTODATE := .uptodate
 # An .uptodate file will be created in the directory to indicate that the Dockerfile has been built.
 %/$(UPTODATE): %/Dockerfile
 	@echo
-	$(SUDO) docker build --build-arg=revision=$(GIT_REVISION) -t $(NS)$(shell basename $(@D)) -t $(NS)$(shell basename $(@D)):$(IMAGE_TAG) -f $(@D)/Dockerfile .
+	$(SUDO) docker build --build-arg=revision=$(GIT_REVISION) -t $(NS)thundernetes-$(shell basename $(@D)) -t $(NS)thundernetes-$(shell basename $(@D)):$(IMAGE_TAG) -f $(@D)/Dockerfile .
 	@echo
 	touch $@
 
@@ -39,7 +39,7 @@ DONT_FIND := -name vendor -prune -o -name .git -prune -o -name .cache -prune -o 
 DOCKERFILES := $(shell find . $(DONT_FIND) -type f -name 'Dockerfile' -print)
 UPTODATE_FILES := $(patsubst %/Dockerfile,%/$(UPTODATE),$(DOCKERFILES))
 DOCKER_IMAGE_DIRS := $(patsubst %/Dockerfile,%,$(DOCKERFILES))
-IMAGE_NAMES := $(foreach dir,$(DOCKER_IMAGE_DIRS),$(patsubst %,$(NS)%,$(shell basename $(dir))))
+IMAGE_NAMES := $(foreach dir,$(DOCKER_IMAGE_DIRS),$(patsubst %,$(NS)thundernetes-%,$(shell basename $(dir))))
 images:
 	$(info $(IMAGE_NAMES))
 	@echo > /dev/null
@@ -65,14 +65,14 @@ builddockerlocal: build
 installkind:
 	curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64
 	chmod +x ./kind
-	mkdir -p ./operator/testbin/bin
-	mv ./kind ./operator/testbin/bin/kind
+	mkdir -p ./pkg/operator/testbin/bin
+	mv ./kind ./pkg/operator/testbin/bin/kind
 
 createkindcluster: 
-	./operator/testbin/bin/kind create cluster --config ./e2e/kind-config.yaml
+	./pkg/operator/testbin/bin/kind create cluster --config ./e2e/kind-config.yaml
 
 deletekindcluster:
-	./operator/testbin/bin/kind delete cluster 
+	./pkg/operator/testbin/bin/kind delete cluster 
 
 e2elocal: 
 	kubectl config use-context kind-$(KIND_CLUSTER_NAME)

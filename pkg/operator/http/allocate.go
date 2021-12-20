@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"net/http"
 
-	mpsv1alpha1 "github.com/playfab/thundernetes/operator/api/v1alpha1"
-	"github.com/playfab/thundernetes/operator/controllers"
+	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
+	"github.com/playfab/thundernetes/pkg/operator/controllers"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"

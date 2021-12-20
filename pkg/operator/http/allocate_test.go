@@ -12,8 +12,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	mpsv1alpha1 "github.com/playfab/thundernetes/operator/api/v1alpha1"
-	"github.com/playfab/thundernetes/operator/controllers"
+	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
+	"github.com/playfab/thundernetes/pkg/operator/controllers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"

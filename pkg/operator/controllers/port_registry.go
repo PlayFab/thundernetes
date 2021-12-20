@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	mpsv1alpha1 "github.com/playfab/thundernetes/operator/api/v1alpha1"
+	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 )
 
 // PortRegistry implements a custom map for the port registry

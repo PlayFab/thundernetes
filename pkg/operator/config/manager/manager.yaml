@@ -35,7 +35,7 @@ spec:
             - name: API_SERVICE_SECURITY
               value: ${API_SERVICE_SECURITY}
             - name: THUNDERNETES_INIT_CONTAINER_IMAGE
-              value: ${IMAGE_NAME_INIT_CONTAINER}:${INIT_CONTAINER_TAG}
+              value: ${IMAGE_NAME_INIT_CONTAINER}:${IMAGE_TAG}
             - name: TLS_SECRET_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -114,7 +114,7 @@ spec:
       serviceAccountName: nodeagent
       containers:
       - name: nodeagent
-        image: ${IMAGE_NAME_NODE_AGENT}:${NODE_AGENT_TAG}
+        image: "${IMAGE_NAME_NODE_AGENT}:${IMAGE_TAG}"
         resources:
           limits:
             memory: 500Mi

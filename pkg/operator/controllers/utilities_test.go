@@ -3,7 +3,7 @@ package controllers
 import (
 	"fmt"
 
-	mpsv1alpha1 "github.com/playfab/thundernetes/operator/api/v1alpha1"
+	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
