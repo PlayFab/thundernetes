@@ -28,7 +28,7 @@ UPTODATE := .uptodate
 # An .uptodate file will be created in the directory to indicate that the Dockerfile has been built.
 %/$(UPTODATE): %/Dockerfile
 	@echo
-	$(SUDO) docker build --build-arg=revision=$(GIT_REVISION) -t $(NS)thundernetes-$(shell basename $(@D)) -t $(NS)thundernetes-$(shell basename $(@D)):$(IMAGE_TAG) -f $(@D)/Dockerfile .
+	docker build --build-arg=revision=$(GIT_REVISION) -t $(NS)thundernetes-$(shell basename $(@D)) -t $(NS)thundernetes-$(shell basename $(@D)):$(IMAGE_TAG) -f $(@D)/Dockerfile .
 	@echo
 	touch $@
 
@@ -107,6 +107,6 @@ create-install-files-dev:
 	make -C operator create-install-files
 
 clean:
-	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
+	docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
 	rm -rf -- $(UPTODATE_FILES) $(EXES) .cache dist
 	go clean ./...
