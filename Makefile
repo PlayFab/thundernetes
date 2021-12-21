@@ -75,7 +75,7 @@ deletekindcluster:
 e2elocal: 
 	kubectl config use-context kind-$(KIND_CLUSTER_NAME)
 	chmod +x ./e2e/run.sh
-	./e2e/run.sh config-$(KIND_CLUSTER_NAME) local
+	IMAGE_TAG=${IMAGE_TAG} ./e2e/run.sh config-$(KIND_CLUSTER_NAME) local
 
 createcrds:
 	make -C operator install
