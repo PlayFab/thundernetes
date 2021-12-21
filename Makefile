@@ -87,22 +87,22 @@ cleanall:
 
 create-install-files:
 	. .versions && \
-	IMG=$(NS)/$(IMAGE_NAME_OPERATOR):$${OPERATOR_TAG} \
-	IMAGE_NAME_INIT_CONTAINER=$(NS)/$(IMAGE_NAME_INIT_CONTAINER) \
-	IMAGE_NAME_NODE_AGENT=$(NS)/$(IMAGE_NAME_NODE_AGENT) \
-	INIT_CONTAINER_TAG=$${INIT_CONTAINER_TAG} \
-	NODE_AGENT_TAG=$${NODE_AGENT_TAG} \
-	make -C operator create-install-files
+	IMG=$(NS)$(IMAGE_NAME_OPERATOR):$${IMAGE_TAG} \
+	IMAGE_NAME_INIT_CONTAINER=$(NS)$(IMAGE_NAME_INIT_CONTAINER) \
+	IMAGE_NAME_NODE_AGENT=$(NS)$(IMAGE_NAME_NODE_AGENT) \
+	INIT_CONTAINER_TAG=$${IMAGE_TAG} \
+	NODE_AGENT_TAG=$${IMAGE_TAG} \
+	make -C pkg/operator create-install-files
 
 create-install-files-dev:
 	mkdir -p ./installfilesdev && \
 	INSTALL_FILES_FOLDER=installfilesdev \
-	IMG=$(NS)/$(IMAGE_NAME_OPERATOR):$${OPERATOR_TAG} \
-	IMAGE_NAME_INIT_CONTAINER=$(NS)/$(IMAGE_NAME_INIT_CONTAINER) \
-	IMAGE_NAME_NODE_AGENT=$(NS)/$(IMAGE_NAME_NODE_AGENT) \
-	INIT_CONTAINER_TAG=$${INIT_CONTAINER_TAG} \
-	NODE_AGENT_TAG=$${NODE_AGENT_TAG} \
-	make -C operator create-install-files
+	IMG=$(NS)$(IMAGE_NAME_OPERATOR):$${IMAGE_TAG} \
+	IMAGE_NAME_INIT_CONTAINER=$(NS)$(IMAGE_NAME_INIT_CONTAINER) \
+	IMAGE_NAME_NODE_AGENT=$(NS)$(IMAGE_NAME_NODE_AGENT) \
+	INIT_CONTAINER_TAG=$${IMAGE_TAG} \
+	NODE_AGENT_TAG=$${IMAGE_TAG} \
+	make -C pkg/operator create-install-files
 
 clean:
 	docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
