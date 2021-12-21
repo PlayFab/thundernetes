@@ -11,7 +11,7 @@ GOBIN=$(shell go env GOBIN)
 endif
 
 # The folder where the YAML installation files are located
-INSTALL_FILES_FOLDER ?= installfiles
+INSTALL_FILES_FOLDER ?= ../../installfiles
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
@@ -74,14 +74,14 @@ docker-push: ## Push docker image with the manager.
 create-install-files:
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 ## Create install files for thundernetes installed without API security
-	$(KUSTOMIZE) build config/default | API_SERVICE_SECURITY=none envsubst > ../${INSTALL_FILES_FOLDER}/operator.yaml
+	$(KUSTOMIZE) build config/default | API_SERVICE_SECURITY=none envsubst > ${INSTALL_FILES_FOLDER}/operator.yaml
 ## Create install files for thundernetes installed with API security	
-	$(KUSTOMIZE) build config/default | API_SERVICE_SECURITY=usetls envsubst > ../${INSTALL_FILES_FOLDER}/operator_with_security.yaml
+	$(KUSTOMIZE) build config/default | API_SERVICE_SECURITY=usetls envsubst > ${INSTALL_FILES_FOLDER}/operator_with_security.yaml
 ## Add prometheus service monitoring & roles to the kustomize output
-	cp ../${INSTALL_FILES_FOLDER}/operator.yaml ../${INSTALL_FILES_FOLDER}/operator_with_monitoring.yaml
-	echo "---" >> ../${INSTALL_FILES_FOLDER}/operator_with_monitoring.yaml
-	$(KUSTOMIZE) build config/prometheus >> ../${INSTALL_FILES_FOLDER}/operator_with_monitoring.yaml
-	cp ../${INSTALL_FILES_FOLDER}/operator_with_security.yaml ../${INSTALL_FILES_FOLDER}/operator_with_security_and_monitoring.yaml
+	cp ${INSTALL_FILES_FOLDER}/operator.yaml ${INSTALL_FILES_FOLDER}/operator_with_monitoring.yaml
+	echo "---" >> ${INSTALL_FILES_FOLDER}/operator_with_monitoring.yaml
+	$(KUSTOMIZE) build config/prometheus >> ${INSTALL_FILES_FOLDER}/operator_with_monitoring.yaml
+	cp ${INSTALL_FILES_FOLDER}/operator_with_security.yaml ${INSTALL_FILES_FOLDER}/operator_with_security_and_monitoring.yaml
 
 ##@ Deployment
 

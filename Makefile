@@ -96,7 +96,7 @@ create-install-files:
 
 create-install-files-dev:
 	mkdir -p ./installfilesdev && \
-	INSTALL_FILES_FOLDER=installfilesdev \
+	INSTALL_FILES_FOLDER=../../installfilesdev \
 	IMG=$(NS)$(IMAGE_NAME_OPERATOR):$${IMAGE_TAG} \
 	IMAGE_NAME_INIT_CONTAINER=$(NS)$(IMAGE_NAME_INIT_CONTAINER) \
 	IMAGE_NAME_NODE_AGENT=$(NS)$(IMAGE_NAME_NODE_AGENT) \
