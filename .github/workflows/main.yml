@@ -31,11 +31,11 @@ jobs:
       - name: build Docker images
         run: make builddockerlocal
       - name: GameServer API service unit tests
-        run: cd tools/gameserverapi && GIN_MODE=release go test
+        run: cd cmd/gameserverapi && GIN_MODE=release go test
       - name: initcontainer unit tests
-        run: cd initcontainer && go test
+        run: cd cmd/initcontainer && go test
       - name: nodeagent unit tests
-        run: cd nodeagent && go test
+        run: cd cmd/nodeagent && go test
       - name: operator unit tests
         run: IMAGE_NAME_SAMPLE=thundernetes-netcore-sample IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer TAG=$(git rev-list HEAD --max-count=1 --abbrev-commit) make -C operator test
       - name: install kind binaries
