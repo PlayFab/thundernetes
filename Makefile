@@ -7,7 +7,7 @@ export IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer
 export IMAGE_NAME_NETCORE_SAMPLE=thundernetes-netcore
 export IMAGE_NAME_OPENARENA_SAMPLE=thundernetes-openarena
 
-export IMAGE_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
+IMAGE_TAG ?= $(shell git rev-list HEAD --max-count=1 --abbrev-commit)
 
 # local e2e with kind
 export KIND_CLUSTER_NAME=kind
@@ -49,12 +49,10 @@ buildimage: #creates a docker image as a build environment for thundernetes
 
 build: buildimage $(UPTODATE_FILES)
 	
-push:
-	docker push $(NS)/$(IMAGE_NAME_OPERATOR):$(OPERATOR_TAG)
-	docker push $(NS)/$(IMAGE_NAME_NODE_AGENT):$(NODE_AGENT_TAG)
-	docker push $(NS)/$(IMAGE_NAME_INIT_CONTAINER):$(INIT_CONTAINER_TAG)
-	docker push $(NS)/$(IMAGE_NAME_NETCORE_SAMPLE):$(NETCORE_SAMPLE_TAG)
-	docker push $(NS)/$(IMAGE_NAME_OPENARENA_SAMPLE):$(OPENARENA_SAMPLE_TAG)
+push: build
+	for image in $(IMAGE_NAMES); do \
+		docker push $$image:$(IMAGE_TAG); \
+	done
 
 builddockerlocal: build 
 	for image in $(IMAGE_NAMES); do \
