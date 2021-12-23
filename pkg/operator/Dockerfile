@@ -1,4 +1,3 @@
-
 # build stage
 ARG revision
 FROM thundernetes-src:$revision as builder

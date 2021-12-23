@@ -114,7 +114,7 @@ spec:
       serviceAccountName: nodeagent
       containers:
       - name: nodeagent
-        image: "${IMAGE_NAME_NODE_AGENT}:${IMAGE_TAG}"
+        image: ${IMAGE_NAME_NODE_AGENT}:${IMAGE_TAG}
         resources:
           limits:
             memory: 500Mi
