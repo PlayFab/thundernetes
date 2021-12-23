@@ -35,7 +35,7 @@ spec:
             - name: API_SERVICE_SECURITY
               value: ${API_SERVICE_SECURITY}
             - name: THUNDERNETES_INIT_CONTAINER_IMAGE
-              value: ${IMAGE_NAME_INIT_CONTAINER}:${IMAGE_TAG}
+              value: ${IMAGE_NAME_INIT_CONTAINER}:${INIT_CONTAINER_TAG}
             - name: TLS_SECRET_NAMESPACE
               valueFrom:
                 fieldRef:
