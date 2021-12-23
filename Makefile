@@ -7,7 +7,7 @@ export IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer
 export IMAGE_NAME_NETCORE_SAMPLE=thundernetes-netcore
 export IMAGE_NAME_OPENARENA_SAMPLE=thundernetes-openarena
 
-IMAGE_TAG ?= $(shell git rev-list HEAD --max-count=1 --abbrev-commit)
+export IMAGE_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
 
 # local e2e with kind
 export KIND_CLUSTER_NAME=kind
@@ -90,8 +90,6 @@ create-install-files:
 	IMG=$(NS)$(IMAGE_NAME_OPERATOR):$${IMAGE_TAG} \
 	IMAGE_NAME_INIT_CONTAINER=$(NS)$(IMAGE_NAME_INIT_CONTAINER) \
 	IMAGE_NAME_NODE_AGENT=$(NS)$(IMAGE_NAME_NODE_AGENT) \
-	INIT_CONTAINER_TAG=$${IMAGE_TAG} \
-	NODE_AGENT_TAG=$${IMAGE_TAG} \
 	make -C pkg/operator create-install-files
 
 create-install-files-dev:
@@ -100,8 +98,6 @@ create-install-files-dev:
 	IMG=$(NS)$(IMAGE_NAME_OPERATOR):${IMAGE_TAG} \
 	IMAGE_NAME_INIT_CONTAINER=$(NS)$(IMAGE_NAME_INIT_CONTAINER) \
 	IMAGE_NAME_NODE_AGENT=$(NS)$(IMAGE_NAME_NODE_AGENT) \
-	INIT_CONTAINER_TAG=${IMAGE_TAG} \
-	NODE_AGENT_TAG=${IMAGE_TAG} \
 	make -C pkg/operator create-install-files
 
 clean:
