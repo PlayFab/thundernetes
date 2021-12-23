@@ -89,7 +89,7 @@ IMG=ghcr.io/playfab/thundernetes-operator:${TAG} \
   IMAGE_NAME_INIT_CONTAINER=ghcr.io/playfab/thundernetes-initcontainer \
   IMAGE_NAME_SIDECAR=ghcr.io/playfab/thundernetes-sidecar-netcore \
   API_SERVICE_SECURITY=none \
-   make -C operator install deploy
+   make -C pkg/operator install deploy
 ```
 
 Note that this will install thundernetes without any security for the allocation API service. If you want to enable security for the allocation API service, you can should provide a certificate and key for the allocation API service.
@@ -116,13 +116,13 @@ IMG=ghcr.io/playfab/thundernetes-operator:${TAG} \
   IMAGE_NAME_INIT_CONTAINER=docker.io/dgkanatsios/thundernetes-initcontainer \
   IMAGE_NAME_SIDECAR=docker.io/dgkanatsios/thundernetes-sidecar-netcore \
   API_SERVICE_SECURITY=usetls \
-   make -C operator install deploy
+   make -C pkg/operator install deploy
 ```
 
 As soon as this is done, you can run `kubectl -n thundernetes-system get pods` to verify that the operator pod is running. To run a demo gameserver, you can use the command:
 
 ```bash
-kubectl apply -f operator/config/samples/netcore.yaml
+kubectl apply -f pkg/operator/config/samples/netcore.yaml
 ```
 
 This will create a GameServerBuild with 2 standingBy and 4 maximum gameservers.

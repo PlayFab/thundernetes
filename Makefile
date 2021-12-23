@@ -78,12 +78,12 @@ e2elocal:
 	IMAGE_TAG=${IMAGE_TAG} ./e2e/run.sh config-$(KIND_CLUSTER_NAME) local
 
 createcrds:
-	make -C operator install
+	make -C pkg/operator install
 cleancrds:
-	make -C operator uninstall
+	make -C pkg/operator uninstall
 
 cleanall:
-	kubectl delete gsb --all && make -C operator undeploy
+	kubectl delete gsb --all && make -C pkg/operator undeploy
 
 create-install-files:
 	. .versions && \
