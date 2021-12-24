@@ -3,7 +3,6 @@ module github.com/playfab/thundernetes
 go 1.17
 
 require (
-	github.com/cornelk/hashmap v1.0.1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-logr/logr v0.4.0
 	github.com/google/uuid v1.2.0
@@ -30,7 +29,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/dchest/siphash v1.1.0 // indirect
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"strconv"
+	"sync"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,15 +34,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
-
-	hm "github.com/cornelk/hashmap"
 )
 
 var (
 	ownerKey = ".metadata.controller"
 	apiGVStr = mpsv1alpha1.GroupVersion.String()
 
-	podsUnderCreation = &hm.HashMap{}
+	podsUnderCreation = sync.Map{}
 )
 
 const safeToEvictPodAttribute string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
@@ -126,13 +125,13 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	_, podUnderCreation := podsUnderCreation.Get(gs.Name)
+	_, podUnderCreation := podsUnderCreation.Load(gs.Name)
 	// we have zero pods for this game server and we have recorded that one is being created
 	if !podFoundInCache && podUnderCreation {
 		// pod is being created, cache hasn't been updated yet
 		return ctrl.Result{}, nil
 	} else if podUnderCreation {
-		podsUnderCreation.Del(gs.Name)
+		podsUnderCreation.Delete(gs.Name)
 	}
 
 	if !podFoundInCache {
@@ -141,7 +140,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err := r.Create(ctx, newPod); err != nil {
 			return ctrl.Result{}, err
 		}
-		podsUnderCreation.Set(gs.Name, struct{}{})
+		podsUnderCreation.Store(gs.Name, struct{}{})
 		r.Recorder.Eventf(&gs, corev1.EventTypeNormal, "Created", "Created new pod %s for GameServer %s", newPod.Name, gs.Name)
 		return ctrl.Result{}, nil
 	}
