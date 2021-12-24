@@ -32,7 +32,7 @@ UPTODATE := .uptodate
 	@echo
 	touch $@
 
-# We don't want find to scan inside a bunch of directories, to speed up Dockerfile dectection.
+# We don't want find to scan inside a bunch of directories, to speed up Dockerfile detection.
 DONT_FIND := -name vendor -prune -o -name .git -prune -o -name .cache -prune -o -name .pkg -prune -o -name packaging -prune -o -name build-env -prune -o
 
 # Get a list of directories containing Dockerfiles
