@@ -1,0 +1,8 @@
+resources:
+  - monitor.yaml
+  - service-monitor-role.yaml
+  - service-monitor-rolebinding.yaml
+
+namePrefix: thundernetes-
+# Adds namespace to all resources.
+namespace: thundernetes-system

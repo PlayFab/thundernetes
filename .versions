@@ -1,6 +1,2 @@
 #!/bin/bash
-export OPERATOR_TAG=0.1.0
-export NODE_AGENT_TAG=0.1.0
-export INIT_CONTAINER_TAG=0.1.0
-export NETCORE_SAMPLE_TAG=0.1.0
-export OPENARENA_SAMPLE_TAG=0.1.0
+export IMAGE_TAG=0.1.0

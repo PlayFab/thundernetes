@@ -1,0 +1,33 @@
+domain: playfab.com
+layout:
+- go.kubebuilder.io/v3
+projectName: operator
+repo: github.com/playfab/thundernetes/pkg/operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: playfab.com
+  group: mps
+  kind: GameServer
+  path: github.com/playfab/thundernetes/pkg/operator/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: playfab.com
+  group: mps
+  kind: GameServerBuild
+  path: github.com/playfab/thundernetes/pkg/operator/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: playfab.com
+  group: mps
+  kind: GameServerDetail
+  path: github.com/playfab/thundernetes/pkg/operator/api/v1alpha1
+  version: v1alpha1
+version: "3"

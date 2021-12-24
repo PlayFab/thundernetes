@@ -27,4 +27,4 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: build and push Docker images
-        run: export $(grep -v '^#' .versions | xargs -d '\n') && make build push
+        run: export $(grep -v '^#' .versions | xargs -d '\n') && make push

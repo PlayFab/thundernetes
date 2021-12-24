@@ -3,6 +3,7 @@
 ## Release new thundernetes version
 
 - Make sure you update `.version` file on the root of this repository with the new version
+- Run `make clean` to ensure any cached artifacts of old builds are deleted.
 - Run `make create-install-files`
 - Push and merge
 - Run the GitHub Actions workflow [here](https://github.com/PlayFab/thundernetes/actions/workflows/publish.yml)
@@ -68,7 +69,7 @@ for i in {1..50}; do SESSION_ID=$(uuidgen); curl --key ~/private.pem --cert ~/pu
 ## Run end to end tests locally
 
 ```bash
-make deletekindcluster && make builddockerlocal && make createkindcluster && make e2elocal
+make clean deletekindcluster builddockerlocal createkindcluster e2elocal
 ```
 
 ## Run controller locally
@@ -88,7 +89,7 @@ IMG=ghcr.io/playfab/thundernetes-operator:${TAG} \
   IMAGE_NAME_INIT_CONTAINER=ghcr.io/playfab/thundernetes-initcontainer \
   IMAGE_NAME_SIDECAR=ghcr.io/playfab/thundernetes-sidecar-netcore \
   API_SERVICE_SECURITY=none \
-   make -C operator install deploy
+   make -C pkg/operator install deploy
 ```
 
 Note that this will install thundernetes without any security for the allocation API service. If you want to enable security for the allocation API service, you can should provide a certificate and key for the allocation API service.
@@ -115,13 +116,13 @@ IMG=ghcr.io/playfab/thundernetes-operator:${TAG} \
   IMAGE_NAME_INIT_CONTAINER=docker.io/dgkanatsios/thundernetes-initcontainer \
   IMAGE_NAME_SIDECAR=docker.io/dgkanatsios/thundernetes-sidecar-netcore \
   API_SERVICE_SECURITY=usetls \
-   make -C operator install deploy
+   make -C pkg/operator install deploy
 ```
 
 As soon as this is done, you can run `kubectl -n thundernetes-system get pods` to verify that the operator pod is running. To run a demo gameserver, you can use the command:
 
 ```bash
-kubectl apply -f operator/config/samples/netcore.yaml
+kubectl apply -f pkg/operator/config/samples/netcore.yaml
 ```
 
 This will create a GameServerBuild with 2 standingBy and 4 maximum gameservers.
@@ -225,7 +226,7 @@ gameserverbuild-sample-gqhrm   Healthy   StandingBy   52.183.88.255   80:10319
 Project was bootstrapped using [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) using the following commands:
 
 ```bash
-kubebuilder init --domain playfab.com --repo github.com/playfab/thundernetes/operator
+kubebuilder init --domain playfab.com --repo github.com/playfab/thundernetes/pkg/operator
 kubebuilder create api --group mps --version v1alpha1 --kind GameServer
 kubebuilder create api --group mps --version v1alpha1 --plural gameserverbuilds --kind GameServerBuild 
 kubebuilder create api --group mps --version v1alpha1 --plural gameserverdetails --kind GameServerDetail 
@@ -261,7 +262,7 @@ To test your changes to thundernetes to a Kubernetes cluster, you can use the fo
 
 - The Makefile on the root of the project contains a variable `NS` that points to the container registry that you use during development. So you'd need to either set the variable in your environment (`export NS=<your-container-registry>`) or set it before calling `make` (like `NS=<your-container-registry> make build push`).
 - Login to your container registry (`docker login`)
-- Run `make build push` to build the container images and push them to your container registry
+- Run `make clean build push` to build the container images and push them to your container registry
 - Run `create-install-files-dev` to create the install files for the cluster
 - Checkout the `installfilesdev` folder for the generated install files. This file is included in .gitignore so it will never be committed.
 - Test your changes as required.

@@ -15,10 +15,10 @@ KUBECONFIG_FILE=$1
 BUILD=${2:-remote} # setting a default value for $BUILD
 
 if [ "$BUILD" = "local" ]; then
-  	./operator/testbin/bin/kind load docker-image ${IMAGE_NAME_OPERATOR}:${OPERATOR_TAG} --name kind
-	./operator/testbin/bin/kind load docker-image ${IMAGE_NAME_INIT_CONTAINER}:${INIT_CONTAINER_TAG} --name kind
-	./operator/testbin/bin/kind load docker-image ${IMAGE_NAME_NETCORE_SAMPLE}:${NETCORE_SAMPLE_TAG} --name kind
-	./operator/testbin/bin/kind load docker-image ${IMAGE_NAME_NODE_AGENT}:${NODE_AGENT_TAG} --name kind
+  	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_OPERATOR}:${IMAGE_TAG} --name kind
+	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_INIT_CONTAINER}:${IMAGE_TAG} --name kind
+	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} --name kind
+	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_NODE_AGENT}:${IMAGE_TAG} --name kind
 fi
 
 # function finish {
@@ -40,10 +40,10 @@ kubectl create namespace thundernetes-system
 kubectl create secret tls tls-secret -n thundernetes-system --cert=${TLS_PUBLIC} --key=${TLS_PRIVATE}
 
 echo "-----Compiling, building and deploying to local Kubernetes cluster-----"
-IMG=${IMAGE_NAME_OPERATOR}:${OPERATOR_TAG} API_SERVICE_SECURITY=usetls make -C "${DIR}"/../operator deploy
+IMG=${IMAGE_NAME_OPERATOR}:${IMAGE_TAG} API_SERVICE_SECURITY=usetls make -C "${DIR}"/../pkg/operator deploy
 
 echo "-----Waiting for Controller deployment-----"
 kubectl wait --for=condition=available --timeout=300s deployment/thundernetes-controller-manager -n thundernetes-system
 
 echo "-----Running Go tests-----"
-cd e2e/cmd && GOPRIVATE=github.com/playfab/thundernetes go mod tidy && go run *.go ${IMAGE_NAME_NETCORE_SAMPLE}:${NETCORE_SAMPLE_TAG}
+cd cmd/e2e && GOPRIVATE=github.com/playfab/thundernetes go mod tidy && go run *.go ${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG}
