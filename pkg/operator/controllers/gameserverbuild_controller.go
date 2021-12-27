@@ -56,6 +56,8 @@ var gameServersUnderCreation = sync.Map{}
 // In a subsequent loop, cache will be updated
 var gameServersUnderDeletion = sync.Map{}
 
+// a map to hold the number of crashes per Build
+// concurrent since the reconcile loop can be called multiple times for different GameServerBuilds
 var crashesPerBuild = sync.Map{}
 
 // GameServerBuildReconciler reconciles a GameServerBuild object
@@ -115,6 +117,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if !gsb.DeletionTimestamp.IsZero() {
 		// GameServerBuild is being deleted so clear its entry from the crashesPerBuild map
+		// no-op if the entry is not present
 		crashesPerBuild.Delete(getKeyForCrashesPerBuildMap(&gsb))
 	}
 
@@ -126,7 +129,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// calculate counts by state so we can update .status accordingly
-	var activeCount, standingByCount, initializingCount, pendingCount, crashesCount int
+	var activeCount, standingByCount, crashesCount, initializingCount, pendingCount int
 	for i := 0; i < len(gameServers.Items); i++ {
 		gs := gameServers.Items[i]
 
@@ -140,7 +143,6 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			activeCount++
 		} else if gs.Status.State == mpsv1alpha1.GameServerStateCrashed {
 			crashesCount++
-
 			if err := r.Delete(ctx, &gs); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -241,12 +243,12 @@ func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1
 		gsb.Status.CurrentActive = activeCount
 		gsb.Status.CurrentStandingBy = standingByCount
 
-		var existingCrashes int = 0
 		// try and get existing crashesCount from the map
-		// if it doesn't exist, create it with initial value
+		// if it doesn't exist, create it with initial value the number of crashes we detected on this reconcile loop
 		key := getKeyForCrashesPerBuildMap(gsb)
 		val, ok := crashesPerBuild.LoadOrStore(key, crashesCount)
 		// if we have existing crashes, get the value
+		var existingCrashes int = 0
 		if ok {
 			existingCrashes = val.(int)
 			// and store the new one
