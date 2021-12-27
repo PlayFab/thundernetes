@@ -24,6 +24,7 @@ spec:
         ports:
         - protocol: TCP # your game server port protocol
           name: gameport # required field
+          containerPort: 80 # this is required because of podSpec validation but it's overwritten during Pod creation
         resources:
           requests:
             cpu: 100m

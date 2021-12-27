@@ -31,7 +31,7 @@ namespace netcore
             }
             else
             {
-                Console.WriteLine($"Cannot find gameport in GSDK Config Settings. Check your YAML definitions");
+                Console.WriteLine("Cannot find gameport in GSDK Config Settings. Check your YAML definition");
                 return;
             }
 

@@ -88,3 +88,7 @@ gameserverbuild-sample-spdob   Healthy   StandingBy   172.18.0.2   80:14208
 ## Run your game server on Azure Kubernetes Service
 
 As soon as you build your container image, you should publish it to a container registry. If you are using Azure Kubernetes Service, we recommend publishing your image to [Azure Container Registry](https://docs.microsoft.com/en-us/azure/container-registry/). To integrate your Azure Container Registry with your Azure Kubernetes Service cluster, check the instructions [here](https://docs.microsoft.com/en-us/azure/aks/cluster-container-registry-integration).
+
+## Using host networking
+
+Thundernetes supports running your GameServer Pods under host networking. To do that, you need to provide a GameServerBuild YAML like [this](../samples/netcore/sample-hostnetwork.yaml). During Pod creation, thundernetes will override the containerPort with the same value that will be assigned in the hostPort.
