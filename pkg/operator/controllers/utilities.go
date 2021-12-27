@@ -134,6 +134,11 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 					return nil, err
 				}
 				container.Ports[i].HostPort = port
+
+				// if the user has specified that they want to use the host's network, we override the container port
+				if gsb.Spec.PodSpec.HostNetwork {
+					container.Ports[i].ContainerPort = port
+				}
 			}
 		}
 	}
