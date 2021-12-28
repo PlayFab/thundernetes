@@ -1,7 +1,7 @@
 apiVersion: mps.playfab.com/v1alpha1
 kind: GameServerBuild
 metadata:
-  name: gameserverbuild-sample-netcore
+  name: gameserverbuild-sample-netcore-nodeaffinity
 spec:
   titleID: "1E03" # required
   buildID: "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6" # must be a GUID

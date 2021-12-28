@@ -36,7 +36,7 @@ var _ = Describe("GameServerBuild controller tests", func() {
 		// tests the creation of game servers
 		It("should create game servers", func() {
 			buildName, buildID := getNewBuildNameAndID()
-			gsb := createTestGameServerBuild(buildName, buildID, 2, 4)
+			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)
 			Expect(k8sClient.Create(ctx, &gsb)).Should(Succeed())
 			verifyTotalGameServerCount(ctx, buildID, 2)
 			updateInitializingGameServersToStandingBy(ctx, buildID)
@@ -46,7 +46,7 @@ var _ = Describe("GameServerBuild controller tests", func() {
 		// simple scaling test
 		It("should scale game servers", func() {
 			buildName, buildID := getNewBuildNameAndID()
-			gsb := createTestGameServerBuild(buildName, buildID, 2, 4)
+			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)
 			Expect(k8sClient.Create(ctx, &gsb)).Should(Succeed())
 			verifyTotalGameServerCount(ctx, buildID, 2)
 			updateInitializingGameServersToStandingBy(ctx, buildID)
@@ -60,7 +60,7 @@ var _ = Describe("GameServerBuild controller tests", func() {
 		// controller should block creating ">max" GameServers
 		It("should not scale game servers beyond max", func() {
 			buildName, buildID := getNewBuildNameAndID()
-			gsb := createTestGameServerBuild(buildName, buildID, 2, 4)
+			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)
 			Expect(k8sClient.Create(ctx, &gsb)).Should(Succeed())
 			verifyTotalGameServerCount(ctx, buildID, 2)
 			updateInitializingGameServersToStandingBy(ctx, buildID)
@@ -74,7 +74,7 @@ var _ = Describe("GameServerBuild controller tests", func() {
 		// however, when we increase the max, controller should create the additional GameServers
 		It("should scale game servers when max is increasing", func() {
 			buildName, buildID := getNewBuildNameAndID()
-			gsb := createTestGameServerBuild(buildName, buildID, 2, 4)
+			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)
 			Expect(k8sClient.Create(ctx, &gsb)).Should(Succeed())
 			verifyTotalGameServerCount(ctx, buildID, 2)
 			updateInitializingGameServersToStandingBy(ctx, buildID)
@@ -94,7 +94,7 @@ var _ = Describe("GameServerBuild controller tests", func() {
 		// manual allocation by manually setting .GameServer.Status.State to "Active"
 		It("should increase standingBy when allocating", func() {
 			buildName, buildID := getNewBuildNameAndID()
-			gsb := createTestGameServerBuild(buildName, buildID, 2, 4)
+			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)
 			Expect(k8sClient.Create(ctx, &gsb)).Should(Succeed())
 			verifyTotalGameServerCount(ctx, buildID, 2)
 			updateInitializingGameServersToStandingBy(ctx, buildID)
@@ -121,7 +121,7 @@ var _ = Describe("GameServerBuild controller tests", func() {
 
 		It("should create new game servers if game sessions end", func() {
 			buildName, buildID := getNewBuildNameAndID()
-			gsb := createTestGameServerBuild(buildName, buildID, 4, 4)
+			gsb := createTestGameServerBuild(buildName, buildID, 4, 4, false)
 			Expect(k8sClient.Create(ctx, &gsb)).Should(Succeed())
 			verifyTotalGameServerCount(ctx, buildID, 4)
 			updateInitializingGameServersToStandingBy(ctx, buildID)
@@ -159,7 +159,7 @@ var _ = Describe("GameServerBuild controller tests", func() {
 		It("should mark Build as unhealthy when there are too many crashes", func() {
 			// create a Build with 6 standingBy
 			buildName, buildID := getNewBuildNameAndID()
-			gsb := createTestGameServerBuild(buildName, buildID, 6, 6)
+			gsb := createTestGameServerBuild(buildName, buildID, 6, 6, false)
 			Expect(k8sClient.Create(ctx, &gsb)).Should(Succeed())
 			verifyTotalGameServerCount(ctx, buildID, 6)
 			updateInitializingGameServersToStandingBy(ctx, buildID)
@@ -178,6 +178,15 @@ var _ = Describe("GameServerBuild controller tests", func() {
 			}
 			verifyThatBuildIsUnhealthy(ctx, buildName)
 		})
+
+		It("should overwrite containerPort with hostPort value when hostNetwork is required", func() {
+			// create a Build with 6 standingBy
+			buildName, buildID := getNewBuildNameAndID()
+			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, true)
+			Expect(k8sClient.Create(ctx, &gsb)).Should(Succeed())
+			verifyTotalGameServerCount(ctx, buildID, 2)
+			verifyContainerPortIsTheSameAsHostPort(ctx, buildName)
+		})
 	})
 })
 
@@ -186,6 +195,28 @@ func getNewBuildNameAndID() (string, string) {
 	buildName := randString(5)
 	buildID := string(uuid.NewUUID())
 	return buildName, buildID
+}
+
+func verifyContainerPortIsTheSameAsHostPort(ctx context.Context, buildID string) {
+	Eventually(func() bool {
+		var gameServers mpsv1alpha1.GameServerList
+		err := k8sClient.List(ctx, &gameServers, client.InNamespace(testnamespace), client.MatchingLabels{LabelBuildID: buildID})
+		Expect(err).ToNot(HaveOccurred())
+		for _, gameServer := range gameServers.Items {
+			// get the Pod with the same name as this GameServer
+			var pod corev1.Pod
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: gameServer.Name, Namespace: testnamespace}, &pod)
+			Expect(err).ToNot(HaveOccurred())
+			// get the container port
+			containerPort := pod.Spec.Containers[0].Ports[0].ContainerPort
+			// get the host port
+			hostPort := pod.Spec.Containers[0].Ports[0].HostPort
+			if containerPort != hostPort {
+				return false
+			}
+		}
+		return true
+	}, timeout, interval).Should(BeTrue())
 }
 
 // verifyThatBuildIsUnhealthy verifies that the Build is unhealthy
@@ -323,7 +354,7 @@ func updateInitializingGameServersToStandingBy(ctx context.Context, buildID stri
 }
 
 // createTestGameServerBuild creates a GameServerBuild with the given name and ID.
-func createTestGameServerBuild(buildName, buildID string, standingBy, max int) mpsv1alpha1.GameServerBuild {
+func createTestGameServerBuild(buildName, buildID string, standingBy, max int, hostNetwork bool) mpsv1alpha1.GameServerBuild {
 	return mpsv1alpha1.GameServerBuild{
 		Spec: mpsv1alpha1.GameServerBuildSpec{
 			BuildID:    buildID,
@@ -341,6 +372,7 @@ func createTestGameServerBuild(buildName, buildID string, standingBy, max int) m
 						},
 					},
 				},
+				HostNetwork: hostNetwork,
 			},
 		},
 		ObjectMeta: metav1.ObjectMeta{
