@@ -12,8 +12,9 @@ namespace netcore
 {
     class Program
     {
-        const int HTTP_PORT = 80;
         private static DateTimeOffset _nextMaintenance = DateTimeOffset.MinValue;
+        private static int httpPort;
+        private static string httpPortKey = "gameport";
         static void Main(string[] args)
         {
             GameserverSDK.Start(true);
@@ -22,6 +23,17 @@ namespace netcore
             GameserverSDK.RegisterHealthCallback(IsHealthy);
             GameserverSDK.RegisterMaintenanceCallback(OnMaintenanceScheduled);
             
+            IDictionary<string, string> initialConfig = GameserverSDK.getConfigSettings();
+            // Start the http server
+            if (initialConfig?.ContainsKey(httpPortKey) == true)
+            {
+                httpPort = int.Parse(initialConfig[httpPortKey]);
+            }
+            else
+            {
+                Console.WriteLine("Cannot find gameport in GSDK Config Settings. Check your YAML definition");
+                return;
+            }
 
             Console.WriteLine($"Welcome to fake game server!");
             if(args.Length > 0)
@@ -39,7 +51,7 @@ namespace netcore
             .ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder.UseStartup<Startup>();
-                webBuilder.UseUrls($"http://*:{HTTP_PORT}");
+                webBuilder.UseUrls($"http://*:{httpPort}");
             });
 
 

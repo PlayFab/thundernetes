@@ -35,6 +35,7 @@ const (
 	invalidStatusCode         string = "invalid status code"
 	containerName             string = "netcore-sample" // this must be the same as the GameServer name
 	nodeAgentName             string = "nodeagent"
+	portKey                   string = "gameport"
 )
 
 type AllocationResult struct {
@@ -109,7 +110,7 @@ func main() {
 		Spec: mpsv1alpha1.GameServerBuildSpec{
 			BuildID:       test1BuildID,
 			TitleID:       "1E03",
-			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: "myport"}},
+			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: portKey}},
 			BuildMetadata: []mpsv1alpha1.BuildMetadataItem{
 				{Key: "metadatakey1", Value: "metadatavalue1"},
 				{Key: "metadatakey2", Value: "metadatavalue2"},
@@ -125,7 +126,7 @@ func main() {
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Ports: []corev1.ContainerPort{
 							{
-								Name:          "myport",
+								Name:          portKey,
 								ContainerPort: 80,
 							},
 						},
@@ -144,7 +145,7 @@ func main() {
 		Spec: mpsv1alpha1.GameServerBuildSpec{
 			BuildID:       testBuildSleepBeforeReadyForPlayersID,
 			TitleID:       "1E03",
-			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: "myport"}},
+			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: portKey}},
 			StandingBy:    2,
 			Max:           4,
 			PodSpec: corev1.PodSpec{
@@ -155,7 +156,7 @@ func main() {
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Ports: []corev1.ContainerPort{
 							{
-								Name:          "myport",
+								Name:          portKey,
 								ContainerPort: 80,
 							},
 						},
@@ -180,7 +181,7 @@ func main() {
 		Spec: mpsv1alpha1.GameServerBuildSpec{
 			BuildID:       testCrashingBuildID,
 			TitleID:       "1E03",
-			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: "myport"}},
+			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: portKey}},
 			StandingBy:    2,
 			Max:           4,
 			PodSpec: corev1.PodSpec{
@@ -192,7 +193,7 @@ func main() {
 						Command:         []string{"/bin/sh", "-c", "sleep 2 && command_that_does_not_exist"},
 						Ports: []corev1.ContainerPort{
 							{
-								Name:          "myport",
+								Name:          portKey,
 								ContainerPort: 80,
 							},
 						},
@@ -211,7 +212,7 @@ func main() {
 		Spec: mpsv1alpha1.GameServerBuildSpec{
 			BuildID:       testWithoutReadyForPlayersBuildID,
 			TitleID:       "1E03",
-			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: "myport"}},
+			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: portKey}},
 			StandingBy:    2,
 			Max:           4,
 			PodSpec: corev1.PodSpec{
@@ -222,7 +223,7 @@ func main() {
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Ports: []corev1.ContainerPort{
 							{
-								Name:          "myport",
+								Name:          portKey,
 								ContainerPort: 80,
 							},
 						},

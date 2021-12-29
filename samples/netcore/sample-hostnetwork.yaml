@@ -1,7 +1,7 @@
 apiVersion: mps.playfab.com/v1alpha1
 kind: GameServerBuild
 metadata:
-  name: gameserverbuild-sample-netcore-nodeaffinity
+  name: gameserverbuild-sample-netcore-hostnetwork
 spec:
   titleID: "1E03" # required
   buildID: "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6" # must be a GUID
@@ -17,13 +17,14 @@ spec:
     - containerName: thundernetes-sample-netcore # must be the same as the container name described below
       portName: gameport # must be the same as the port name described below
   podSpec:
+    hostNetwork: true # this sample uses host networking
     containers:
-      - image: ghcr.io/playfab/thundernetes-netcore-sample:0.1.0
+      - image: ghcr.io/playfab/thundernetes-netcore-sample:0.2.0 # works only on version 0.2 
         name: thundernetes-sample-netcore
         ports:
-        - containerPort: 80 # your game server port
-          protocol: TCP # your game server port protocol
+        - protocol: TCP # your game server port protocol
           name: gameport # required field
+          containerPort: 80 # this is required because of podSpec validation but it's overwritten during Pod creation
         resources:
           requests:
             cpu: 100m
@@ -31,15 +32,3 @@ spec:
           limits:
             cpu: 100m
             memory: 500Mi
-    affinity:
-      podAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-              - key: BuildID
-                operator: In
-                values:
-                - "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
-            topologyKey: "kubernetes.io/hostname"
