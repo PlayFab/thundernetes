@@ -191,6 +191,13 @@ func verifyGameServerBuild(ctx context.Context, buildID, buildName string, state
 		return fmt.Errorf("expected %d crashes, got %d", state.crashesCount, gameServerBuild.Status.CrashesCount)
 	}
 
+	// 5 is the default, we should parameterize that
+	if gameServerBuild.Status.CrashesCount >= 5 && gameServerBuild.Status.Health != "Unhealthy" {
+		return fmt.Errorf("expected %s status, got %s", "Unhealthy", gameServerBuild.Status.Health)
+	} else if gameServerBuild.Status.CrashesCount < 5 && gameServerBuild.Status.Health != "Healthy" {
+		return fmt.Errorf("expected %s status, got %s", "Healthy", gameServerBuild.Status.Health)
+	}
+
 	return nil
 }
 

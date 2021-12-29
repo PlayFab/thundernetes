@@ -56,6 +56,10 @@ var gameServersUnderCreation = sync.Map{}
 // In a subsequent loop, cache will be updated
 var gameServersUnderDeletion = sync.Map{}
 
+// a map to hold the number of crashes per Build
+// concurrent since the reconcile loop can be called multiple times for different GameServerBuilds
+var crashesPerBuild = sync.Map{}
+
 // GameServerBuildReconciler reconciles a GameServerBuild object
 type GameServerBuildReconciler struct {
 	client.Client
@@ -109,6 +113,12 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	if !creationsCompleted {
 		return ctrl.Result{}, nil
+	}
+
+	if !gsb.DeletionTimestamp.IsZero() {
+		// GameServerBuild is being deleted so clear its entry from the crashesPerBuild map
+		// no-op if the entry is not present
+		crashesPerBuild.Delete(getKeyForCrashesPerBuildMap(&gsb))
 	}
 
 	// get the gameServers that are owned by this gameServerBuild
@@ -232,7 +242,20 @@ func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1
 		gsb.Status.CurrentInitializing = initializingCount
 		gsb.Status.CurrentActive = activeCount
 		gsb.Status.CurrentStandingBy = standingByCount
-		gsb.Status.CrashesCount = gsb.Status.CrashesCount + crashesCount
+
+		// try and get existing crashesCount from the map
+		// if it doesn't exist, create it with initial value the number of crashes we detected on this reconcile loop
+		key := getKeyForCrashesPerBuildMap(gsb)
+		val, ok := crashesPerBuild.LoadOrStore(key, crashesCount)
+		// if we have existing crashes, get the value
+		var existingCrashes int = 0
+		if ok {
+			existingCrashes = val.(int)
+			// and store the new one
+			crashesPerBuild.Store(key, crashesCount+existingCrashes)
+		}
+		// update the crashesCount status with the new value of total crashes
+		gsb.Status.CrashesCount = existingCrashes + crashesCount
 		gsb.Status.CurrentStandingByReadyDesired = fmt.Sprintf("%d/%d", standingByCount, gsb.Spec.StandingBy)
 
 		if gsb.Status.CrashesCount >= gsb.Spec.CrashesToMarkUnhealthy {
@@ -358,4 +381,8 @@ func (r *GameServerBuildReconciler) gameServersUnderCreationWereCreated(ctx cont
 		return false, nil
 	}
 	return true, nil
+}
+
+func getKeyForCrashesPerBuildMap(gsb *mpsv1alpha1.GameServerBuild) string {
+	return fmt.Sprintf("%s/%s", gsb.Namespace, gsb.Name)
 }
