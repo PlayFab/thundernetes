@@ -96,6 +96,34 @@ nodeSelector:
 
 You should add this YAML snippet to any workloads you don't want to be scheduled on the GameServer NodePool. Check [here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) for additional information on assigning pods to Nodes and check [here](https://docs.microsoft.com/en-us/azure/aks/use-system-pools#system-and-user-node-pools) for more information on AKS system and user node pools.
 
+### Schedule DaemonSet Pods on GameServer Nodes
+
+> For more information on the NodeAgent process running in the DaemonSet, check the architecture document [here](architecture.md#gsdk-integration).
+
+Now that we've shown how to run multiple Node Pools, let's discuss how to schedule DaemonSet Pods running NodeAgent process to run only on Nodes that run game server Pods. Since NodeAgent's only concern is to work with game server Pods on Node's it's been scheduled, it's unnecessary to run in on Nodes that run system resources and/or telemetry. Since we have already split the cluster into multiple Node Pools, we can use the `nodeSelector` field on the DaemonSet Pod spec to request that the DaemonSet Pod is scheduled on Nodes that have the `agentpool=gameserver` Label (or whatever Label you have added to your game server Node Pool). Take a look at the following example to see how you can modify your DaemonSet YAML for this purpose:
+
+```YAML
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: thundernetes-nodeagent
+  namespace: thundernetes-system
+spec:
+  selector:
+    matchLabels:
+      name: nodeagent
+  template:
+    metadata:
+      labels:
+        name: nodeagent
+    spec:
+      nodeSelector: # add this line
+        agentpool: gameserver # add this line as well
+      containers:
+      ...
+```
+
+
 ## Not supported features (compared to MPS)
 
 There are some features of MPS that are not yet supported on Thundernetes.
