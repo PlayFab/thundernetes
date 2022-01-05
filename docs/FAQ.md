@@ -123,6 +123,11 @@ spec:
       ...
 ```
 
+## How do I make GameServer Pods start before DaemonSet Pods?
+
+When a new Node is added to the Kubernetes cluster, a NodeAgent (part of DaemonSet) Pod will be created there. However, if there were pending GameServer Pods before the Node addition, they will also be scheduled on the new Node. Consequently, GameServer Pods might start at the same time as the NodeAgent Pod. GameServer Pods are heartbeating to the NodeAgent so there is a chance that some heartbeats will be lost and, potentially, a state change from "" to "Initializing" will not be tracked (however, the GameServer Pod should have no trouble whatsoever transitioning to StandingBy when the NodeAgent Pod is up).
+
+There will be no impact from these lost heartbeats. However, you can tell Kubernetes to schedule NodeAgent Pods before the GameServer Pods by assigning Pod Priorities to the NodeAgent Pods. You can read more about Pod priority [here](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption) and specifically about the impact of Pod priority on scheduling order [here](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#effect-of-pod-priority-on-scheduling-order).
 
 ## Not supported features (compared to MPS)
 
