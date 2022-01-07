@@ -23,16 +23,17 @@ spec:
   portsToExpose: # port names that you need to expose for your game server, read more below
     - containerName: gameserver-sample # name of the container that you want its port exposed
       portName: gameport # name of the port that you want to expose
-  podSpec:
-    containers:
-      - image: youGameServerImage:tag # image of your game server
-        name: gameserver-sample # name of the container. Must be the same as portsToExpose.containerName
-        ports:
-        - containerPort: 7777 # port that you want to expose
-          name: gameport # name of the port that you want to expose. Must be the same as portsToExpose.portName
+  template:
+    spec:
+      containers:
+        - image: youGameServerImage:tag # image of your game server
+          name: gameserver-sample # name of the container. Must be the same as portsToExpose.containerName
+          ports:
+          - containerPort: 7777 # port that you want to expose
+            name: gameport # name of the port that you want to expose. Must be the same as portsToExpose.portName
 ```
 
-The podSpec contains the definition for a [Kubernetes Pod](https://kubernetes.io/docs/concepts/workloads/pods/). As a result, you should include here whatever is needed for your game server (environment variables, storage, etc). Bear in mind though that not everything will work in MPS though. 
+The template.spec contains the definition for a [Kubernetes Pod](https://kubernetes.io/docs/concepts/workloads/pods/). As a result, you should include here whatever is needed for your game server (environment variables, storage, etc). Bear in mind though that not everything will work in MPS though. 
 
 ## PortsToExpose
 

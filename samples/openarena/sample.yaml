@@ -10,18 +10,19 @@ spec:
   portsToExpose:
     - containerName: thundernetes-sample-openarena # must be the same as the container name described below
       portName: gameport # must be the same as the port name described below
-  podSpec:
-    containers:
-      - image: ghcr.io/playfab/thundernetes-openarena-sample:0.0.1.2
-        name: thundernetes-sample-openarena
-        ports:
-        - containerPort: 27960 # your game server port
-          protocol: UDP # your game server port protocol
-          name: gameport # required field
-        resources:
-          requests:
-            cpu: 100m
-            memory: 500Mi
-          limits:
-            cpu: 100m
-            memory: 500Mi
+  template:
+    spec:
+      containers:
+        - image: ghcr.io/playfab/thundernetes-openarena-sample:0.0.1.2
+          name: thundernetes-sample-openarena
+          ports:
+          - containerPort: 27960 # your game server port
+            protocol: UDP # your game server port protocol
+            name: gameport # required field
+          resources:
+            requests:
+              cpu: 100m
+              memory: 500Mi
+            limits:
+              cpu: 100m
+              memory: 500Mi

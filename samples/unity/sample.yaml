@@ -16,18 +16,19 @@ spec:
   portsToExpose:
     - containerName: thundernetes-sample-netcore # must be the same as the container name described below
       portName: gameport # must be the same as the port name described below
-  podSpec:
-    containers:
-      - image: docker.io/dgkanatsios/thundernetes-unity:0.1
-        name: thundernetes-sample-netcore
-        ports:
-        - containerPort: 7777 # your game server port
-          protocol: TCP # your game server port protocol
-          name: gameport # required field
-        resources:
-          requests:
-            cpu: 100m
-            memory: 500Mi
-          limits:
-            cpu: 100m
-            memory: 500Mi
+  template:
+    spec:
+      containers:
+        - image: docker.io/dgkanatsios/thundernetes-unity:0.1
+          name: thundernetes-sample-netcore
+          ports:
+          - containerPort: 7777 # your game server port
+            protocol: TCP # your game server port protocol
+            name: gameport # required field
+          resources:
+            requests:
+              cpu: 100m
+              memory: 500Mi
+            limits:
+              cpu: 100m
+              memory: 500Mi

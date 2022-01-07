@@ -96,25 +96,27 @@ var _ = Describe("Utilities tests", func() {
 							PortName:      "port2",
 						},
 					},
-					PodSpec: corev1.PodSpec{
-						Containers: []corev1.Container{
-							{
-								Name: "container1",
-								Ports: []corev1.ContainerPort{
-									{
-										Name:          "port1",
-										ContainerPort: 80,
-										HostPort:      123,
-									},
-									{
-										Name:          "port2",
-										ContainerPort: 443,
-										HostPort:      456,
-									},
-									{
-										Name:          "port3",
-										ContainerPort: 8080,
-										// this is not on GameServer.PortsToExpose so there will be no HostPost
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Name: "container1",
+									Ports: []corev1.ContainerPort{
+										{
+											Name:          "port1",
+											ContainerPort: 80,
+											HostPort:      123,
+										},
+										{
+											Name:          "port2",
+											ContainerPort: 443,
+											HostPort:      456,
+										},
+										{
+											Name:          "port3",
+											ContainerPort: 8080,
+											// this is not on GameServer.PortsToExpose so there will be no HostPost
+										},
 									},
 								},
 							},

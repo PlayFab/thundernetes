@@ -55,14 +55,15 @@ spec:
   portsToExpose:
     - containerName: thundernetes-sample # must be the same as the container name described below
       portName: gameport # must be the same as the port name described below
-  podSpec:
-    containers:
-      - image: thundernetes-netcore-sample:0.0.1.2
-        name: thundernetes-sample
-        ports:
-        - containerPort: 80 # your game server port
-          protocol: TCP # your game server port protocol
-          name: gameport # required field
+  template:
+    spec:
+      containers:
+        - image: thundernetes-netcore-sample:0.0.1.2
+          name: thundernetes-sample
+          ports:
+          - containerPort: 80 # your game server port
+            protocol: TCP # your game server port protocol
+            name: gameport # required field
 ```
 
 You can call this file `gameserverbuild.yaml`.

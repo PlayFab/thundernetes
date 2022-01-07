@@ -7,19 +7,20 @@ By default, Pods are scheduled using the Kubernetes scheduler. However, if you a
 By default GameServer application pods may schedule on different kubernetes node due nature of kubernetes default scheduler. To optimize and schedule the GameServer pods on the same node using PodAffinity can be beneficial in the PodSpec of CRD. Checkout this sample:
 
 ``` yaml
-  podSpec:
-    affinity:
-      podAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-              - key: BuildID
-                operator: In
-                values:
-                - "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
-            topologyKey: "kubernetes.io/hostname"
+  template:
+    spec:
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: BuildID
+                  operator: In
+                  values:
+                  - "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
+              topologyKey: "kubernetes.io/hostname"
 ``` 
 
 To test this behavior check the [sample-nodeaffinity.yaml](../samples/netcore/sample-nodeaffinity.yaml) file.
@@ -65,6 +66,39 @@ Scaling in Kubernetes is two fold. Pod autoscaling and Cluster autoscaling. Thun
 ## Can I run a Unity or Unreal game server on thundernetes?
 
 You can run any game server that supports the [PlayFab GameServer SDK](https://github.com/PlayFab/gsdk). Check a Unity sample [here](../samples/unity/README.md).
+
+## How can I add custom Annotations and/or Labels to my GameServer Pods?
+
+The GameServerBuild template allows you to set custom Annotations and/or Labels along with the Pod specification. These are copied to the GameServers and the Pods in the GameServerBuild. Check the following YAML for an example:
+
+```yaml
+apiVersion: mps.playfab.com/v1alpha1
+kind: GameServerBuild
+metadata:
+  name: gameserverbuild-sample-netcore
+spec:
+  titleID: "1E03" # required
+  buildID: "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6" # must be a GUID
+  standingBy: 2 # required
+  max: 4 # required
+  portsToExpose:
+    - containerName: thundernetes-sample-netcore # must be the same as the container name described below
+      portName: gameport # must be the same as the port name described below
+  template:
+    metadata:
+        annotations:
+          annotation1: annotationvalue1
+        labels:
+          label1: labelvalue1
+    spec:
+      containers:
+        - image: ghcr.io/playfab/thundernetes-netcore-sample:0.1.0
+          name: thundernetes-sample-netcore
+          ports:
+          - containerPort: 80 # your game server port
+            protocol: TCP # your game server port protocol
+            name: gameport # required field
+```
 
 ## Virtual Kubelet
 

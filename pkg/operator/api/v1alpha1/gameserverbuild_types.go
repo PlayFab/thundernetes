@@ -45,8 +45,8 @@ type GameServerBuildSpec struct {
 	// Max is the maximum number of servers in any state
 	Max int `json:"max,omitempty"`
 
-	// PodSpec describes the pod specification of the game server
-	PodSpec corev1.PodSpec `json:"podSpec,omitempty"`
+	// Template describes the pod template specification of the game server
+	Template corev1.PodTemplateSpec `json:"template,omitempty"`
 
 	//+kubebuilder:validation:Required
 	// TitleID is the TitleID this Build belongs to

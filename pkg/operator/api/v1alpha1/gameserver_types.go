@@ -50,8 +50,8 @@ type GameServerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// PodSpec describes the pod specification of the game server
-	PodSpec corev1.PodSpec `json:"podSpec,omitempty"`
+	// Template describes the pod template specification of the game server
+	Template corev1.PodTemplateSpec `json:"template,omitempty"`
 	//+kubebuilder:validation:Required
 	// TitleID is the TitleID this GameServer belongs to
 	TitleID string `json:"titleID,omitempty"`

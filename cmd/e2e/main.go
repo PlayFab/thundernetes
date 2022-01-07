@@ -118,16 +118,18 @@ func main() {
 			},
 			StandingBy: 2,
 			Max:        4,
-			PodSpec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					{
-						Image:           imgName,
-						Name:            "netcore-sample",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-						Ports: []corev1.ContainerPort{
-							{
-								Name:          portKey,
-								ContainerPort: 80,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Image:           imgName,
+							Name:            "netcore-sample",
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          portKey,
+									ContainerPort: 80,
+								},
 							},
 						},
 					},
@@ -148,22 +150,24 @@ func main() {
 			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: portKey}},
 			StandingBy:    2,
 			Max:           4,
-			PodSpec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					{
-						Image:           imgName,
-						Name:            "netcore-sample",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-						Ports: []corev1.ContainerPort{
-							{
-								Name:          portKey,
-								ContainerPort: 80,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Image:           imgName,
+							Name:            "netcore-sample",
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          portKey,
+									ContainerPort: 80,
+								},
 							},
-						},
-						Env: []corev1.EnvVar{
-							{
-								Name:  "SLEEP_BEFORE_READY_FOR_PLAYERS",
-								Value: "true",
+							Env: []corev1.EnvVar{
+								{
+									Name:  "SLEEP_BEFORE_READY_FOR_PLAYERS",
+									Value: "true",
+								},
 							},
 						},
 					},
@@ -184,17 +188,19 @@ func main() {
 			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: portKey}},
 			StandingBy:    2,
 			Max:           4,
-			PodSpec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					{
-						Image:           imgName,
-						Name:            "netcore-sample",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-						Command:         []string{"/bin/sh", "-c", "sleep 2 && command_that_does_not_exist"},
-						Ports: []corev1.ContainerPort{
-							{
-								Name:          portKey,
-								ContainerPort: 80,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Image:           imgName,
+							Name:            "netcore-sample",
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Command:         []string{"/bin/sh", "-c", "sleep 2 && command_that_does_not_exist"},
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          portKey,
+									ContainerPort: 80,
+								},
 							},
 						},
 					},
@@ -215,22 +221,24 @@ func main() {
 			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: portKey}},
 			StandingBy:    2,
 			Max:           4,
-			PodSpec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					{
-						Image:           imgName,
-						Name:            "netcore-sample",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-						Ports: []corev1.ContainerPort{
-							{
-								Name:          portKey,
-								ContainerPort: 80,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Image:           imgName,
+							Name:            "netcore-sample",
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          portKey,
+									ContainerPort: 80,
+								},
 							},
-						},
-						Env: []corev1.EnvVar{
-							{
-								Name:  "SKIP_READY_FOR_PLAYERS",
-								Value: "true",
+							Env: []corev1.EnvVar{
+								{
+									Name:  "SKIP_READY_FOR_PLAYERS",
+									Value: "true",
+								},
 							},
 						},
 					},

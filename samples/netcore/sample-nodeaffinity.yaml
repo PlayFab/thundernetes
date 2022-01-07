@@ -16,30 +16,31 @@ spec:
   portsToExpose:
     - containerName: thundernetes-sample-netcore # must be the same as the container name described below
       portName: gameport # must be the same as the port name described below
-  podSpec:
-    containers:
-      - image: ghcr.io/playfab/thundernetes-netcore-sample:0.1.0
-        name: thundernetes-sample-netcore
-        ports:
-        - containerPort: 80 # your game server port
-          protocol: TCP # your game server port protocol
-          name: gameport # required field
-        resources:
-          requests:
-            cpu: 100m
-            memory: 500Mi
-          limits:
-            cpu: 100m
-            memory: 500Mi
-    affinity:
-      podAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-              - key: BuildID
-                operator: In
-                values:
-                - "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
-            topologyKey: "kubernetes.io/hostname"
+  template:
+    spec:
+      containers:
+        - image: ghcr.io/playfab/thundernetes-netcore-sample:0.1.0
+          name: thundernetes-sample-netcore
+          ports:
+          - containerPort: 80 # your game server port
+            protocol: TCP # your game server port protocol
+            name: gameport # required field
+          resources:
+            requests:
+              cpu: 100m
+              memory: 500Mi
+            limits:
+              cpu: 100m
+              memory: 500Mi
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: BuildID
+                  operator: In
+                  values:
+                  - "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
+              topologyKey: "kubernetes.io/hostname"
