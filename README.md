@@ -7,7 +7,7 @@
 
 > thundernetes is an experimental project and not recommended for production use. However, feel free to try it and let us know of any feedback!
 
-Latest release: **0.1.0**
+Latest release: **0.2.0**
 
 ## Description
 
