@@ -225,7 +225,9 @@ func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Reque
 	logger := getLogger(gameServerName, gsd.GameServerNamespace)
 
 	if logEveryHeartbeat {
-		logger.Infof("heartbeat received from sessionHostId %s, data %#v", gameServerName, hb)
+		heartbeatString := fmt.Sprintf("%v", hb) // from CodeQL analysis: If unsanitized user input is written to a log entry, a malicious user may be able to forge new log entries.
+		heartbeatString = sanitize(heartbeatString)
+		logger.Infof("heartbeat received from sessionHostId %s, data %s", gameServerName, heartbeatString)
 	}
 
 	if err := n.updateHealthAndStateIfNeeded(ctx, &hb, gameServerName, gsd); err != nil {
@@ -291,7 +293,7 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 		return fmt.Errorf("invalid state transition from %s to %s", gsd.PreviousGameState, hb.CurrentGameState)
 	}
 
-	logger.Debugf("Health or state is different than before, updating. Old health %s, new health %s, old state %s, new state %s", gsd.PreviousGameHealth, hb.CurrentGameHealth, gsd.PreviousGameState, hb.CurrentGameState)
+	logger.Debugf("Health or state is different than before, updating. Old health %s, new health %s, old state %s, new state %s", sanitize(gsd.PreviousGameHealth), sanitize(hb.CurrentGameHealth), sanitize(string(gsd.PreviousGameState)), sanitize(string(hb.CurrentGameState)))
 
 	// the reason we're using unstructured to serialize the GameServerStatus is that we don't want extra fields (.Spec, .ObjectMeta) to be serialized
 	u := &unstructured.Unstructured{

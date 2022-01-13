@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/dynamic"
@@ -71,4 +72,11 @@ func isValidStateTransition(old, new GameState) bool {
 
 func getLogger(gameServerName, gameServerNamespace string) *log.Entry {
 	return log.WithFields(log.Fields{"GameServerName": gameServerName, "GameServerNamespace": gameServerNamespace})
+}
+
+// sanitize removes new line characters from the string
+// https://codeql.github.com/codeql-query-help/go/go-log-injection/
+func sanitize(s string) string {
+	s2 := strings.Replace(s, "\n", "", -1)
+	return strings.Replace(s2, "\r", "", -1)
 }

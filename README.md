@@ -2,6 +2,7 @@
 [![Software License](https://img.shields.io/badge/license-Apache-brightgreen.svg?style=flat-square)](LICENSE)
 [![GitHub release](https://img.shields.io/github/release/playfab/thundernetes.svg)](https://github.com/playfab/thundernetes/releases)
 ![](https://img.shields.io/badge/status-alpha-red.svg)
+[![CodeQL](https://github.com/PlayFab/thundernetes/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/PlayFab/thundernetes/actions/workflows/codeql-analysis.yml)
 
 # thundernetes
 
