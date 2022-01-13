@@ -94,3 +94,13 @@ As soon as you build your container image, you should publish it to a container 
 Thundernetes supports running your GameServer Pods under host networking. To do that, you need to provide a GameServerBuild YAML like [this](../samples/netcore/sample-hostnetwork.yaml), setting the `hostNetwork` value to true on PodSpec template. During Pod creation, thundernetes controllers will override the containerPort with the same value that will be assigned in the hostPort. 
 
 > Unfortunately, it is still necessary to provide a `containerPort` value in the GameServerBuild YAML, since it is required for GameServerBuild validation. However, as mentioned, this provided value is used nowhere since it's overwritten by the `hostPort` value.
+
+## Game server image upgrades
+
+You should **not** change the container image of your GameServerBuild. The best practice to upgrade your game server version is to
+- spin up a separate GameServerBuild 
+- configure your matchmaker to allocate against this new GameServerBuild
+- configure the original GameServerBuild to 0 standingBy
+- when all the active games in the original GameServerBuild end, you can safely delete it
+
+However, at this point, thundernetes does not do anything to prevent you from changing the container image on the GameServerBuild YAML file, but you should consider the GameServerBuild as immutable (apart from changing the standingBy and max numbers, of course).
