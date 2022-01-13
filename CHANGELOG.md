@@ -1,11 +1,26 @@
 # Changelog
 
-## master / unreleased
+## 0.2.0 / 2022-01-13
 
-* [FEATURE] Refactored Sidecar. #66
-* [FEATURE] adding release shield. #70
-* [FEATURE] Update GameServer.Status.State when in initializing state. #68
-* [ENHANCEMENT] Update README.md #64
+* [FEATURE] Updated README.md by @AmieDD in https://github.com/PlayFab/thundernetes/pull/64
+* [ENHANCEMENT] Update GameServer.Status.State when initializing by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/68
+* [ENHANCEMENT] Adding a CHANGELOG to track updates to the project. by @khaines in https://github.com/PlayFab/thundernetes/pull/90
+* [ENHANCEMENT] adding node internal ip + node name by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/92
+* [ENHANCEMENT] Create CODE_OF_CONDUCT.md by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/94
+* [FEATURE] GameServer API by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/91
+* [FEATURE] adding connected player names by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/89
+* [BUGFIX] fixing GameServerBuild controller issues by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/95
+* [ENHANCEMENT] Initial Contributors documentation by @khaines in https://github.com/PlayFab/thundernetes/pull/96
+* [ENHANCEMENT] replacing update with patch on pod annotations by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/103
+* [FEATURE] Sidecar to Daemonset by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/97
+* [FEATURE] Enable metrics endpoint on node agent by @khaines in https://github.com/PlayFab/thundernetes/pull/111
+* [ENHANCEMENT] .net 6 for .NET sample and openarena by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/112
+* [BUGFIX] fixing bug on counters by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/115
+* [BUGFIX] fixes for Unity GSDK by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/117
+* [ENHANCEMENT] Reorganizing Project Layout by @khaines in https://github.com/PlayFab/thundernetes/pull/119
+* [FEATURE] Support setting GameServers Pods to host network by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/122
+* [ENHANCEMENT] schedule NodeAgent on GameServer Pods by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/124
+* [ENHANCEMENT] adding information about Pod Priority by @dgkanatsios in https://github.com/PlayFab/thundernetes/pull/125
 
 ## 0.1.0 / 2021-11-12
 

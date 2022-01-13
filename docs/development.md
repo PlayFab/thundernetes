@@ -76,7 +76,7 @@ make clean deletekindcluster builddockerlocal createkindcluster e2elocal
 
 ```bash
 cd operator
-THUNDERNETES_INIT_CONTAINER_IMAGE=ghcr.io/playfab/thundernetes-initcontainer:0.1.0 go run main.go
+THUNDERNETES_INIT_CONTAINER_IMAGE=ghcr.io/playfab/thundernetes-initcontainer:0.2.0 go run main.go
 ```
 
 ## [ADVANCED] Install thundernetes via cloning this repository
