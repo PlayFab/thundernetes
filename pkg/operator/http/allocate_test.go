@@ -19,7 +19,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 )
 
 var (
@@ -157,9 +156,7 @@ var _ = Describe("allocation API service tests", func() {
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Allocation API Service Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	RunSpecs(t, "Allocation API Service Suite")
 }
 
 func newTestSimpleK8s() client.Client {

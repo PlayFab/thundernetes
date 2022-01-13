@@ -360,19 +360,21 @@ func createTestGameServerBuild(buildName, buildID string, standingBy, max int, h
 			BuildID:    buildID,
 			StandingBy: standingBy,
 			Max:        max,
-			PodSpec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					{
-						Name:  "testcontainer",
-						Image: os.Getenv("THUNDERNETES_SAMPLE_IMAGE"),
-						Ports: []corev1.ContainerPort{
-							{
-								ContainerPort: 80,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "testcontainer",
+							Image: os.Getenv("THUNDERNETES_SAMPLE_IMAGE"),
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 80,
+								},
 							},
 						},
 					},
+					HostNetwork: hostNetwork,
 				},
-				HostNetwork: hostNetwork,
 			},
 		},
 		ObjectMeta: metav1.ObjectMeta{

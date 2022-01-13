@@ -136,6 +136,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if !podFoundInCache {
 		log.Info("Creating a new pod for GameServer", GameServerKind, gs.Name)
+
 		newPod := NewPodForGameServer(&gs)
 		if err := r.Create(ctx, newPod); err != nil {
 			return ctrl.Result{}, err
@@ -229,8 +230,8 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 // unassignPorts will remove any ports that are used by this GameServer from the port registry
 func (r *GameServerReconciler) unassignPorts(gs *mpsv1alpha1.GameServer) {
 	hostPorts := make([]int32, 0)
-	for i := 0; i < len(gs.Spec.PodSpec.Containers); i++ {
-		container := gs.Spec.PodSpec.Containers[i]
+	for i := 0; i < len(gs.Spec.Template.Spec.Containers); i++ {
+		container := gs.Spec.Template.Spec.Containers[i]
 		for j := 0; j < len(container.Ports); j++ {
 			if sliceContainsPortToExpose(gs.Spec.PortsToExpose, container.Name, container.Ports[j].Name) {
 				hostPorts = append(hostPorts, container.Ports[j].HostPort)

@@ -116,7 +116,7 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 			Labels: map[string]string{LabelBuildID: gsb.Spec.BuildID, LabelBuildName: gsb.Name},
 		},
 		Spec: mpsv1alpha1.GameServerSpec{
-			PodSpec:       gsb.Spec.PodSpec,
+			Template:      gsb.Spec.Template,
 			BuildID:       gsb.Spec.BuildID,
 			TitleID:       gsb.Spec.TitleID,
 			PortsToExpose: gsb.Spec.PortsToExpose,
@@ -124,9 +124,9 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 		},
 		// we don't create any status since we have the .Status subresource enabled
 	}
-	// assigning host ports for all the containers in the PodSpec
-	for i := 0; i < len(gsb.Spec.PodSpec.Containers); i++ {
-		container := gsb.Spec.PodSpec.Containers[i]
+	// assigning host ports for all the containers in the Template.Spec
+	for i := 0; i < len(gsb.Spec.Template.Spec.Containers); i++ {
+		container := gsb.Spec.Template.Spec.Containers[i]
 		for i := 0; i < len(container.Ports); i++ {
 			if sliceContainsPortToExpose(gsb.Spec.PortsToExpose, container.Name, container.Ports[i].Name) {
 				port, err := portRegistry.GetNewPort()
@@ -136,7 +136,7 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 				container.Ports[i].HostPort = port
 
 				// if the user has specified that they want to use the host's network, we override the container port
-				if gsb.Spec.PodSpec.HostNetwork {
+				if gsb.Spec.Template.Spec.HostNetwork {
 					container.Ports[i].ContainerPort = port
 				}
 			}
@@ -154,12 +154,6 @@ func NewPodForGameServer(gs *mpsv1alpha1.GameServer) *corev1.Pod {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      gs.Name, // same Name as the GameServer
 			Namespace: gs.Namespace,
-			Labels: map[string]string{
-				LabelBuildID:          gs.Spec.BuildID,
-				LabelBuildName:        gs.Labels[LabelBuildName],
-				LabelOwningGameServer: gs.Name,
-				LabelOwningOperator:   "thundernetes",
-			},
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(gs, schema.GroupVersionKind{
 					Group:   mpsv1alpha1.GroupVersion.Group,
@@ -168,8 +162,23 @@ func NewPodForGameServer(gs *mpsv1alpha1.GameServer) *corev1.Pod {
 				}),
 			},
 		},
-		Spec: gs.Spec.PodSpec,
+		Spec: gs.Spec.Template.Spec,
 	}
+
+	// copy Labels and Annotations from Pod Template
+	pod.ObjectMeta.Annotations = gs.Spec.Template.Annotations
+	pod.ObjectMeta.Labels = gs.Spec.Template.Labels
+
+	// initialize the Labels map if it's nil, so we can add thundernetes Labels
+	if pod.ObjectMeta.Labels == nil {
+		pod.ObjectMeta.Labels = make(map[string]string)
+	}
+
+	// add thundernetes Labels
+	pod.ObjectMeta.Labels[LabelBuildID] = gs.Spec.BuildID
+	pod.ObjectMeta.Labels[LabelBuildName] = gs.Labels[LabelBuildName]
+	pod.ObjectMeta.Labels[LabelOwningGameServer] = gs.Name
+	pod.ObjectMeta.Labels[LabelOwningOperator] = "thundernetes"
 
 	// following methods should be called in this exact order
 	modifyRestartPolicy(pod)
@@ -276,7 +285,7 @@ func getInitContainerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 
 	var b bytes.Buffer
 	// get game ports
-	for _, container := range gs.Spec.PodSpec.Containers {
+	for _, container := range gs.Spec.Template.Spec.Containers {
 		for _, port := range container.Ports {
 			containerPort := strconv.Itoa(int(port.ContainerPort))
 			hostPort := strconv.Itoa(int(port.HostPort))

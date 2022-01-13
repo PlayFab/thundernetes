@@ -16,19 +16,20 @@ spec:
   portsToExpose:
     - containerName: thundernetes-sample-netcore # must be the same as the container name described below
       portName: gameport # must be the same as the port name described below
-  podSpec:
-    hostNetwork: true # this sample uses host networking
-    containers:
-      - image: ghcr.io/playfab/thundernetes-netcore-sample:0.2.0 # works only on version 0.2 
-        name: thundernetes-sample-netcore
-        ports:
-        - protocol: TCP # your game server port protocol
-          name: gameport # required field
-          containerPort: 80 # this is required because of podSpec validation but it's overwritten during Pod creation
-        resources:
-          requests:
-            cpu: 100m
-            memory: 500Mi
-          limits:
-            cpu: 100m
-            memory: 500Mi
+  template:
+    spec:
+      hostNetwork: true # this sample uses host networking
+      containers:
+        - image: ghcr.io/playfab/thundernetes-netcore-sample:0.2.0 # works only on version 0.2 
+          name: thundernetes-sample-netcore
+          ports:
+          - protocol: TCP # your game server port protocol
+            name: gameport # required field
+            containerPort: 80 # this is required because of podSpec (template.spec) validation but it's overwritten during Pod creation
+          resources:
+            requests:
+              cpu: 100m
+              memory: 500Mi
+            limits:
+              cpu: 100m
+              memory: 500Mi

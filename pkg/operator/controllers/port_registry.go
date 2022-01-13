@@ -33,12 +33,12 @@ func NewPortRegistry(gameServers mpsv1alpha1.GameServerList, min, max int32, set
 	// gather ports for existing game servers
 	if len(gameServers.Items) > 0 {
 		for _, gs := range gameServers.Items {
-			if len(gs.Spec.PodSpec.Containers) == 0 {
+			if len(gs.Spec.Template.Spec.Containers) == 0 {
 				setupLog.Info("GameServer with name %s has no containers in its Pod Template: %#v", gs.Name, gs)
 				continue
 			}
 
-			for _, container := range gs.Spec.PodSpec.Containers {
+			for _, container := range gs.Spec.Template.Spec.Containers {
 
 				portsExposed := make([]int32, len(container.Ports))
 				portsExposedIndex := 0
