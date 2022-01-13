@@ -13,7 +13,7 @@ spec:
   template:
     spec:
       containers:
-        - image: ghcr.io/playfab/thundernetes-openarena-sample:0.0.1.2
+        - image: ghcr.io/playfab/thundernetes-openarena:0.2.0
           name: thundernetes-sample-openarena
           ports:
           - containerPort: 27960 # your game server port

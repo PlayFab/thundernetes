@@ -92,7 +92,7 @@ spec:
           label1: labelvalue1
     spec:
       containers:
-        - image: ghcr.io/playfab/thundernetes-netcore-sample:0.1.0
+        - image: ghcr.io/playfab/thundernetes-netcore:0.2.0
           name: thundernetes-sample-netcore
           ports:
           - containerPort: 80 # your game server port

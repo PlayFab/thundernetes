@@ -37,7 +37,7 @@ jobs:
       - name: nodeagent unit tests
         run: cd cmd/nodeagent && go test
       - name: operator unit tests
-        run: IMAGE_NAME_SAMPLE=thundernetes-netcore-sample IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer TAG=$(git rev-list HEAD --max-count=1 --abbrev-commit) make -C pkg/operator test
+        run: IMAGE_NAME_SAMPLE=thundernetes-netcore IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer TAG=$(git rev-list HEAD --max-count=1 --abbrev-commit) make -C pkg/operator test
       - name: install kind binaries
         run: make installkind
       - name: create kind cluster

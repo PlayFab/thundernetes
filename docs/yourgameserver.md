@@ -58,7 +58,7 @@ spec:
   template:
     spec:
       containers:
-        - image: thundernetes-netcore-sample:0.0.1.2
+        - image: thundernetes-netcore:0.2.0
           name: thundernetes-sample
           ports:
           - containerPort: 80 # your game server port
