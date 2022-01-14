@@ -2,9 +2,9 @@
 
 ## Pod scheduling
 
-By default, Pods are scheduled using the Kubernetes scheduler. However, if you are using a cloud provider (e.g. Azure Kubernetes Service), you'd want to schedule your Game Server Pods as tight as possible. For example, if you have two VMs, you'll want to schedule the Pods on VM 1 till it can't host any more, then you'll schedule the Pods to VM 2. To do that, you can use the [Kubernetes inter-pod affinity strategy](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity).
+By default, Pods are scheduled using the Kubernetes scheduler. Its behavior is to spread the Pods into as many Nodes as possible. However, if you are using a cloud provider (e.g. Azure Kubernetes Service), you'd want to schedule your Game Server Pods into the less amount of Nodes possible. For example, if you have two VMs, you'll want to schedule the Pods on VM 1 till it can't host any more, then you'll schedule the Pods to VM 2. The reason for doing that is that on a potential cluster scale-down you will want to have Nodes with zero (or close to zero) Pods, so they can be effiently reclaimed by the underlying cloud provider. To accomplish this type of tight scheduling, you can use the [Kubernetes inter-pod affinity strategy](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity) when defining your Pod.
 
-By default GameServer application pods may schedule on different kubernetes node due nature of kubernetes default scheduler. To optimize and schedule the GameServer pods on the same node using PodAffinity can be beneficial in the PodSpec of CRD. Checkout this sample:
+To instruct the Kubernetes scheduler to try and schedule Pods into as few Nodes as possible you can use something like the following:
 
 ``` yaml
   template:
@@ -27,7 +27,7 @@ To test this behavior check the [sample-nodeaffinity.yaml](../samples/netcore/sa
 
 ## How can I find the Public IP address from inside a GameServer?
 
-The GSDK call to get the Public IP is not supported at this time, it returns "N/A". However, you can easily get the Public IP address by using one of the following web sites from your game server:
+The GSDK call (GetGameServerConnectionInfo) that returns Game Server connection information currently returns the internal IP of the Node. However, you can easily get the Public IP address by using one of the following web sites from your game server:
 
 ```bash
 curl http://canhazip.com
@@ -48,11 +48,13 @@ The above methods would work properly if the Node hosting your Pod has a Public 
 
 [source](https://serversuit.com/community/technical-tips/view/finding-your-external-ip-address.html)
 
-## Grab GameServer logs
+If you want a programmatic way to get the Public IP address, please leave a comment on [this issue](https://github.com/PlayFab/thundernetes/issues/136).
 
-One of easiest ways to grab logs from your GameServer Pods is to use [fluentbit](https://fluentbit.io/) to capture logs and send them to [Azure Blob Storage](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blobs-overview).
+## Get GameServer logs
 
-You can use the following steps to setup fluentbit to capture logs from your GameServer Pods:
+Thundernetes does not do anything special to obtain the logs for your GameServer Pods, since there already are a lot of solutions in the Kubernetes ecosystem for this purpose. One of easiest ways to do this is to use [fluentbit](https://fluentbit.io/) to capture logs and send them to [Azure Blob Storage](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blobs-overview) or on a Storage provide of your choice (you can see output providers for fluentbit [here](https://docs.fluentbit.io/manual/pipeline/outputs)).
+
+You can use the following steps to setup fluentbit to capture logs from your GameServer Pods and send them to Azure Storage:
 
 - Set up an Azure Storage Account. Check [here](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal) on how to do it using the Azure Portal.
 - Install fluentbit on your Kubernetes cluster. Check [here](https://docs.fluentbit.io/manual/installation/kubernetes) on how to do it using the Azure Portal.
@@ -61,15 +63,15 @@ You can use the following steps to setup fluentbit to capture logs from your Gam
 
 ## Node Autoscaling
 
-Scaling in Kubernetes is two fold. Pod autoscaling and Cluster autoscaling. Thundernetes enables pod autoscaling by default utilizing the standby mechanism. For Node autoscaling, Kubernetes cluster autoscaler can be potentially used, especially with the use of [overprovisioning](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-can-i-configure-overprovisioning-with-cluster-autoscaler). If you are using Azure Kubernetes Service, you can [easily enable cluster autoscaler](https://docs.microsoft.com/en-us/azure/aks/cluster-autoscaler).
+Thundernetes natively supports GameServer autoscaling via its standingBy/max mechanism. However, scaling Pods is just one part of the process. The other part is about scaling the Kubernetes Nodes in the cluster. For Node autoscaling, thundernetes can work with the open source [Kubernetes cluster autoscaler](https://github.com/kubernetes/autoscaler). We also recommend using the [overprovisioning feature](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-can-i-configure-overprovisioning-with-cluster-autoscaler) so you can spin up Nodes as soon as possible. Each cloud provider has its own documentation for using the cluster autoscaler. If you are using Azure Kubernetes Service, you can easily enable cluster autoscaler using the documentation [here](https://docs.microsoft.com/en-us/azure/aks/cluster-autoscaler).
 
 ## Can I run a Unity or Unreal game server on thundernetes?
 
-You can run any game server that supports the [PlayFab GameServer SDK](https://github.com/PlayFab/gsdk). Check a Unity sample [here](../samples/unity/README.md).
+You can run any game server that supports the [PlayFab GameServer SDK](https://github.com/PlayFab/gsdk). Check a Unity sample [here](../samples/unity/README.md). On [this](https://github.com/PlayFab/MpsSamples) repository you can find samples for all programming languages GSDK supports, like C#/Java/C++/Go/Unity/Unreal.
 
 ## How can I add custom Annotations and/or Labels to my GameServer Pods?
 
-The GameServerBuild template allows you to set custom Annotations and/or Labels along with the Pod specification. These are copied to the GameServers and the Pods in the GameServerBuild. Check the following YAML for an example:
+The GameServerBuild template allows you to set custom Annotations and/or Labels along with the Pod specification. This is possible since GameServerBuild includes the entire PodTemplateSpec. Labels and Annotations are copied to the GameServers and the Pods in the GameServerBuild. Check the following YAML for an example:
 
 ```yaml
 apiVersion: mps.playfab.com/v1alpha1
@@ -100,20 +102,20 @@ spec:
             name: gameport # required field
 ```
 
-## Virtual Kubelet
+### Using Virtual Kubelet
 
-In conjuction with cluster autoscaler, you can use [Virtual Kubelet](https://github.com/virtual-kubelet/virtual-kubelet) project to accelerate the addition of new Pods to the cluster. If you are using Azure Kubernetes Service, you can easily enable Virtual Nodes feature (which is based on Virtual Kubelet) using the instructions [here](https://docs.microsoft.com/en-us/azure/aks/virtual-nodes).
+[Virtual Kubelet](https://github.com/virtual-kubelet/virtual-kubelet) is an open source implementation that enables the extension of the Kubernetes API into serverless container platforms like Azure Container Instances and AWS Fargate, among others. Virtual Kubelet can be used to quickly provision Kubernetes Nodes, which can be useful in sudden player burst scenarios. It can be used together with with cluster autoscaler, to accelerate the addition of new Pods to the cluster when the existing Nodes are full. If you are using Azure Kubernetes Service, you can easily enable Virtual Nodes feature (which is based on Virtual Kubelet) using the instructions [here](https://docs.microsoft.com/en-us/azure/aks/virtual-nodes).
 
 ## Can I run my game server pods in a non-default namespace?
 
-You don't need to anything special to run your game server Pods in a namespace different than the "default". Old versions of thundernetes (up to 0.1) made use of a sidecar to access the Kubernetes API Server, so you need to create special RoleBinding and ServiceAccount in your namespace. With the transition to DaemonSet NodeAgent in 0.2, this is no longer necessary.
+You don't need to do anything special to run your game server Pods in a namespace different than "default". Old versions of thundernetes (up to 0.1) made use of a sidecar to access the Kubernetes API Server, so you needed to create special RoleBinding and ServiceAccount in the non-default namespace. With the transition to DaemonSet NodeAgent in 0.2, this is no longer necessary.
 
 ## How do I schedule thundernetes Pods and GameServer Pods into different Nodes?
 
-There might be cases in which you would like to have system and operator Pods (Pods that are created on the kube-system and thundernetes-system namespaces) and your GameServer Pods scheduled on different Nodes. One reason for this might be that you want special Node types for your GameServers. For example, you might want to have a dedicated Node for your GameServers that are dependent on a special GPU. Another reason might be that you don't want any interruption whatsoever to Pods that are critical for the cluster to run properly. One approach to achieve this isolation on cloud providers is by using multiple Node Pools. A Node Pools is essentially a group of Nodes that share the same configuration (CPU type, memory, etc) and can be scaled independently of the others. In production scenarios, it is recommended to use three Node Pools:
+In production environments, you would like to have system and thundernetes Pods (Pods that are created on the kube-system and thundernetes-system namespaces) scheduled on a different set Nodes other than the GameServer Pods. One reason for this might be that you want special Node types for your GameServers. For example, you might want to have dedicated Nodes with special GPUs for your GameServers. Another reason might be that you don't want any interruption whatsoever to Pods that are critical for the cluster to run properly (system and thundernetes Pods). One approach to achieve this isolation on public cloud providers is by using multiple Node Pools. A Node Pool is essentially a group of Nodes that share the same configuration (CPU type, memory, etc) and can be scaled independently of the others. In production scenarios, it is recommended to use three Node Pools:
 
 - one Node Pool for Kubernetes system resources (everything in kube-system namespace) and thundernetes system resources (everything in thundernetes-system namespace)
-- one Node Pool for telemetry (Prometheus, Grafana, etc)
+- one Node Pool for telemetry related Pods (Prometheus, Grafana, etc)
 - one Node Pool to host your GameServer Pods
 
 Let's discuss on how to create and use a Node Pool to host the GameServer Pods.
@@ -128,7 +130,7 @@ nodeSelector:
   agentpool: nodepool1
 ```
 
-You should add this YAML snippet to any workloads you don't want to be scheduled on the GameServer NodePool. Check [here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) for additional information on assigning pods to Nodes and check [here](https://docs.microsoft.com/en-us/azure/aks/use-system-pools#system-and-user-node-pools) for more information on AKS system and user node pools.
+You should add the above YAML snippet to any workloads you don't want to be scheduled on the GameServer NodePool. Check [here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) for additional information on assigning pods to Nodes and check [here](https://docs.microsoft.com/en-us/azure/aks/use-system-pools#system-and-user-node-pools) for more information on AKS system and user node pools.
 
 ### Schedule DaemonSet Pods on GameServer Nodes
 
@@ -159,20 +161,43 @@ spec:
 
 ## How do I make GameServer Pods start before DaemonSet Pods?
 
-When a new Node is added to the Kubernetes cluster, a NodeAgent (part of DaemonSet) Pod will be created there. However, if there were pending GameServer Pods before the Node addition, they will also be scheduled on the new Node. Consequently, GameServer Pods might start at the same time as the NodeAgent Pod. GameServer Pods are heartbeating to the NodeAgent so there is a chance that some heartbeats will be lost and, potentially, a state change from "" to "Initializing" will not be tracked (however, the GameServer Pod should have no trouble whatsoever transitioning to StandingBy when the NodeAgent Pod is up).
+When a new Node is added to the Kubernetes cluster, a NodeAgent Pod (part of DaemonSet) will be created there. However, if there were pending GameServer Pods before the Node's addition to the cluster, they will also be scheduled on the new Node. Consequently, GameServer Pods might start at the same time as the NodeAgent Pod. GameServer Pods are heartbeating to the NodeAgent process so there is a chance that some heartbeats will be lost and, potentially, a state change from "" to "Initializing" will not be tracked (however, the GameServer Pod should have no trouble transitioning to StandingBy when the NodeAgent Pod is up and can process heartbeats).
 
 There will be no impact from these lost heartbeats. However, you can tell Kubernetes to schedule NodeAgent Pods before the GameServer Pods by assigning Pod Priorities to the NodeAgent Pods. You can read more about Pod priority [here](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption) and specifically about the impact of Pod priority on scheduling order [here](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#effect-of-pod-priority-on-scheduling-order).
+
+## How can I add resource constraints to my GameServer Pods?
+
+Kubernetes supports resource constraints when you are creating a Pod ([reference](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)). Essentially, you can specify the amount of CPU and memory that your Pod can request when it starts (requests) as well as the maximum amount of CPU and memory that your Pod can use (limits). To configure resource constraints for your Pod, you can modify the GameServerBuild definition. Since the entire PodSpec is defined in the GameServerBuild definition, you can add these resource constraints to the PodSpec. Take a look at the following example to see how you can modify your GameServerBuild YAML for this purpose:
+
+```yaml
+template:
+    spec:
+      containers:
+        - image: your-image:tag
+          name: thundernetes-sample
+          ports:
+          - containerPort: 80 # your game server port
+            protocol: TCP # your game server port protocol
+            name: gameport # required field
+          resources:
+            requests:
+              cpu: 100m
+              memory: 500Mi
+            limits:
+              cpu: 100m
+              memory: 500Mi
+```
 
 ## Not supported features (compared to MPS)
 
 There are some features of MPS that are not yet supported on Thundernetes.
 
-1. Thundernetes, for the time being, supports only Linux game servers. Work to support Windows is tracked in #8, please leave a comment if that's important for you.
-1. On PlayFab MPS, you can upload a zip file that contains parts of your game server (referred to as assets). This is decompressed on the VM that your game server runs and is automatically mounted. You cannot do that on Thundernetes, however you can always mount a storage volume onto your Pod (e.g. check [here](https://kubernetes.io/docs/concepts/storage/volumes/#azuredisk) on how to mount an Azure Disk). Work tracked in #13.
+1. Thundernetes, for the time being, supports only Linux game servers. Work to support Windows is tracked [here](https://github.com/PlayFab/thundernetes/issues/8), please leave a comment if that's important for you. If you want to host Windows game servers, you can always use [MPS](https://docs.microsoft.com/en-us/gaming/playfab/features/multiplayer/servers/).
+1. On PlayFab MPS, you can upload a zip file that contains parts of your game server (referred to as assets). This is decompressed on the VM that your game server runs and is automatically mounted. You cannot do that on Thundernetes, however you can always mount a storage volume onto your Pod (e.g. check [here](https://kubernetes.io/docs/concepts/storage/volumes/#azuredisk) on how to mount an Azure Disk).
 
 ### Deleting namespace thundernetes-system stuck in terminating state
 
-Thundernetes creates finalizers for the GameServer custom resource. So, if you delete the thundernetes controller and you try to remove the GameServer Pods and/or the namespace they are in, the namespace will be stuck in terminating state. To fix this, you can run the following commands:
+Thundernetes creates finalizers for the GameServer custom resource. So, if you delete the thundernetes controller and you try to remove the GameServer Pods and/or the namespace they are in, the namespace might be stuck in terminating state. To fix this, you can run the following commands:
 
 ```bash
  kubectl get namespace thundernetes-system -o json > tmp.json
@@ -205,9 +230,9 @@ Remove the finalizer section:
 Upload the json file:
 
 ```bash
-kubectl proxy
+kubectl proxy # this command is blocking, so you can either run it on background or use a different shell for the next commands
 curl -k -H "Content-Type: application/json" -X PUT --data-binary @tmp.json http://127.0.0.1:8001/api/v1/namespaces/thundernetes-system/finalize
-kubectl get ns
+kubectl get ns # verify that the namespace is gone
 ```
 
 For more information about deleting namespaces stuck in terminating state check the [link](https://www.ibm.com/docs/en/cloud-private/3.2.0?topic=console-namespace-is-stuck-in-terminating-state).

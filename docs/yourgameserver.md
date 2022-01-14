@@ -99,6 +99,7 @@ Thundernetes supports running your GameServer Pods under host networking. To do 
 ## Game server image upgrades
 
 You should **not** change the container image of your GameServerBuild. The best practice to upgrade your game server version is to
+
 - spin up a separate GameServerBuild 
 - configure your matchmaker to allocate against this new GameServerBuild
 - configure the original GameServerBuild to 0 standingBy

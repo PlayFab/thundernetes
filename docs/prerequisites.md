@@ -12,6 +12,7 @@ Thunderhead is the internal code name for the [Azure PlayFab Multiplayer Servers
 - [Docker Basics](https://www.docker.com/101-tutorial)
 
 ## Kubernetes 🌼
+
 Kubernetes is built on top of Docker to run containers at scale across many machines. We recommend that you have knowledge in the following Kubernetes areas before getting started with thundernetes.
 
 ### Kubernetes Resources 
@@ -20,8 +21,8 @@ Kubernetes is built on top of Docker to run containers at scale across many mach
 - [Kubernetes core concepts for Azure Kubernetes Service (AKS)](https://docs.microsoft.com/en-us/azure/aks/concepts-clusters-workloads)
 - [kubectl](https://github.com/virtual-kubelet/virtual-kubelet)
 - [kind](https://kind.sigs.k8s.io/)
-  -   kind is a tool for running local Kubernetes clusters using Docker container “nodes”.
-kind was primarily designed for testing Kubernetes itself, but may be used for local development or CI.
+  - kind is a tool for running local Kubernetes clusters using Docker container “nodes”.
+  - kind was primarily designed for testing Kubernetes itself, but may be used for local development or CI.
 
 ## Game Servers 👾
 
