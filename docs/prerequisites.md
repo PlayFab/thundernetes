@@ -19,7 +19,7 @@ Kubernetes is built on top of Docker to run containers at scale across many mach
 
 - [Kubernetes Basics](https://kubernetes.io/docs/tutorials/kubernetes-basics/)
 - [Kubernetes core concepts for Azure Kubernetes Service (AKS)](https://docs.microsoft.com/azure/aks/concepts-clusters-workloads)
-- [kubectl](https://github.com/virtual-kubelet/virtual-kubelet)
+- [kubectl](https://kubernetes.io/docs/reference/kubectl/)
 - [kind](https://kind.sigs.k8s.io/)
   - kind is a tool for running local Kubernetes clusters using Docker container “nodes”.
   - kind was primarily designed for testing Kubernetes itself, but may be used for local development or CI.
