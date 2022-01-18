@@ -88,7 +88,7 @@ gameserverbuild-sample-spdob   Healthy   StandingBy   172.18.0.2   80:14208
 
 ## Run your game server on Azure Kubernetes Service
 
-As soon as you build your container image, you should publish it to a container registry. If you are using Azure Kubernetes Service, we recommend publishing your image to [Azure Container Registry](https://docs.microsoft.com/en-us/azure/container-registry/). To integrate your Azure Container Registry with your Azure Kubernetes Service cluster, check the instructions [here](https://docs.microsoft.com/en-us/azure/aks/cluster-container-registry-integration).
+As soon as you build your container image, you should publish it to a container registry. If you are using Azure Kubernetes Service, we recommend publishing your image to [Azure Container Registry](https://docs.microsoft.com/azure/container-registry/). To integrate your Azure Container Registry with your Azure Kubernetes Service cluster, check the instructions [here](https://docs.microsoft.com/azure/aks/cluster-container-registry-integration).
 
 ## Using host networking
 
@@ -99,6 +99,7 @@ Thundernetes supports running your GameServer Pods under host networking. To do 
 ## Game server image upgrades
 
 You should **not** change the container image of your GameServerBuild. The best practice to upgrade your game server version is to
+
 - spin up a separate GameServerBuild 
 - configure your matchmaker to allocate against this new GameServerBuild
 - configure the original GameServerBuild to 0 standingBy

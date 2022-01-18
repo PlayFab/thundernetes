@@ -2,16 +2,15 @@
 
 ## Release new thundernetes version
 
+This will require 2 PRs.
+
 - Make sure you update `.version` file on the root of this repository with the new version
 - Run `make clean` to ensure any cached artifacts of old builds are deleted.
-- Run `make create-install-files`
 - Push and merge
-- Run the GitHub Actions workflow [here](https://github.com/PlayFab/thundernetes/actions/workflows/publish.yml)
+- Run the GitHub Actions workflow [here](https://github.com/PlayFab/thundernetes/actions/workflows/publish.yml) to create the new images
+- Run `make create-install-files` to generate the operator install files
 - Replace the image on the [netcore-sample YAML files](../samples/netcore)
-
-## Generate install files
-
-Run `make create-install-files`.
+- Push and merge
 
 ## Metrics
 
