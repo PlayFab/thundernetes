@@ -18,7 +18,7 @@ Kubernetes is built on top of Docker to run containers at scale across many mach
 ### Kubernetes Resources 
 
 - [Kubernetes Basics](https://kubernetes.io/docs/tutorials/kubernetes-basics/)
-- [Kubernetes core concepts for Azure Kubernetes Service (AKS)](https://docs.microsoft.com/en-us/azure/aks/concepts-clusters-workloads)
+- [Kubernetes core concepts for Azure Kubernetes Service (AKS)](https://docs.microsoft.com/azure/aks/concepts-clusters-workloads)
 - [kubectl](https://github.com/virtual-kubelet/virtual-kubelet)
 - [kind](https://kind.sigs.k8s.io/)
   - kind is a tool for running local Kubernetes clusters using Docker container “nodes”.
@@ -28,7 +28,7 @@ Kubernetes is built on top of Docker to run containers at scale across many mach
 
 Thundernetes is a preview project from teams from Azure and XBox that enables you to run Linux game servers that use the PlayFab Game Server SDK (GSDK) on your Kubernetes cluster. 
 
-- [Integrating Game Servers with Game Server SDK (GSDK)](https://docs.microsoft.com/en-us/gaming/playfab/features/multiplayer/servers/integrating-game-servers-with-gsdk)
+- [Integrating Game Servers with Game Server SDK (GSDK)](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/integrating-game-servers-with-gsdk)
 - [Azure PlayFab Multiplayer Servers Gameserver Samples](https://github.com/PlayFab/MpsSamples)
 - [PlayFab Game Server SDK](https://github.com/PlayFab/gsdk)
 

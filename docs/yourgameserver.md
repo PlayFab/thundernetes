@@ -88,7 +88,7 @@ gameserverbuild-sample-spdob   Healthy   StandingBy   172.18.0.2   80:14208
 
 ## Run your game server on Azure Kubernetes Service
 
-As soon as you build your container image, you should publish it to a container registry. If you are using Azure Kubernetes Service, we recommend publishing your image to [Azure Container Registry](https://docs.microsoft.com/en-us/azure/container-registry/). To integrate your Azure Container Registry with your Azure Kubernetes Service cluster, check the instructions [here](https://docs.microsoft.com/en-us/azure/aks/cluster-container-registry-integration).
+As soon as you build your container image, you should publish it to a container registry. If you are using Azure Kubernetes Service, we recommend publishing your image to [Azure Container Registry](https://docs.microsoft.com/azure/container-registry/). To integrate your Azure Container Registry with your Azure Kubernetes Service cluster, check the instructions [here](https://docs.microsoft.com/azure/aks/cluster-container-registry-integration).
 
 ## Using host networking
 

@@ -12,7 +12,7 @@ namespace openarena
         static void Main(string[] args)
         {
             // check here for the full guide on integrating with the GSDK 
-            // https://docs.microsoft.com/en-us/gaming/playfab/features/multiplayer/servers/integrating-game-servers-with-gsdk
+            // https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/integrating-game-servers-with-gsdk
 
             LogMessage("OpenArena for Azure PlayFab Multiplayer Servers");
             
@@ -47,7 +47,7 @@ namespace openarena
         public static void RegisterGSDKCallbacksAndStartGSDK()
         {
             // OnShutDown will be called when developer calls the ShutdDownMultiplayerServer API 
-            // https://docs.microsoft.com/en-us/rest/api/playfab/multiplayer/multiplayerserver/shutdownmultiplayerserver?view=playfab-rest
+            // https://docs.microsoft.com/rest/api/playfab/multiplayer/multiplayerserver/shutdownmultiplayerserver?view=playfab-rest
             GameserverSDK.RegisterShutdownCallback(OnShutdown);
             // This callback will be called on every heartbeat to check if your game is healthy. So it should return quickly
             GameserverSDK.RegisterHealthCallback(IsHealthy);
@@ -103,7 +103,7 @@ namespace openarena
                 {
                     // No allocation happened, the server is getting terminated (likely because there are too many already in standing by)
                     LogMessage("Server is getting terminated.");
-                    gameProcess?.Kill(); // we still need to call WaitForExit https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.process.kill?view=netcore-3.1#remarks
+                    gameProcess?.Kill(); // we still need to call WaitForExit https://docs.microsoft.com/dotnet/api/system.diagnostics.process.kill?view=netcore-3.1#remarks
                 }
             }
             else if (e.Data.Contains("ClientBegin:")) // new player connected

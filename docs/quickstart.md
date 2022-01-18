@@ -2,11 +2,11 @@
 
 We've tested thundernetes on Azure Kubernetes Service (AKS) version 1.20.7 and 1.20.9 and [kind](https://kind.sigs.k8s.io/) but it can theoretically be installed on any Kubernetes cluster, optionally supporting Public IP per Node (which is something you want if you want to expose your game servers outside the cluster). Read the relevant section depending on where you want to install thundernetes.
 
-> If you are using Windows, we recommend using [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to run the CLI commands listed below.
+> If you are using Windows, we recommend using [Windows Subsystem for Linux](https://docs.microsoft.com/windows/wsl/install-win10) to run the CLI commands listed below.
 
 ## Create an Azure Kubernetes Service cluster with a Public IP per Node
 
-We can use the following [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/) commands to create an Azure Kubernetes Service (AKS) cluster with a Public IP per Node.
+We can use the following [Azure CLI](https://docs.microsoft.com/cli/azure/) commands to create an Azure Kubernetes Service (AKS) cluster with a Public IP per Node.
 
 ```bash
 az login # you don't need to do this if you're using Azure Cloud shell
@@ -186,7 +186,7 @@ curl -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5
 As you can see, the arguments to the allocation call are two:
 
 * buildID: this must be the same as the buildID configured in the GameServerBuild
-* sessionID: a GUID that you can use to identify the game server session. Must be unique for each game server you allocate. If you try to allocate using a sessionID that is in use, the call will return the details of the existing game server. This call is equivalent to calling [RequestMultiplayerServer](https://docs.microsoft.com/en-us/rest/api/playfab/multiplayer/multiplayer-server/request-multiplayer-server) in PlayFab Multiplayer Servers.
+* sessionID: a GUID that you can use to identify the game server session. Must be unique for each game server you allocate. If you try to allocate using a sessionID that is in use, the call will return the details of the existing game server. This call is equivalent to calling [RequestMultiplayerServer](https://docs.microsoft.com/rest/api/playfab/multiplayer/multiplayer-server/request-multiplayer-server) in PlayFab Multiplayer Servers.
 
 Result of the allocate call is the IP/Port of the server in JSON format.
 

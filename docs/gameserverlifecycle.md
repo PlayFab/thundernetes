@@ -4,13 +4,13 @@ This document contains information about GSDK and how it affects the game server
 
 ## Game Server SDK (GSDK)
 
-Game server lifecycle is dependent on the [GSDK](https://github.com/PlayFab/gsdk) calls as well as the state of the game server process, running in the thundernetes Pod. For more information on integrating your game server with GSDK, check the docs [here](https://docs.microsoft.com/en-us/gaming/playfab/features/multiplayer/servers/integrating-game-servers-with-gsdk).
+Game server lifecycle is dependent on the [GSDK](https://github.com/PlayFab/gsdk) calls as well as the state of the game server process, running in the thundernetes Pod. For more information on integrating your game server with GSDK, check the docs [here](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/integrating-game-servers-with-gsdk).
 
 Your game server can integrate GSDK and run great on thundernetes just by calling the **ReadyForPlayers** method. However, we recommend calling **Start** as well when your game server process starts so thundernetes is aware that the game server is initializing.
 
 ## Verifying GSDK integration with your game server
 
-MPS has a developer tool to test GSDK integration for game servers. Tool is called **LocalMultiplayerAgent**, you can download it [here](https://github.com/PlayFab/MpsAgent) and you can check the docs [here](https://docs.microsoft.com/en-us/gaming/playfab/features/multiplayer/servers/locally-debugging-game-servers-and-integration-with-playfab#using-localmultiplayeragent-with-linux-containers) for more information.
+MPS has a developer tool to test GSDK integration for game servers. Tool is called **LocalMultiplayerAgent**, you can download it [here](https://github.com/PlayFab/MpsAgent) and you can check the docs [here](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/locally-debugging-game-servers-and-integration-with-playfab#using-localmultiplayeragent-with-linux-containers) for more information.
 
 ## GSDK samples
 

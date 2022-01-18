@@ -9,7 +9,7 @@
 
 ## Description
 
-Thundernetes is a project from the [Azure PlayFab Multiplayer Servers (MPS)](https://docs.microsoft.com/en-us/gaming/playfab/features/multiplayer/servers/) team that enables you to run Linux game servers on your Kubernetes cluster. Thundernetes can be useful in the following scenarios:
+Thundernetes is a project from the [Azure PlayFab Multiplayer Servers (MPS)](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/) team that enables you to run Linux game servers on your Kubernetes cluster. Thundernetes can be useful in the following scenarios:
 
 - host your game servers on a Kubernetes cluster, either on a public cloud provider or on-premises
 - do manual allocations of game server sessions
@@ -23,7 +23,7 @@ For a game server to be able to run in thundernetes, it must use the [PlayFab Ga
 
 One of the main goals for thundernetes is to be portable with MPS - this means that your Linux Game Server that works on thundernetes will work with MPS and vice versa.
 
-Thundernetes requires a Kubernetes cluster with Public IP per Node. We've tested it extensively on [Azure Kubernetes Service - AKS](https://docs.microsoft.com/en-us/azure/aks/intro-kubernetes) as well as in local clusters using [kind](https://kind.sigs.k8s.io/). You also need to have ports 10000-50000 open in your cluster, since these are the ports that Thundernetes will set up on your Kubernetes Nodes so they can receive game network traffic and forward to your game server Pod.
+Thundernetes requires a Kubernetes cluster with Public IP per Node. We've tested it extensively on [Azure Kubernetes Service - AKS](https://docs.microsoft.com/azure/aks/intro-kubernetes) as well as in local clusters using [kind](https://kind.sigs.k8s.io/). You also need to have ports 10000-50000 open in your cluster, since these are the ports that Thundernetes will set up on your Kubernetes Nodes so they can receive game network traffic and forward to your game server Pod.
 
 > You can use a Kubernetes cluster without a Public IP. However, you would need to configure your own network architecture if you want to access your game servers. For example, if you use a cloud provider's Load Balancer, you would need to configure routes from Load Balancer's public endpoints to the internal ones on your Kubernetes cluster.
 > You can try Azure Kubernetes Service for free [azure.com/free](https://azure.com/free).
