@@ -27,20 +27,20 @@ const (
 	listeningPort = 5000
 )
 
-// ApiServer is a helper struct that implements manager.Runnable interface
+// AllocationApiServer is a helper struct that implements manager.Runnable interface
 // so it can be added to our Manager
-type ApiServer struct {
+type AllocationApiServer struct {
 	client client.Client
 	config *rest.Config
 	scheme *runtime.Scheme
 }
 
-// NewApiServer creates a new ApiServer and initializes the crd/key variables (can be nil)
-func NewApiServer(mgr ctrl.Manager, crt, key []byte) error {
+// NewAllocationApiServer creates a new AllocationApiServer and initializes the crt/key variables (can be nil)
+func NewAllocationApiServer(mgr ctrl.Manager, crt, key []byte) error {
 	crtBytes = crt
 	keyBytes = key
 
-	server := &ApiServer{client: mgr.GetClient(), config: mgr.GetConfig(), scheme: mgr.GetScheme()}
+	server := &AllocationApiServer{client: mgr.GetClient(), config: mgr.GetConfig(), scheme: mgr.GetScheme()}
 
 	if err := server.setupIndexers(mgr); err != nil {
 		return err
@@ -49,7 +49,7 @@ func NewApiServer(mgr ctrl.Manager, crt, key []byte) error {
 	return mgr.Add(server)
 }
 
-func (s *ApiServer) setupIndexers(mgr ctrl.Manager) error {
+func (s *AllocationApiServer) setupIndexers(mgr ctrl.Manager) error {
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &mpsv1alpha1.GameServer{}, "status.state", func(rawObj client.Object) []string {
 		gs := rawObj.(*mpsv1alpha1.GameServer)
 		return []string{string(gs.Status.State)}
@@ -75,14 +75,14 @@ func (s *ApiServer) setupIndexers(mgr ctrl.Manager) error {
 }
 
 // NeedLeaderElection returns false since we need the allocation API service to run all on controller Pods
-func (s *ApiServer) NeedLeaderElection() bool {
+func (s *AllocationApiServer) NeedLeaderElection() bool {
 	return false
 }
 
 // Start starts the HTTP(S) allocation API service
 // if user has provided public/private cert details, it will create a TLS-auth HTTPS server
 // otherwise it will create a HTTP server with no auth
-func (s *ApiServer) Start(ctx context.Context) error {
+func (s *AllocationApiServer) Start(ctx context.Context) error {
 	log := log.FromContext(ctx)
 	addr := os.Getenv("API_LISTEN")
 	if addr == "" {
