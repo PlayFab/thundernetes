@@ -188,6 +188,8 @@ template:
               memory: 500Mi
 ```
 
+For a full sample, you can check [here](../samples/netcore/sample-requestslimits.yaml).
+
 ## Not supported features (compared to MPS)
 
 There are some features of MPS that are not yet supported on Thundernetes.

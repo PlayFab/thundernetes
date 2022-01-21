@@ -402,6 +402,33 @@ func main() {
 	}
 	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 4, podCount: 5})
 	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+
+	fmt.Printf("Updating build %s with 4 max and 2 standingBy - since max is 4, we should have 0 standingBy\n", testBuild1Name)
+	gsb = mpsv1alpha1.GameServerBuild{}
+	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
+		panic(err)
+	}
+	gsb.Spec.StandingBy = 2
+	gsb.Spec.Max = 4
+	if err := kubeClient.Update(ctx, &gsb); err != nil {
+		handleError(err)
+	}
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 0, activeCount: 4, podCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+
+	fmt.Printf("Updating build %s with 5 max and 2 standingBy - since max is 5, we should have 1 standingBy\n", testBuild1Name)
+	gsb = mpsv1alpha1.GameServerBuild{}
+	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
+		panic(err)
+	}
+	gsb.Spec.StandingBy = 2
+	gsb.Spec.Max = 5
+	if err := kubeClient.Update(ctx, &gsb); err != nil {
+		handleError(err)
+	}
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 4, podCount: 5})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+
 	// -------------- More scaling tests end --------------
 
 	// -------------- HTTP Server validation start --------------
@@ -452,7 +479,7 @@ func main() {
 	if err := stopActiveGameServer(ctx, test1BuildID, kubeConfig); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 3, activeCount: 2, podCount: 5})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 2, podCount: 4})
 	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podCount: 3})
 
 	// -------------- GameServer process exiting gracefully end --------------

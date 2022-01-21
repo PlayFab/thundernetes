@@ -29,7 +29,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -264,7 +263,6 @@ func (r *GameServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mpsv1alpha1.GameServer{}).
 		Owns(&corev1.Pod{}).
-		WithOptions(controller.Options{MaxConcurrentReconciles: 10}).
 		Complete(r)
 }
 
