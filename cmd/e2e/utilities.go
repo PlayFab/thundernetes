@@ -187,8 +187,8 @@ func verifyGameServerBuild(ctx context.Context, buildID, buildName string, state
 	if gameServerBuild.Status.CurrentActive != state.activeCount {
 		return fmt.Errorf("expected %d active, got %d", state.activeCount, gameServerBuild.Status.CurrentActive)
 	}
-	if gameServerBuild.Status.CrashesCount != state.crashesCount {
-		return fmt.Errorf("expected %d crashes, got %d", state.crashesCount, gameServerBuild.Status.CrashesCount)
+	if gameServerBuild.Status.CrashesCount < state.crashesCount {
+		return fmt.Errorf("expected >=%d crashes, got %d", state.crashesCount, gameServerBuild.Status.CrashesCount)
 	}
 
 	// 5 is the default, we should parameterize that
