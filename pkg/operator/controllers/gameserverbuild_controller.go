@@ -238,6 +238,8 @@ func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1
 		gsb.Status.CurrentStandingBy != standingByCount ||
 		crashesCount > 0 {
 
+		patch := client.MergeFrom(gsb.DeepCopy())
+
 		gsb.Status.CurrentPending = pendingCount
 		gsb.Status.CurrentInitializing = initializingCount
 		gsb.Status.CurrentActive = activeCount
@@ -264,12 +266,8 @@ func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1
 			gsb.Status.Health = mpsv1alpha1.BuildHealthy
 		}
 
-		if err := r.Status().Update(ctx, gsb); err != nil {
-			if apierrors.IsConflict(err) {
-				return ctrl.Result{Requeue: true}, nil
-			} else {
-				return ctrl.Result{}, err
-			}
+		if err := r.Status().Patch(ctx, gsb, patch); err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 
