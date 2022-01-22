@@ -24,7 +24,8 @@ const (
 var _ = Describe("Port registry tests", func() {
 	Context("testing allocating and deleting ports", func() {
 
-		log := logr.FromContext(context.Background())
+		log, err := logr.FromContext(context.Background())
+		Expect(err).ToNot(HaveOccurred())
 		// context variables
 		portRegistry, err := NewPortRegistry(mpsv1alpha1.GameServerList{}, 20000, 20010, log)
 		Expect(err).ToNot(HaveOccurred())

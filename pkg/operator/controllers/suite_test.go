@@ -41,6 +41,7 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 
 func TestAPIs(t *testing.T) {
+	defer GinkgoRecover()
 	RegisterFailHandler(Fail)
 
 	RunSpecs(t, "GameServerBuild Suite")
