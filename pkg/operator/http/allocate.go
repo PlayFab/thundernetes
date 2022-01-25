@@ -127,12 +127,11 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// set the relevant status fields
-	patch := client.MergeFrom(gs.DeepCopy())
 	gs.Status.State = mpsv1alpha1.GameServerStateActive
 	gs.Status.SessionID = args.SessionID
 	gs.Status.SessionCookie = args.SessionCookie
 
-	err = h.client.Status().Patch(r.Context(), &gs, patch)
+	err = h.client.Status().Update(r.Context(), &gs)
 	if err != nil {
 		internalServerError(ctx, w, err, "cannot update game server")
 		return
