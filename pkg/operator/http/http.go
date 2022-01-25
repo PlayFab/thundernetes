@@ -52,7 +52,10 @@ func NewApiServer(mgr ctrl.Manager, crt, key []byte) error {
 func (s *ApiServer) setupIndexers(mgr ctrl.Manager) error {
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &mpsv1alpha1.GameServer{}, "status.state", func(rawObj client.Object) []string {
 		gs := rawObj.(*mpsv1alpha1.GameServer)
-		return []string{string(gs.Status.State)}
+		if gs.DeletionTimestamp == nil {
+			return []string{string(gs.Status.State)}
+		}
+		return nil
 	}); err != nil {
 		return err
 	}
