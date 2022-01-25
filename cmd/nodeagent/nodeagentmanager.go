@@ -288,14 +288,19 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 
 	logger.Debugf("Health or state is different than before, updating. Old health %s, new health %s, old state %s, new state %s", gsd.PreviousGameHealth, hb.CurrentGameHealth, gsd.PreviousGameState, hb.CurrentGameState)
 
-	gs := mpsv1alpha1.GameServer{
-		Status: mpsv1alpha1.GameServerStatus{
-			State:  mpsv1alpha1.GameServerState(hb.CurrentGameState),
-			Health: mpsv1alpha1.GameServerHealth(hb.CurrentGameHealth),
+	// the reason we're using unstructured to serialize the GameServerStatus is that we don't want extra fields (.Spec, .ObjectMeta) to be serialized
+	u := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"status": mpsv1alpha1.GameServerStatus{
+				State:  mpsv1alpha1.GameServerState(hb.CurrentGameState),
+				Health: mpsv1alpha1.GameServerHealth(hb.CurrentGameHealth),
+			},
 		},
 	}
+
 	// this will be marshaled as payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\",\"state\":\"%s\"}}", hb.CurrentGameHealth, hb.CurrentGameState)
-	payloadBytes, err := json.Marshal(gs)
+	payloadBytes, err := json.Marshal(u)
+
 	if err != nil {
 		return err
 	}
@@ -352,18 +357,24 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 	}
 	logger.Infof("ConnectedPlayersCount is different than before, updating. Old connectedPlayersCount %d, new connectedPlayersCount %d", gsd.ConnectedPlayersCount, len(hb.CurrentPlayers))
 
-	gsdPatch := mpsv1alpha1.GameServerDetail{}
-
+	gsdPatchSpec := mpsv1alpha1.GameServerDetailSpec{}
 	if len(hb.CurrentPlayers) == 0 {
-		gsdPatch.Spec.ConnectedPlayersCount = 0
-		gsdPatch.Spec.ConnectedPlayers = make([]string, 0)
+		gsdPatchSpec.ConnectedPlayersCount = 0
+		gsdPatchSpec.ConnectedPlayers = make([]string, 0)
 	} else {
-		gsdPatch.Spec.ConnectedPlayersCount = len(hb.CurrentPlayers)
-		gsdPatch.Spec.ConnectedPlayers = currentPlayerIDs
+		gsdPatchSpec.ConnectedPlayersCount = len(hb.CurrentPlayers)
+		gsdPatchSpec.ConnectedPlayers = currentPlayerIDs
+	}
+
+	// the reason we're using unstructured to serialize the GameServerDetailSpec is that we don't want extra fields (.Status, .ObjectMeta) to be serialized
+	u := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"spec": gsdPatchSpec,
+		},
 	}
 
 	// this will be marshaled as fmt.Sprintf("{\"spec\":{\"connectedPlayersCount\":%d,\"connectedPlayers\":[\"%s\"]}}", len(hb.CurrentPlayers), strings.Join(currentPlayerIDs, "\",\""))
-	payloadBytes, err := json.Marshal(gsdPatch)
+	payloadBytes, err := json.Marshal(u)
 	if err != nil {
 		return err
 	}
