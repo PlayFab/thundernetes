@@ -98,7 +98,7 @@ func handleError(err error) {
 	log.Panic(err)
 }
 
-func loopCheck(fn func(context.Context, string, string, buildState) error, ctx context.Context, state buildState) error {
+func loopCheck(fn func(context.Context, string, string, buildState) error, ctx context.Context, state buildState, loopTimes int) error {
 	var err error
 	for times := 0; times < loopTimes; times++ {
 		err = fn(ctx, state.buildID, state.buildName, state)
@@ -157,20 +157,27 @@ func allocate(buildID, sessionID string, cert tls.Certificate) error {
 }
 
 func validateBuildState(ctx context.Context, state buildState) {
-	fmt.Printf("    Verifying that we have %d initializing, %d standingBy, %d active gameservers for build %s\n", state.initializingCount, state.standingByCount, state.activeCount, state.buildName)
-	err := loopCheck(verifyGameServers, ctx, state)
+	var loopTimes int
+	if state.loopTimesOverride > 0 {
+		loopTimes = state.loopTimesOverride
+	} else {
+		loopTimes = loopTimesConst
+	}
+
+	fmt.Printf("    Verifying that %d pods are in state %s for build %s\n", state.podRunningCount, v1.PodRunning, state.buildName)
+	err := loopCheck(verifyPods, ctx, state, loopTimes)
 	if err != nil {
 		handleError(err)
 	}
 
-	fmt.Printf("    Verifying that %d pods are in state %s for build %s\n", state.podCount, v1.PodRunning, state.buildName)
-	err = loopCheck(verifyPods, ctx, state)
+	fmt.Printf("    Verifying that we have %d initializing, %d standingBy, %d active gameservers for build %s\n", state.initializingCount, state.standingByCount, state.activeCount, state.buildName)
+	err = loopCheck(verifyGameServers, ctx, state, loopTimes)
 	if err != nil {
 		handleError(err)
 	}
 
 	fmt.Printf("    Verifying build %s .Status with %d standingBy gameservers, %d active gameservers and %d crashes\n", state.buildName, state.standingByCount, state.activeCount, state.crashesCount)
-	err = loopCheck(verifyGameServerBuild, ctx, state)
+	err = loopCheck(verifyGameServerBuild, ctx, state, loopTimes)
 	if err != nil {
 		handleError(err)
 	}
@@ -269,19 +276,22 @@ func verifyPods(ctx context.Context, buildID, buildName string, state buildState
 		if pod.Labels[LabelBuildID] != buildID {
 			continue
 		}
+		if pod.Status.Phase != v1.PodRunning {
+			continue
+		}
 		if pod.OwnerReferences == nil {
-			panic(fmt.Sprintf("pod %s has no OwnerReferences", pod.Name))
+			return fmt.Errorf("pod %s has no OwnerReferences", pod.Name)
 		}
 		if !strings.HasPrefix(pod.OwnerReferences[0].Name, buildName) {
-			panic(fmt.Sprintf("pod %s has incorrect OwnerReferences: %s", pod.Name, pod.OwnerReferences[0].Name))
+			return fmt.Errorf("pod %s has incorrect OwnerReferences: %s", pod.Name, pod.OwnerReferences[0].Name)
 		}
 		observedCount++
 	}
 
-	if observedCount == state.podCount {
+	if observedCount == state.podRunningCount {
 		return nil
 	}
-	return fmt.Errorf("pods not OK, expecting %d, got %d", state.podCount, observedCount)
+	return fmt.Errorf("pods not OK, expecting running %d, got running %d", state.podRunningCount, observedCount)
 }
 
 func verifyGameServerDetail(ctx context.Context, gameServerDetailName string, expectedConnectedPlayersCount int, expectedConnectedPlayers []string) error {
