@@ -25,8 +25,8 @@ const (
 	GameServerKind      = "GameServer"
 	GameServerBuildKind = "GameServerBuild"
 
-	DataVolumeName      = "data"
-	DataVolumeMountPath = "/data"
+	DataVolumeName      = "gsdkdata"
+	DataVolumeMountPath = "/gsdkdata"
 
 	// MinPort is minimum Port Number
 	MinPort int32 = 10000
@@ -41,10 +41,10 @@ const (
 	LabelOwningOperator   = "OwningOperator"
 	LabelNodeName         = "NodeName"
 
-	GsdkConfigFile             = "/data/Config/gsdkConfig.json"
-	LogDirectory               = "/data/GameLogs/"
-	CertificatesDirectory      = "/data/GameCertificates"
-	GameSharedContentDirectory = "/data/GameSharedContent"
+	GsdkConfigFile             = DataVolumeMountPath + "/Config/gsdkConfig.json"
+	LogDirectory               = DataVolumeMountPath + "/GameLogs/"
+	CertificatesDirectory      = DataVolumeMountPath + "/GameCertificates"
+	GameSharedContentDirectory = DataVolumeMountPath + "/GameSharedContent"
 
 	DaemonSetPort int32 = 56001
 )

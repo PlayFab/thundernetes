@@ -2,9 +2,9 @@
   "heartbeatEndpoint": "sidecar:56001",
   "sessionHostId": "thundernetes_sample_a5edae961250d67951cb7a9619",
   "vmId": "thunderneteswus4u4yz5dlozul:WestUs:6b5973a5-a3a5-431a-8378-eff819dc0c25:tvmps_efa402aacd4f682230cfd91bd3dc0ddfae68c312f2b6905577cb7d9424681930_d",
-  "logFolder": "/data/GameLogs/",
-  "certificateFolder": "/data/GameCertificates",
-  "sharedContentFolder": "/data/GameSharedContent",
+  "logFolder": "/gsdkdata/GameLogs/",
+  "certificateFolder": "/gsdkdata/GameCertificates",
+  "sharedContentFolder": "/gsdkdata/GameSharedContent",
   "buildMetadata": {},
   "gamePorts": {
     "oA_PORT": "27960"
