@@ -303,7 +303,7 @@ func main() {
 	fmt.Printf("Updating build %s with 3 standingBy - 1 standingBy should be removed\n", testBuild1Name)
 	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
-		panic(err)
+		handleError(err)
 	}
 	gsb.Spec.StandingBy = 3
 	if err := kubeClient.Update(ctx, &gsb); err != nil {
@@ -382,7 +382,7 @@ func main() {
 	fmt.Printf("Updating build %s with 3 max - since we have 4 actives, none should be removed\n", testBuild1Name)
 	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
-		panic(err)
+		handleError(err)
 	}
 	gsb.Spec.Max = 3
 	if err := kubeClient.Update(ctx, &gsb); err != nil {
@@ -394,7 +394,7 @@ func main() {
 	fmt.Printf("Updating build %s with 5 max - we should have 1 standingBy\n", testBuild1Name)
 	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
-		panic(err)
+		handleError(err)
 	}
 	gsb.Spec.Max = 5
 	if err := kubeClient.Update(ctx, &gsb); err != nil {
@@ -406,7 +406,7 @@ func main() {
 	fmt.Printf("Updating build %s with 4 max and 2 standingBy - since max is 4, we should have 0 standingBy\n", testBuild1Name)
 	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
-		panic(err)
+		handleError(err)
 	}
 	gsb.Spec.StandingBy = 2
 	gsb.Spec.Max = 4
@@ -419,7 +419,7 @@ func main() {
 	fmt.Printf("Updating build %s with 5 max and 2 standingBy - since max is 5, we should have 1 standingBy\n", testBuild1Name)
 	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
-		panic(err)
+		handleError(err)
 	}
 	gsb.Spec.StandingBy = 2
 	gsb.Spec.Max = 5
