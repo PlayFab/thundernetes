@@ -157,13 +157,14 @@ func allocate(buildID, sessionID string, cert tls.Certificate) error {
 }
 
 func validateBuildState(ctx context.Context, state buildState) {
-	fmt.Printf("    Verifying that %d pods are in state %s for build %s\n", state.podCount, v1.PodRunning, state.buildName)
-	err := loopCheck(verifyPods, ctx, state)
+	fmt.Printf("    Verifying that we have %d initializing, %d standingBy, %d active gameservers for build %s\n", state.initializingCount, state.standingByCount, state.activeCount, state.buildName)
+	err := loopCheck(verifyGameServers, ctx, state)
 	if err != nil {
 		handleError(err)
 	}
-	fmt.Printf("    Verifying that we have %d initializing, %d standingBy, %d active gameservers for build %s\n", state.initializingCount, state.standingByCount, state.activeCount, state.buildName)
-	err = loopCheck(verifyGameServers, ctx, state)
+
+	fmt.Printf("    Verifying that %d pods are in state %s for build %s\n", state.podCount, v1.PodRunning, state.buildName)
+	err = loopCheck(verifyPods, ctx, state)
 	if err != nil {
 		handleError(err)
 	}
