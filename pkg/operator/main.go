@@ -140,7 +140,7 @@ func main() {
 	}
 	//+kubebuilder:scaffold:builder
 
-	err = http.NewApiServer(mgr, crt, key)
+	err = http.NewAllocationApiServer(mgr, crt, key)
 	if err != nil {
 		setupLog.Error(err, "unable to create HTTP allocation API Server", "Allocation API Server", "HTTP Allocation API Server")
 		os.Exit(1)
