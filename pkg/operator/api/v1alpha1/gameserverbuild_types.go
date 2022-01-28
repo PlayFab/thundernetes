@@ -74,12 +74,12 @@ type GameServerBuildStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	CurrentPending                int                   `json:"currentPending,omitempty"`
-	CurrentInitializing           int                   `json:"currentInitializing"`
-	CurrentStandingBy             int                   `json:"currentStandingBy"`
-	CurrentStandingByReadyDesired string                `json:"currentStandingByReadyDesired"`
-	CurrentActive                 int                   `json:"currentActive"`
-	CrashesCount                  int                   `json:"crashesCount"`
-	Health                        GameServerBuildHealth `json:"health"`
+	CurrentInitializing           int                   `json:"currentInitializing,omitempty"`
+	CurrentStandingBy             int                   `json:"currentStandingBy,omitempty"`
+	CurrentStandingByReadyDesired string                `json:"currentStandingByReadyDesired,omitempty"`
+	CurrentActive                 int                   `json:"currentActive,omitempty"`
+	CrashesCount                  int                   `json:"crashesCount,omitempty"`
+	Health                        GameServerBuildHealth `json:"health,omitempty"`
 }
 
 //+kubebuilder:object:root=true

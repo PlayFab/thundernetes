@@ -6958,13 +6958,6 @@ spec:
                 - Healthy
                 - Unhealthy
                 type: string
-            required:
-            - crashesCount
-            - currentActive
-            - currentInitializing
-            - currentStandingBy
-            - currentStandingByReadyDesired
-            - health
             type: object
         type: object
     served: true

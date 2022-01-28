@@ -89,8 +89,9 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		// then lets add the finalizer and update the object. This is equivalent
 		// registering our finalizer.
 		if !containsString(gs.GetFinalizers(), finalizerName) {
+			patch := client.MergeFrom(gs.DeepCopy())
 			controllerutil.AddFinalizer(&gs, finalizerName)
-			if err := r.Update(ctx, &gs); err != nil {
+			if err := r.Patch(ctx, &gs, patch); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
@@ -98,11 +99,12 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	} else {
 		// The object is being deleted
 		if containsString(gs.GetFinalizers(), finalizerName) {
+			patch := client.MergeFrom(gs.DeepCopy())
 			// our finalizer is present, so lets handle any external dependency
 			r.unassignPorts(&gs)
 			// remove our finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(&gs, finalizerName)
-			if err := r.Update(ctx, &gs); err != nil {
+			if err := r.Patch(ctx, &gs, patch); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -150,13 +152,14 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if !containerStatus.Ready && containerStatus.State.Terminated != nil {
 			exitCode := containerStatus.State.Terminated.ExitCode
 			r.Recorder.Eventf(&gs, corev1.EventTypeNormal, "GameServerProcessExited", "GameServer process exited with code %d", exitCode)
+			patch := client.MergeFrom(gs.DeepCopy())
 			if exitCode == 0 {
 				gs.Status.State = mpsv1alpha1.GameServerStateGameCompleted
 			} else {
 				gs.Status.State = mpsv1alpha1.GameServerStateCrashed
 			}
 			// updating GameServer with the new state
-			if err := r.Status().Update(ctx, &gs); err != nil {
+			if err := r.Status().Patch(ctx, &gs, patch); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
@@ -186,16 +189,12 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, err
 		}
 
+		patch := client.MergeFrom(gs.DeepCopy())
 		gs.Status.PublicIP = publicIP
 		gs.Status.Ports = getContainerHostPortTuples(&pod)
-		err = r.Status().Update(ctx, &gs)
+		err = r.Status().Patch(ctx, &gs, patch)
 		if err != nil {
-			if apierrors.IsConflict(err) {
-				log.Info("Conflict updating GameServer status " + err.Error())
-				return ctrl.Result{Requeue: true}, nil
-			} else {
-				return ctrl.Result{}, err
-			}
+			return ctrl.Result{}, err
 		}
 	}
 

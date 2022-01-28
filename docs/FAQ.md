@@ -102,10 +102,6 @@ spec:
             name: gameport # required field
 ```
 
-### Using Virtual Kubelet
-
-[Virtual Kubelet](https://github.com/virtual-kubelet/virtual-kubelet) is an open source implementation that enables the extension of the Kubernetes API into serverless container platforms like Azure Container Instances and AWS Fargate, among others. Virtual Kubelet can be used to quickly provision Kubernetes Nodes, which can be useful in sudden player burst scenarios. It can be used together with with cluster autoscaler, to accelerate the addition of new Pods to the cluster when the existing Nodes are full. If you are using Azure Kubernetes Service, you can easily enable Virtual Nodes feature (which is based on Virtual Kubelet) using the instructions [here](https://docs.microsoft.com/azure/aks/virtual-nodes).
-
 ## Can I run my game server pods in a non-default namespace?
 
 You don't need to do anything special to run your game server Pods in a namespace different than "default". Old versions of thundernetes (up to 0.1) made use of a sidecar to access the Kubernetes API Server, so you needed to create special RoleBinding and ServiceAccount in the non-default namespace. With the transition to DaemonSet NodeAgent in 0.2, this is no longer necessary.
