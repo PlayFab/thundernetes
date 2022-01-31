@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"sort"
 	"sync"
-	"time"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,7 +31,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -59,6 +57,11 @@ var gameServersUnderDeletion = sync.Map{}
 // a map to hold the number of crashes per Build
 // concurrent since the reconcile loop can be called multiple times for different GameServerBuilds
 var crashesPerBuild = sync.Map{}
+
+const (
+	maxNumberOfGameServersToAdd    = 20
+	maxNumberOfGameServersToDelete = 20
+)
 
 // GameServerBuildReconciler reconciles a GameServerBuild object
 type GameServerBuildReconciler struct {
@@ -167,8 +170,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// user has decreased standingBy numbers
 	if standingByCount > gsb.Spec.StandingBy {
-		deletedCount := 0
-		for i := 0; i < standingByCount-gsb.Spec.StandingBy; i++ {
+		for i := 0; i < standingByCount-gsb.Spec.StandingBy && i < maxNumberOfGameServersToDelete; i++ {
 			gs := gameServers.Items[i]
 			// we're deleting only initializing/pending/standingBy servers, never touching active
 			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
@@ -177,22 +179,15 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				}
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
 				addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
-				deletedCount++
 				r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "GameServer deleted", "GameServer %s deleted", gs.Name)
 			}
-		}
-		if deletedCount != standingByCount-gsb.Spec.StandingBy {
-			log.Info("User modified .Spec.StandingBy - No non-active servers left to delete")
-			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "User modified .Spec.StandingBy - No non-active servers left to delete", "Tried to delete %d GameServers but deleted only %d", standingByCount-gsb.Spec.StandingBy, deletedCount)
 		}
 	}
 
 	// we need to check if we are above the max
 	// this will happen if the user modifies the spec.Max during the GameServerBuild's lifetime
-	if standingByCount+activeCount > gsb.Spec.Max {
-		// we have more servers than we should
-		deletedCount := 0
-		for i := 0; i <= standingByCount+activeCount-gsb.Spec.Max; i++ {
+	if pendingCount+initializingCount+standingByCount+activeCount > gsb.Spec.Max {
+		for i := 0; i < pendingCount+initializingCount+standingByCount+activeCount-gsb.Spec.Max && i < maxNumberOfGameServersToDelete; i++ {
 			gs := gameServers.Items[i]
 			// we're deleting only standingBy or initializing servers
 			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
@@ -201,19 +196,16 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				}
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
 				addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
-				deletedCount++
 			}
-		}
-		if deletedCount != standingByCount+activeCount-gsb.Spec.Max {
-			log.Info("User modified .Spec.Max - No standingBy servers left to delete")
-			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "User modified .Spec.Max - No standingBy servers left to delete. Will requeue", "Tried to delete %d GameServers but deleted only %d", standingByCount+activeCount-gsb.Spec.Max, deletedCount)
-			return ctrl.Result{RequeueAfter: time.Duration(5) * time.Second}, nil
 		}
 	}
 
 	nonActiveGameServersCount := standingByCount + initializingCount + pendingCount
 	// we are in need of standingBy servers, so we're creating them here
-	for i := 0; i < gsb.Spec.StandingBy-nonActiveGameServersCount && i+nonActiveGameServersCount+activeCount < gsb.Spec.Max; i++ {
+	// we're also limiting the number of game servers that are created to avoid issues like this https://github.com/kubernetes-sigs/controller-runtime/issues/1782
+	for i := 0; i < gsb.Spec.StandingBy-nonActiveGameServersCount &&
+		i+nonActiveGameServersCount+activeCount < gsb.Spec.Max &&
+		i < maxNumberOfGameServersToAdd; i++ {
 		newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -302,7 +294,6 @@ func (r *GameServerBuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mpsv1alpha1.GameServerBuild{}).
 		Owns(&mpsv1alpha1.GameServer{}).
-		WithOptions(controller.Options{MaxConcurrentReconciles: 10}).
 		Complete(r)
 }
 

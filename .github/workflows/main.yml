@@ -12,6 +12,11 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+        debug_enabled:
+          description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'     
+          required: false
+          default: "false"
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -44,3 +49,6 @@ jobs:
         run: make createkindcluster
       - name: run end-to-end tests
         run: make e2elocal
+      - name: Setup tmate session # instructions on https://github.com/marketplace/actions/debugging-with-tmate
+        if: ${{ failure() && github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled == 'true' }}
+        uses: mxschmitt/action-tmate@v3

@@ -29,7 +29,7 @@ var (
 )
 
 const (
-	loopTimes                 int    = 30
+	loopTimesConst            int    = 10
 	delayInSecondsForLoopTest int    = 1
 	LabelBuildID                     = "BuildID"
 	invalidStatusCode         string = "invalid status code"
@@ -47,10 +47,11 @@ type buildState struct {
 	initializingCount int
 	activeCount       int
 	standingByCount   int
-	podCount          int
+	podRunningCount   int
 	buildID           string
 	buildName         string
 	crashesCount      int
+	loopTimesOverride int // in case we want to override the global const loop times
 }
 
 const (
@@ -271,8 +272,8 @@ func main() {
 	}
 
 	fmt.Println("Checking that both Builds have 2 standingBy servers and 2 Pods")
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 0, podCount: 2})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 2, activeCount: 0, podCount: 2})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 0, podRunningCount: 2})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 2, activeCount: 0, podRunningCount: 2})
 
 	// -------------- Scaling tests start --------------
 
@@ -285,8 +286,8 @@ func main() {
 	if err := kubeClient.Update(ctx, &gsb); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 4, activeCount: 0, podCount: 4})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 2, activeCount: 0, podCount: 2})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 4, activeCount: 0, podRunningCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 2, activeCount: 0, podRunningCount: 2})
 
 	fmt.Printf("Updating build %s with 3 standingBy\n", testBuildSleepBeforeReadyForPlayersName)
 	gsb = mpsv1alpha1.GameServerBuild{}
@@ -297,20 +298,20 @@ func main() {
 	if err := kubeClient.Update(ctx, &gsb); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 4, activeCount: 0, podCount: 4})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podCount: 3})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 4, activeCount: 0, podRunningCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podRunningCount: 3})
 
 	fmt.Printf("Updating build %s with 3 standingBy - 1 standingBy should be removed\n", testBuild1Name)
 	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
-		panic(err)
+		handleError(err)
 	}
 	gsb.Spec.StandingBy = 3
 	if err := kubeClient.Update(ctx, &gsb); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 3, activeCount: 0, podCount: 3})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podCount: 3})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 3, activeCount: 0, podRunningCount: 3})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podRunningCount: 3})
 
 	// -------------- Scaling tests end --------------
 
@@ -321,24 +322,24 @@ func main() {
 	if err := allocate(test1BuildID, sessionID1, cert); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 3, activeCount: 1, podCount: 4})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podCount: 3})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 3, activeCount: 1, podRunningCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podRunningCount: 3})
 	validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, test1BuildID)
 
 	fmt.Printf("Allocating on Build %s with same sessionID - should not convert another standingBy to active\n", testBuild1Name)
 	if err := allocate(test1BuildID, sessionID1, cert); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 3, activeCount: 1, podCount: 4})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podCount: 3})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 3, activeCount: 1, podRunningCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podRunningCount: 3})
 
 	fmt.Printf("Allocating on Build %s with a new sessionID\n", testBuild1Name)
 	sessionID1_1 := uuid.New().String()
 	if err := allocate(test1BuildID, sessionID1_1, cert); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 2, podCount: 4})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podCount: 3})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 2, podRunningCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podRunningCount: 3})
 	validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, test1BuildID)
 
 	fmt.Printf("Allocating on build %s\n", testBuildSleepBeforeReadyForPlayersName)
@@ -346,8 +347,8 @@ func main() {
 	if err := allocate(testBuildSleepBeforeReadyForPlayersID, sessionID2, cert); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 2, podCount: 4})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 2, podRunningCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
 	validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, testBuildSleepBeforeReadyForPlayersID)
 
 	fmt.Printf("Allocating on build %s with a new sessionID", testBuild1Name)
@@ -355,8 +356,8 @@ func main() {
 	if err := allocate(test1BuildID, sessionID1_2, cert); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 3, podCount: 4})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 3, podRunningCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
 	validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, test1BuildID)
 
 	fmt.Printf("Allocating on Build %s with a new sessionID\n", testBuild1Name)
@@ -364,8 +365,8 @@ func main() {
 	if err := allocate(test1BuildID, sessionID1_3, cert); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 0, activeCount: 4, podCount: 4})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 0, activeCount: 4, podRunningCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
 	validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, test1BuildID)
 
 	fmt.Printf("Allocating on Build %s with a new sessionID, expecting 429\n", testBuild1Name)
@@ -373,8 +374,8 @@ func main() {
 	if err := allocate(test1BuildID, sessionID1_4, cert); err.Error() != fmt.Sprintf("%s 429", invalidStatusCode) {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 0, activeCount: 4, podCount: 4})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 0, activeCount: 4, podRunningCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
 
 	// -------------- Allocation tests end --------------
 
@@ -382,26 +383,53 @@ func main() {
 	fmt.Printf("Updating build %s with 3 max - since we have 4 actives, none should be removed\n", testBuild1Name)
 	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
-		panic(err)
+		handleError(err)
 	}
 	gsb.Spec.Max = 3
 	if err := kubeClient.Update(ctx, &gsb); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 0, activeCount: 4, podCount: 4})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 0, activeCount: 4, podRunningCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
 
 	fmt.Printf("Updating build %s with 5 max - we should have 1 standingBy\n", testBuild1Name)
 	gsb = mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
-		panic(err)
+		handleError(err)
 	}
 	gsb.Spec.Max = 5
 	if err := kubeClient.Update(ctx, &gsb); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 4, podCount: 5})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 4, podRunningCount: 5})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
+
+	fmt.Printf("Updating build %s with 4 max and 2 standingBy - since max is 4, we should have 0 standingBy\n", testBuild1Name)
+	gsb = mpsv1alpha1.GameServerBuild{}
+	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
+		handleError(err)
+	}
+	gsb.Spec.StandingBy = 2
+	gsb.Spec.Max = 4
+	if err := kubeClient.Update(ctx, &gsb); err != nil {
+		handleError(err)
+	}
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 0, activeCount: 4, podRunningCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
+
+	fmt.Printf("Updating build %s with 5 max and 2 standingBy - since max is 5, we should have 1 standingBy\n", testBuild1Name)
+	gsb = mpsv1alpha1.GameServerBuild{}
+	if err := kubeClient.Get(ctx, types.NamespacedName{Name: testBuild1Name, Namespace: testNamespace}, &gsb); err != nil {
+		handleError(err)
+	}
+	gsb.Spec.StandingBy = 2
+	gsb.Spec.Max = 5
+	if err := kubeClient.Update(ctx, &gsb); err != nil {
+		handleError(err)
+	}
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 4, podRunningCount: 5})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
+
 	// -------------- More scaling tests end --------------
 
 	// -------------- HTTP Server validation start --------------
@@ -411,24 +439,24 @@ func main() {
 	if err := allocate(test1BuildID, sessionID1_5, cert); err.Error() != fmt.Sprintf("%s 400", invalidStatusCode) {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 4, podCount: 5})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 4, podRunningCount: 5})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
 
 	fmt.Printf("Allocating on Build %s with a non-Guid BuildID, expecting 400\n", testBuild1Name)
 	sessionID1_6 := uuid.New().String()
 	if err := allocate("notAGuid", sessionID1_6, cert); err.Error() != fmt.Sprintf("%s 400", invalidStatusCode) {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 4, podCount: 5})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 4, podRunningCount: 5})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
 
 	fmt.Printf("Allocating on Build %s with a non existent BuildID, expecting 404\n", testBuild1Name)
 	sessionID1_7 := uuid.New().String()
 	if err := allocate(uuid.New().String(), sessionID1_7, cert); err.Error() != fmt.Sprintf("%s 404", invalidStatusCode) {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 4, podCount: 5})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 1, activeCount: 4, podRunningCount: 5})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
 
 	// // -------------- HTTP Server validation end --------------
 
@@ -438,22 +466,22 @@ func main() {
 	if err := stopActiveGameServer(ctx, test1BuildID, kubeConfig); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 3, podCount: 5})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podCount: 4})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 3, podRunningCount: 5})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
 
 	fmt.Printf("Killing an active gameserver from %s\n", testBuildSleepBeforeReadyForPlayersName)
 	if err := stopActiveGameServer(ctx, testBuildSleepBeforeReadyForPlayersID, kubeConfig); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 3, podCount: 5})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podCount: 3})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 3, podRunningCount: 5})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podRunningCount: 3})
 
 	fmt.Printf("Killing another active gameserver from Build %s\n", testBuild1Name)
 	if err := stopActiveGameServer(ctx, test1BuildID, kubeConfig); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 3, activeCount: 2, podCount: 5})
-	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podCount: 3})
+	validateBuildState(ctx, buildState{buildID: test1BuildID, buildName: testBuild1Name, standingByCount: 2, activeCount: 2, podRunningCount: 4})
+	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 0, podRunningCount: 3})
 
 	// -------------- GameServer process exiting gracefully end --------------
 
@@ -463,7 +491,7 @@ func main() {
 	if err := kubeClient.Create(ctx, buildWithCrashingGameServers); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: testCrashingBuildID, buildName: testBuildCrashingName, standingByCount: 0, activeCount: 0, crashesCount: 5})
+	validateBuildState(ctx, buildState{buildID: testCrashingBuildID, buildName: testBuildCrashingName, standingByCount: 0, activeCount: 0, crashesCount: 5, loopTimesOverride: 30})
 
 	// -------------- GameServer process exiting with a non-zero code end --------------
 
@@ -473,7 +501,7 @@ func main() {
 	if err := kubeClient.Create(ctx, buildWithoutReadyForPlayers); err != nil {
 		handleError(err)
 	}
-	validateBuildState(ctx, buildState{buildID: testWithoutReadyForPlayersBuildID, buildName: testBuildWithoutReadyForPlayers, standingByCount: 0, activeCount: 0, initializingCount: 0})
+	validateBuildState(ctx, buildState{buildID: testWithoutReadyForPlayersBuildID, buildName: testBuildWithoutReadyForPlayers, standingByCount: 0, activeCount: 0, initializingCount: 0, podRunningCount: 2})
 
 	// -------------- Validating a Build that does not call ReadyForPlayers stays at Initializing state end --------------
 }
@@ -551,7 +579,7 @@ func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Contex
 	}
 
 	for _, gameServer := range activeGameServers {
-		err := retry(loopTimes, time.Duration(delayInSecondsForLoopTest)*time.Second, func() error {
+		err := retry(loopTimesConst, time.Duration(delayInSecondsForLoopTest)*time.Second, func() error {
 			if !strings.Contains(nodeAgentLogs, "sessionCookie:randomCookie") {
 				return fmt.Errorf("expected to find 'sessionCookie:randomCookie' in nodeAgent logs, got %s", nodeAgentLogs)
 			}
