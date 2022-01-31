@@ -24,6 +24,7 @@ import (
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -174,7 +175,16 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			gs := gameServers.Items[i]
 			// we're deleting only initializing/pending/standingBy servers, never touching active
 			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
-				if err := r.Delete(ctx, &gs); err != nil {
+				// we're requesting the GameServer to be deleted to have the same ResourceVersion
+				// since it might have been updated (e.g. allocated) and the cache hasn't been updated yet
+				if err := r.Delete(ctx, &gs, &client.DeleteOptions{
+					Preconditions: &metav1.Preconditions{
+						ResourceVersion: &gs.ResourceVersion,
+					},
+				}); err != nil {
+					if errors.IsConflict(err) { // this GameServer has been updated, skip it
+						continue
+					}
 					return ctrl.Result{}, err
 				}
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
@@ -191,7 +201,16 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			gs := gameServers.Items[i]
 			// we're deleting only standingBy or initializing servers
 			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
-				if err := r.Delete(ctx, &gs); err != nil {
+				// we're requesting the GameServer to be deleted to have the same ResourceVersion
+				// since it might have been updated (e.g. allocated) and the cache hasn't been updated yet
+				if err := r.Delete(ctx, &gs, &client.DeleteOptions{
+					Preconditions: &metav1.Preconditions{
+						ResourceVersion: &gs.ResourceVersion,
+					},
+				}); err != nil {
+					if errors.IsConflict(err) { // this GameServer has been updated, skip it
+						continue
+					}
 					return ctrl.Result{}, err
 				}
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
