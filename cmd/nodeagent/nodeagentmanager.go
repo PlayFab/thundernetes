@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strings"
 	"sync"
 	"time"
 
+	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
@@ -242,7 +242,7 @@ func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Reque
 	wasActivated := gsd.WasActivated
 	gsd.Mutex.RUnlock()
 
-	// unless the game server was allocated, in which case we have to signal this to the game server
+	// game server was just allocated, so we have to signal this to the game server (return GameStateActive instead of GameStateContinue)
 	if heartbeatResponseState == GameStateStandingBy && wasActivated {
 		gsd.Mutex.Lock()
 		gsd.PreviousGameState = GameStateActive
@@ -287,11 +287,27 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 	}
 
 	logger.Debugf("Health or state is different than before, updating. Old health %s, new health %s, old state %s, new state %s", gsd.PreviousGameHealth, hb.CurrentGameHealth, gsd.PreviousGameState, hb.CurrentGameState)
-	payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\",\"state\":\"%s\"}}", hb.CurrentGameHealth, hb.CurrentGameState)
-	payloadBytes := []byte(payload)
+
+	// the reason we're using unstructured to serialize the GameServerStatus is that we don't want extra fields (.Spec, .ObjectMeta) to be serialized
+	u := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"status": mpsv1alpha1.GameServerStatus{
+				State:  mpsv1alpha1.GameServerState(hb.CurrentGameState),
+				Health: mpsv1alpha1.GameServerHealth(hb.CurrentGameHealth),
+			},
+		},
+	}
+
+	// this will be marshaled as payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\",\"state\":\"%s\"}}", hb.CurrentGameHealth, hb.CurrentGameState)
+	payloadBytes, err := json.Marshal(u)
+
+	if err != nil {
+		return err
+	}
+
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*timeout)
 	defer cancel()
-	_, err := n.dynamicClient.Resource(gameserverGVR).Namespace(gsd.GameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
+	_, err = n.dynamicClient.Resource(gameserverGVR).Namespace(gsd.GameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
 	if err != nil {
 		return err
 	}
@@ -340,19 +356,37 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 		currentPlayerIDs[i] = hb.CurrentPlayers[i].PlayerId
 	}
 	logger.Infof("ConnectedPlayersCount is different than before, updating. Old connectedPlayersCount %d, new connectedPlayersCount %d", gsd.ConnectedPlayersCount, len(hb.CurrentPlayers))
-	var payload string
+
+	gsdPatchSpec := mpsv1alpha1.GameServerDetailSpec{}
 	if len(hb.CurrentPlayers) == 0 {
-		payload = "{\"spec\":{\"connectedPlayersCount\":0,\"connectedPlayers\":[]}}"
+		gsdPatchSpec.ConnectedPlayersCount = 0
+		gsdPatchSpec.ConnectedPlayers = make([]string, 0)
 	} else {
-		payload = fmt.Sprintf("{\"spec\":{\"connectedPlayersCount\":%d,\"connectedPlayers\":[\"%s\"]}}", len(hb.CurrentPlayers), strings.Join(currentPlayerIDs, "\",\""))
+		gsdPatchSpec.ConnectedPlayersCount = len(hb.CurrentPlayers)
+		gsdPatchSpec.ConnectedPlayers = currentPlayerIDs
 	}
-	payloadBytes := []byte(payload)
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*timeout)
-	defer cancel()
-	_, err := n.dynamicClient.Resource(gameserverDetailGVR).Namespace(gsd.GameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{})
+
+	// the reason we're using unstructured to serialize the GameServerDetailSpec is that we don't want extra fields (.Status, .ObjectMeta) to be serialized
+	u := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"spec": gsdPatchSpec,
+		},
+	}
+
+	// this will be marshaled as fmt.Sprintf("{\"spec\":{\"connectedPlayersCount\":%d,\"connectedPlayers\":[\"%s\"]}}", len(hb.CurrentPlayers), strings.Join(currentPlayerIDs, "\",\""))
+	payloadBytes, err := json.Marshal(u)
 	if err != nil {
 		return err
 	}
+
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*timeout)
+	defer cancel()
+
+	_, err = n.dynamicClient.Resource(gameserverDetailGVR).Namespace(gsd.GameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{})
+	if err != nil {
+		return err
+	}
+
 	// storing the current number in memory
 	gsd.Mutex.Lock()
 	defer gsd.Mutex.Unlock()
