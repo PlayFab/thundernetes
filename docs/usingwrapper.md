@@ -9,7 +9,7 @@ Your game server needs to be integrated with the Game Server SDK ([GSDK](https:/
 
 We have built such a utility (called 'mpswrapper') [here](https://github.com/PlayFab/MpsSamples/tree/master/wrappingGsdk). Mpswrapper is also published as container image on GitHub Container Registry [here](https://github.com/PlayFab/MpsSamples/pkgs/container/mpswrapper) which should be used as the container image in your GameServerBuild definition.
 
-Your game server needs to be built and packaged in a place where your Kubernetes cluster can access it. Kubernets uses [volumes](https://kubernetes.io/docs/concepts/storage/volumes/) to access data external to the Pod. For this sample, you will use [Azure Files](https://azure.microsoft.com/en-us/services/storage/files/) storage to place your game server files but you are free to use the storage service of your choice.
+Your game server needs to be built and packaged in a place where your Kubernetes cluster can access it. Kubernetes uses [volumes](https://kubernetes.io/docs/concepts/storage/volumes/) to access data external to the Pod. For this sample, you will use [Azure Files](https://azure.microsoft.com/en-us/services/storage/files/) storage to place your game server files but you are free to use the storage service of your choice.
 
 > Azure Files **Premium** is recommended for optimal performance.
 
