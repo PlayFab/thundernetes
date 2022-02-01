@@ -96,8 +96,8 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	// if GameServerBuild is unhealthy, do nothing more
-	if gsb.Status.Health == mpsv1alpha1.BuildUnhealthy {
+	// if GameServerBuild is unhealthy and current crashes equal or more than the crashesToMarkUnhealthy, so do nothing more
+	if gsb.Status.Health == mpsv1alpha1.BuildUnhealthy && gsb.Status.CrashesCount >= gsb.Spec.CrashesToMarkUnhealthy {
 		log.Info("GameServerBuild is unhealthy, do nothing")
 		r.Recorder.Event(&gsb, corev1.EventTypeNormal, "Unhealthy Build", "GameServerBuild is unhealthy, do nothing")
 		return ctrl.Result{}, nil
