@@ -1,0 +1,32 @@
+apiVersion: mps.playfab.com/v1alpha1
+kind: GameServerBuild
+metadata:
+  name: mpswrapper
+spec:
+  titleID: "1E03" # required
+  buildID: "85ffe8da-c82f-4035-86c5-9d2b5f42d6f5" # must be a GUID
+  standingBy: 2 # required
+  max: 4 # required
+  crashesToMarkUnhealthy: 5 # optional, default is 5. It is the number of crashes needed to mark the build unhealthy
+  portsToExpose:
+    - containerName: mpswrapper # must be the same as the container name described below
+      portName: gameport # must be the same as the port name described below
+  template:
+    spec:
+      containers:
+        - image: ghcr.io/playfab/mpswrapper:0.1.0
+          name: mpswrapper
+          command: ["/bin/bash", "-c", "chmod +x /assets/fakegame && ./wrapper -g /assets/fakegame"]
+          ports:
+          - containerPort: 80 # your game server port
+            protocol: TCP # your game server port protocol
+            name: gameport # required field
+          volumeMounts:
+          - name: azure # must be the same as volumes.name below
+            mountPath: /assets
+      volumes:
+      - name: azure
+        azureFile:
+          secretName: azure-secret
+          shareName: fakegame
+          readOnly: false
