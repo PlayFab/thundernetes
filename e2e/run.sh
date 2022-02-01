@@ -19,17 +19,8 @@ if [ "$BUILD" = "local" ]; then
 	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_INIT_CONTAINER}:${IMAGE_TAG} --name kind
 	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} --name kind
 	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_NODE_AGENT}:${IMAGE_TAG} --name kind
+	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_GAMESERVER_API}:${IMAGE_TAG} --name kind
 fi
-
-# function finish {
-#   echo "-----Cleaning up-----"
-#   if [ "$BUILD" = "local" ]; then
-#     make -C "${DIR}"/.. cleank8slocal
-#   fi
-#   rm ${TLS_PRIVATE} ${TLS_PUBLIC}
-# }
-
-# trap finish EXIT
 
 # certificate generation for the TLS security on the allocation API server
 echo "-----Creating temp certificates for TLS security on the operator's allocation API service-----"
@@ -46,4 +37,17 @@ echo "-----Waiting for Controller deployment-----"
 kubectl wait --for=condition=available --timeout=300s deployment/thundernetes-controller-manager -n thundernetes-system
 
 echo "-----Running Go tests-----"
-cd cmd/e2e && GOPRIVATE=github.com/playfab/thundernetes go mod tidy && go run *.go ${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG}
+pushd cmd/e2e
+go mod tidy && go run $(ls -1 *.go | grep -v _test.go) ${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG}
+
+echo "-----Deploying GameServer API-----"
+popd # go back to the root directory 
+pushd cmd/gameserverapi
+IMAGE_TAG=${IMAGE_TAG} envsubst < deploy.yaml | kubectl apply -f -
+
+echo "-----Waiting for GameServer API deployment-----"
+kubectl wait --for=condition=available --timeout=300s deployment/thundernetes-gameserverapi -n thundernetes-system
+# create the gameserverapi namespace for the GameServer API tests
+kubectl create namespace gameserverapi
+popd # go back to the root directory
+cd cmd/e2e && IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go test ./...

@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thundernetes-gameserverapi
+  namespace: thundernetes-system
+  labels:
+    control-plane: thundernetes-gameserverapi
+spec:
+  selector:
+    matchLabels:
+      control-plane: thundernetes-gameserverapi
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        control-plane: thundernetes-gameserverapi
+    spec:
+      containers:
+        - image: thundernetes-gameserverapi:${IMAGE_TAG}
+          name: gameserverapi
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 500Mi
+            limits:
+              cpu: 100m
+              memory: 500Mi
+          ports:
+            - containerPort: 5001
+              hostPort: 5001
+      serviceAccountName: thundernetes-controller-manager
+      terminationGracePeriodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thundernetes-gameserverapi
+spec:
+  selector:
+    control-plane: thundernetes-gameserverapi
+  ports:
+    - protocol: TCP
+      port: 5001
+      targetPort: 5001
+  type: LoadBalancer
