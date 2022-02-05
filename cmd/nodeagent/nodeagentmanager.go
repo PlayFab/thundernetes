@@ -39,6 +39,11 @@ var (
 		Name: "game_server_states",
 		Help: "Game server states",
 	}, []string{"name", "state"})
+
+	ConnectedPlayersGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "connected_players",
+		Help: "Number of connected players per GameServer",
+	}, []string{"namespace", "name"})
 )
 
 type NodeAgentManager struct {
@@ -351,18 +356,24 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 	if hb.CurrentGameState != GameStateActive || gsd.ConnectedPlayersCount == len(hb.CurrentPlayers) {
 		return nil
 	}
-	currentPlayerIDs := make([]string, len(hb.CurrentPlayers))
+
+	connectedPlayersCount := len(hb.CurrentPlayers)
+
+	// set the prometheus gauge
+	ConnectedPlayersGauge.WithLabelValues(gsd.GameServerNamespace, gameServerName).Set(float64(connectedPlayersCount))
+
+	currentPlayerIDs := make([]string, connectedPlayersCount)
 	for i := 0; i < len(hb.CurrentPlayers); i++ {
 		currentPlayerIDs[i] = hb.CurrentPlayers[i].PlayerId
 	}
 	logger.Infof("ConnectedPlayersCount is different than before, updating. Old connectedPlayersCount %d, new connectedPlayersCount %d", gsd.ConnectedPlayersCount, len(hb.CurrentPlayers))
 
 	gsdPatchSpec := mpsv1alpha1.GameServerDetailSpec{}
-	if len(hb.CurrentPlayers) == 0 {
+	if connectedPlayersCount == 0 {
 		gsdPatchSpec.ConnectedPlayersCount = 0
 		gsdPatchSpec.ConnectedPlayers = make([]string, 0)
 	} else {
-		gsdPatchSpec.ConnectedPlayersCount = len(hb.CurrentPlayers)
+		gsdPatchSpec.ConnectedPlayersCount = connectedPlayersCount
 		gsdPatchSpec.ConnectedPlayers = currentPlayerIDs
 	}
 
@@ -390,7 +401,7 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 	// storing the current number in memory
 	gsd.Mutex.Lock()
 	defer gsd.Mutex.Unlock()
-	gsd.ConnectedPlayersCount = len(hb.CurrentPlayers)
+	gsd.ConnectedPlayersCount = connectedPlayersCount
 
 	return nil
 }
