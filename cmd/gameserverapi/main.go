@@ -70,6 +70,7 @@ func setupRouter() *gin.Engine {
 	r.PATCH(fmt.Sprintf("%s/gameserverbuilds/:namespace/:buildName", urlprefix), patchGameServerBuild)
 	r.GET(fmt.Sprintf("%s/gameserverbuilds/:namespace/:buildName/gameserverdetails", urlprefix), listGameServerDetailsForBuild)
 	r.GET(fmt.Sprintf("%s/gameserverdetails/:namespace/:gameServerDetailName", urlprefix), getGameServerDetail)
+	r.GET("/healthz", healthz)
 	return r
 }
 
@@ -212,9 +213,11 @@ func patchGameServerBuild(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "standingBy > max"})
 		return
 	}
+
+	patch := client.MergeFrom(gsb.DeepCopy())
 	gsb.Spec.Max = int(newMax)
 	gsb.Spec.StandingBy = int(newStandingBy)
-	err = kubeClient.Update(ctx, &gsb)
+	err = kubeClient.Patch(ctx, &gsb, patch)
 	if err != nil {
 		log.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -276,4 +279,8 @@ func getGameServerDetail(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, gsd)
 	}
+}
+
+func healthz(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }

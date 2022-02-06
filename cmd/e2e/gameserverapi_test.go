@@ -21,6 +21,9 @@ const (
 	port        = 5001
 	host        = "localhost"
 	contentType = "application/json"
+	timeout     = time.Second * 10
+	duration    = time.Second * 10
+	interval    = time.Millisecond * 250
 )
 
 var imgName string
@@ -142,7 +145,7 @@ var _ = Describe("GameServerAPI tests", func() {
 				r, err = client.Get(fmt.Sprintf("%s/gameservers/%s/%s", url, testNamespace, gsName))
 				Expect(err).ToNot(HaveOccurred())
 				return r.StatusCode
-			}).Should(Equal(http.StatusNotFound))
+			}, timeout, interval).Should(Equal(http.StatusNotFound))
 
 			// make sure controller creates an extra GameServer
 			Eventually(func() int {

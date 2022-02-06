@@ -30,24 +30,23 @@ openssl req -x509 -newkey rsa:4096 -nodes -keyout ${TLS_PRIVATE} -out ${TLS_PUBL
 kubectl create namespace thundernetes-system
 kubectl create secret tls tls-secret -n thundernetes-system --cert=${TLS_PUBLIC} --key=${TLS_PRIVATE}
 
-echo "-----Compiling, building and deploying to local Kubernetes cluster-----"
+echo "-----Compiling, building and deploying the operator to local Kubernetes cluster-----"
 IMG=${IMAGE_NAME_OPERATOR}:${IMAGE_TAG} API_SERVICE_SECURITY=usetls make -C "${DIR}"/../pkg/operator deploy
+
+echo "-----Deploying GameServer API-----"
+IMAGE_TAG=${IMAGE_TAG} envsubst < cmd/gameserverapi/deploy.yaml | kubectl apply -f -
 
 echo "-----Waiting for Controller deployment-----"
 kubectl wait --for=condition=available --timeout=300s deployment/thundernetes-controller-manager -n thundernetes-system
 
-echo "-----Running Go tests-----"
-pushd cmd/e2e
+echo "-----Waiting for GameServer API deployment-----"
+kubectl wait --for=condition=ready --timeout=300s pod -n thundernetes-system -l app=thundernetes-gameserverapi
+
+echo "-----Running end to end tests-----"
+cd cmd/e2e
 go mod tidy && go run $(ls -1 *.go | grep -v _test.go) ${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG}
 
-echo "-----Deploying GameServer API-----"
-popd # go back to the root directory 
-pushd cmd/gameserverapi
-IMAGE_TAG=${IMAGE_TAG} envsubst < deploy.yaml | kubectl apply -f -
-
-echo "-----Waiting for GameServer API deployment-----"
-kubectl wait --for=condition=available --timeout=300s deployment/thundernetes-gameserverapi -n thundernetes-system
+echo "-----Running GameServer API tests-----"
 # create the gameserverapi namespace for the GameServer API tests
 kubectl create namespace gameserverapi
-popd # go back to the root directory
-cd cmd/e2e && IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go test ./...
+IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go test -count=1 ./...
