@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -267,7 +267,7 @@ var _ = BeforeSuite(func() {
 	kubeClient = clientBuilder.Build()
 	Expect(kubeClient).NotTo(BeNil())
 
-}, 60)
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

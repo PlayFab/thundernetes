@@ -24,7 +24,6 @@ import (
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -182,7 +181,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 						ResourceVersion: &gs.ResourceVersion,
 					},
 				}); err != nil {
-					if errors.IsConflict(err) { // this GameServer has been updated, skip it
+					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
 						continue
 					}
 					return ctrl.Result{}, err
@@ -208,7 +207,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 						ResourceVersion: &gs.ResourceVersion,
 					},
 				}); err != nil {
-					if errors.IsConflict(err) { // this GameServer has been updated, skip it
+					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
 						continue
 					}
 					return ctrl.Result{}, err
