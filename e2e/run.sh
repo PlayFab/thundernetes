@@ -19,17 +19,8 @@ if [ "$BUILD" = "local" ]; then
 	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_INIT_CONTAINER}:${IMAGE_TAG} --name kind
 	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} --name kind
 	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_NODE_AGENT}:${IMAGE_TAG} --name kind
+	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_GAMESERVER_API}:${IMAGE_TAG} --name kind
 fi
-
-# function finish {
-#   echo "-----Cleaning up-----"
-#   if [ "$BUILD" = "local" ]; then
-#     make -C "${DIR}"/.. cleank8slocal
-#   fi
-#   rm ${TLS_PRIVATE} ${TLS_PUBLIC}
-# }
-
-# trap finish EXIT
 
 # certificate generation for the TLS security on the allocation API server
 echo "-----Creating temp certificates for TLS security on the operator's allocation API service-----"
@@ -39,11 +30,25 @@ openssl req -x509 -newkey rsa:4096 -nodes -keyout ${TLS_PRIVATE} -out ${TLS_PUBL
 kubectl create namespace thundernetes-system
 kubectl create secret tls tls-secret -n thundernetes-system --cert=${TLS_PUBLIC} --key=${TLS_PRIVATE}
 
-echo "-----Compiling, building and deploying to local Kubernetes cluster-----"
+echo "-----Compiling, building and deploying the operator to local Kubernetes cluster-----"
 IMG=${IMAGE_NAME_OPERATOR}:${IMAGE_TAG} API_SERVICE_SECURITY=usetls make -C "${DIR}"/../pkg/operator deploy
+
+echo "-----Deploying GameServer API-----"
+IMAGE_TAG=${IMAGE_TAG} envsubst < cmd/gameserverapi/deploy.yaml | kubectl apply -f -
 
 echo "-----Waiting for Controller deployment-----"
 kubectl wait --for=condition=available --timeout=300s deployment/thundernetes-controller-manager -n thundernetes-system
 
-echo "-----Running Go tests-----"
-cd cmd/e2e && GOPRIVATE=github.com/playfab/thundernetes go mod tidy && go run *.go ${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG}
+echo "-----Waiting for GameServer API deployment-----"
+kubectl wait --for=condition=ready --timeout=300s pod -n thundernetes-system -l app=thundernetes-gameserverapi
+
+echo "-----Running end to end tests-----"
+cd cmd/e2e
+go build && ./e2e ${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} && rm e2e
+
+echo "-----Running GameServer API tests-----"
+# create the gameserverapi namespace for the GameServer API tests
+kubectl create namespace gameserverapi
+go get github.com/onsi/ginkgo/v2
+# https://onsi.github.io/ginkgo/#recommended-continuous-integration-configuration
+IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go run github.com/onsi/ginkgo/v2/ginkgo -r --procs=2 --compilers=2 --randomize-all --randomize-suites --fail-on-pending --keep-going --cover --race --trace

@@ -7,6 +7,10 @@ nodes:
     hostPort: 5000
     listenAddress: "0.0.0.0"
     protocol: tcp
+  - containerPort: 5001
+    hostPort: 5001
+    listenAddress: "0.0.0.0"
+    protocol: tcp
   - containerPort: 10000
     hostPort: 10000
     listenAddress: "0.0.0.0"

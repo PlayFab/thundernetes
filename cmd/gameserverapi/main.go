@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
 
 	"net/http"
 
@@ -22,16 +24,23 @@ var (
 )
 
 const (
-	namespace                 = "default"
 	buildNameParam            = "buildName"
 	gameServerNameParam       = "gameServerName"
+	namespaceParam            = "namespace"
 	gameServerDetailNameParam = "gameServerDetailName"
+	urlprefix                 = "/api/v1"
+	listeningPort             = 5001
 )
 
 func main() {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = mpsv1alpha1.AddToScheme(scheme)
+
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors: true,
+		FullTimestamp: true,
+	})
 
 	var err error
 	kubeClient, err = client.New(ctrl.GetConfigOrDie(), client.Options{Scheme: scheme})
@@ -42,21 +51,26 @@ func main() {
 	r := setupRouter()
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.
-	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	addr := os.Getenv("PORT")
+	if addr == "" {
+		addr = fmt.Sprintf(":%d", listeningPort)
+	}
+	r.Run(addr)
 }
 
 func setupRouter() *gin.Engine {
 	r := gin.Default()
-	r.POST("/gameserverbuilds", createGameServerBuild)
-	r.GET("/gameserverbuilds", listGameServeBuilds)
-	r.GET("/gameserverbuilds/:buildName", getGameServerBuild)
-	r.DELETE("/gameserverbuilds/:buildName", deleteGameServerBuild)
-	r.GET("/gameserverbuilds/:buildName/gameservers", listGameServersForBuild)
-	r.GET("/gameservers/:gameServerName", getGameServer)
-	r.DELETE("/gameservers/:gameServerName", deleteGameServer)
-	r.PATCH("/gameserverbuilds/:buildName", patchGameServerBuild)
-	r.GET("/gameserverbuilds/:buildName/gameserverdetails", listGameServerDetailsForBuild)
-	r.GET("/gameserverdetails/:gameServerDetailName", getGameServerDetail)
+	r.POST(fmt.Sprintf("%s/gameserverbuilds", urlprefix), createGameServerBuild)
+	r.GET(fmt.Sprintf("%s/gameserverbuilds", urlprefix), listGameServeBuilds)
+	r.GET(fmt.Sprintf("%s/gameserverbuilds/:namespace/:buildName", urlprefix), getGameServerBuild)
+	r.DELETE(fmt.Sprintf("%s/gameserverbuilds/:namespace/:buildName", urlprefix), deleteGameServerBuild)
+	r.GET(fmt.Sprintf("%s/gameserverbuilds/:namespace/:buildName/gameservers", urlprefix), listGameServersForBuild)
+	r.GET(fmt.Sprintf("%s/gameservers/:namespace/:gameServerName", urlprefix), getGameServer)
+	r.DELETE(fmt.Sprintf("%s/gameservers/:namespace/:gameServerName", urlprefix), deleteGameServer)
+	r.PATCH(fmt.Sprintf("%s/gameserverbuilds/:namespace/:buildName", urlprefix), patchGameServerBuild)
+	r.GET(fmt.Sprintf("%s/gameserverbuilds/:namespace/:buildName/gameserverdetails", urlprefix), listGameServerDetailsForBuild)
+	r.GET(fmt.Sprintf("%s/gameserverdetails/:namespace/:gameServerDetailName", urlprefix), getGameServerDetail)
+	r.GET("/healthz", healthz)
 	return r
 }
 
@@ -69,10 +83,11 @@ func createGameServerBuild(c *gin.Context) {
 	}
 	err = kubeClient.Create(ctx, &gsb)
 	if err != nil {
+		log.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gsb)
+	c.JSON(http.StatusCreated, gsb)
 }
 
 func listGameServeBuilds(c *gin.Context) {
@@ -88,6 +103,7 @@ func listGameServeBuilds(c *gin.Context) {
 
 func getGameServerBuild(c *gin.Context) {
 	var gsb mpsv1alpha1.GameServerBuild
+	namespace := c.Param(namespaceParam)
 	err := kubeClient.Get(ctx, client.ObjectKey{Name: c.Param(buildNameParam), Namespace: namespace}, &gsb)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -119,6 +135,7 @@ func listGameServersForBuild(c *gin.Context) {
 
 func getGameServer(c *gin.Context) {
 	gameServerName := c.Param(gameServerNameParam)
+	namespace := c.Param(namespaceParam)
 	var gs mpsv1alpha1.GameServer
 	err := kubeClient.Get(ctx, client.ObjectKey{Name: gameServerName, Namespace: namespace}, &gs)
 	if err != nil {
@@ -135,8 +152,11 @@ func getGameServer(c *gin.Context) {
 
 func deleteGameServer(c *gin.Context) {
 	gameServerName := c.Param(gameServerNameParam)
+	namespace := c.Param(namespaceParam)
 	var gs mpsv1alpha1.GameServer
-	err := kubeClient.Get(ctx, client.ObjectKey{Name: gameServerName, Namespace: namespace}, &gs)
+	gs.Name = gameServerName
+	gs.Namespace = namespace
+	err := kubeClient.Delete(ctx, &gs)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -145,18 +165,14 @@ func deleteGameServer(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	} else {
-		err = kubeClient.Delete(ctx, &gs)
-		if err != nil {
-			log.Error(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		} else {
-			c.JSON(http.StatusOK, gin.H{"message": "Game server deleted"})
-		}
+		c.JSON(http.StatusOK, gin.H{"message": "Game server deleted"})
 	}
+
 }
 
 func patchGameServerBuild(c *gin.Context) {
 	var gsb mpsv1alpha1.GameServerBuild
+	namespace := c.Param(namespaceParam)
 	err := kubeClient.Get(ctx, client.ObjectKey{Name: c.Param(buildNameParam), Namespace: namespace}, &gsb)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -197,9 +213,11 @@ func patchGameServerBuild(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "standingBy > max"})
 		return
 	}
+
+	patch := client.MergeFrom(gsb.DeepCopy())
 	gsb.Spec.Max = int(newMax)
 	gsb.Spec.StandingBy = int(newStandingBy)
-	err = kubeClient.Update(ctx, &gsb)
+	err = kubeClient.Patch(ctx, &gsb, patch)
 	if err != nil {
 		log.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -210,6 +228,7 @@ func patchGameServerBuild(c *gin.Context) {
 
 func deleteGameServerBuild(c *gin.Context) {
 	var gsb mpsv1alpha1.GameServerBuild
+	namespace := c.Param(namespaceParam)
 	err := kubeClient.Get(ctx, client.ObjectKey{Name: c.Param(buildNameParam), Namespace: namespace}, &gsb)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -247,6 +266,7 @@ func listGameServerDetailsForBuild(c *gin.Context) {
 
 func getGameServerDetail(c *gin.Context) {
 	gameServerDetailName := c.Param(gameServerDetailNameParam)
+	namespace := c.Param(namespaceParam)
 	var gsd mpsv1alpha1.GameServerDetail
 	err := kubeClient.Get(ctx, client.ObjectKey{Name: gameServerDetailName, Namespace: namespace}, &gsd)
 	if err != nil {
@@ -259,4 +279,8 @@ func getGameServerDetail(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, gsd)
 	}
+}
+
+func healthz(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }

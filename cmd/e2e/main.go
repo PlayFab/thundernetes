@@ -29,7 +29,7 @@ var (
 )
 
 const (
-	loopTimesConst            int    = 10
+	loopTimesConst            int    = 15
 	delayInSecondsForLoopTest int    = 1
 	LabelBuildID                     = "BuildID"
 	invalidStatusCode         string = "invalid status code"
@@ -351,7 +351,7 @@ func main() {
 	validateBuildState(ctx, buildState{buildID: testBuildSleepBeforeReadyForPlayersID, buildName: testBuildSleepBeforeReadyForPlayersName, standingByCount: 3, activeCount: 1, podRunningCount: 4})
 	validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, testBuildSleepBeforeReadyForPlayersID)
 
-	fmt.Printf("Allocating on build %s with a new sessionID", testBuild1Name)
+	fmt.Printf("Allocating on build %s with a new sessionID\n", testBuild1Name)
 	sessionID1_2 := uuid.New().String()
 	if err := allocate(test1BuildID, sessionID1_2, cert); err != nil {
 		handleError(err)

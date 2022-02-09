@@ -3,12 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -16,7 +17,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const testNamespace = "default"
+const (
+	testNamespace = "unittestnamespace"
+	url           = "/api/v1"
+)
 
 var _ = Describe("GameServer API service tests", func() {
 	It("should create a GameServerBuild", func() {
@@ -33,17 +37,17 @@ var _ = Describe("GameServer API service tests", func() {
 		b, err := json.Marshal(testBuild2)
 		Expect(err).ToNot(HaveOccurred())
 		r := setupRouter()
-		req, err := http.NewRequest("POST", "/gameserverbuilds", bytes.NewReader(b))
+		req, err := http.NewRequest("POST", fmt.Sprintf("%s/gameserverbuilds", url), bytes.NewReader(b))
 		Expect(err).ToNot(HaveOccurred())
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		res := w.Result()
 		defer res.Body.Close()
-		Expect(res.StatusCode).To(Equal(http.StatusOK))
+		Expect(res.StatusCode).To(Equal(http.StatusCreated))
 	})
 	It("should return GameServerBuildList with two items", func() {
 		r := setupRouter()
-		req := httptest.NewRequest(http.MethodGet, "/gameserverbuilds", nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/gameserverbuilds", url), nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		res := w.Result()
@@ -66,7 +70,7 @@ var _ = Describe("GameServer API service tests", func() {
 		pb, err := json.Marshal(patchBody)
 		Expect(err).ToNot(HaveOccurred())
 		r := setupRouter()
-		req, err := http.NewRequest("PATCH", "/gameserverbuilds/test-build2", bytes.NewReader(pb))
+		req, err := http.NewRequest("PATCH", fmt.Sprintf("%s/gameserverbuilds/%s/test-build2", url, testNamespace), bytes.NewReader(pb))
 		Expect(err).ToNot(HaveOccurred())
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
@@ -89,7 +93,7 @@ var _ = Describe("GameServer API service tests", func() {
 		pb, err := json.Marshal(patchBody)
 		Expect(err).ToNot(HaveOccurred())
 		r := setupRouter()
-		req, err := http.NewRequest("PATCH", "/gameserverbuilds/test-build2", bytes.NewReader(pb))
+		req, err := http.NewRequest("PATCH", fmt.Sprintf("%s/gameserverbuilds/%s/test-build2", url, testNamespace), bytes.NewReader(pb))
 		Expect(err).ToNot(HaveOccurred())
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
@@ -97,7 +101,7 @@ var _ = Describe("GameServer API service tests", func() {
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
 	})
-	It("should return bad request for bad arguments take 2", func() {
+	It("should return bad request for bad arguments - take 2", func() {
 		patchBody := map[string]interface{}{
 			"standingBy": 2,
 			"max":        "wrong",
@@ -105,7 +109,7 @@ var _ = Describe("GameServer API service tests", func() {
 		pb, err := json.Marshal(patchBody)
 		Expect(err).ToNot(HaveOccurred())
 		r := setupRouter()
-		req, err := http.NewRequest("PATCH", "/gameserverbuilds/test-build2", bytes.NewReader(pb))
+		req, err := http.NewRequest("PATCH", fmt.Sprintf("%s/gameserverbuilds/%s/test-build2", url, testNamespace), bytes.NewReader(pb))
 		Expect(err).ToNot(HaveOccurred())
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
@@ -115,7 +119,7 @@ var _ = Describe("GameServer API service tests", func() {
 	})
 	It("should return 404 when GameServerBuild does not exist", func() {
 		r := setupRouter()
-		req := httptest.NewRequest(http.MethodGet, "/gameserverbuilds/wrong-build", nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/gameserverbuilds/%s/wrong-build", url, testNamespace), nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		res := w.Result()
@@ -124,7 +128,7 @@ var _ = Describe("GameServer API service tests", func() {
 	})
 	It("should return GameServerBuild with name test-build", func() {
 		r := setupRouter()
-		req := httptest.NewRequest(http.MethodGet, "/gameserverbuilds/test-build", nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/gameserverbuilds/%s/test-build", url, testNamespace), nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		res := w.Result()
@@ -139,7 +143,7 @@ var _ = Describe("GameServer API service tests", func() {
 	})
 	It("should list GameServers for GameServerBuild", func() {
 		r := setupRouter()
-		req := httptest.NewRequest(http.MethodGet, "/gameserverbuilds/test-build/gameservers", nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/gameserverbuilds/%s/test-build/gameservers", url, testNamespace), nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		res := w.Result()
@@ -155,7 +159,7 @@ var _ = Describe("GameServer API service tests", func() {
 	})
 	It("should get 404 on a non-existent GameServer", func() {
 		r := setupRouter()
-		req := httptest.NewRequest(http.MethodGet, "/gameservers/wrong-server", nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/gameservers/%s/wrong-server", url, testNamespace), nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		res := w.Result()
@@ -164,7 +168,7 @@ var _ = Describe("GameServer API service tests", func() {
 	})
 	It("should get a GameServer", func() {
 		r := setupRouter()
-		req := httptest.NewRequest(http.MethodGet, "/gameservers/test-gameserver", nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/gameservers/%s/test-gameserver", url, testNamespace), nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		res := w.Result()
@@ -179,7 +183,7 @@ var _ = Describe("GameServer API service tests", func() {
 	})
 	It("should list GameServerDetails for Build", func() {
 		r := setupRouter()
-		req := httptest.NewRequest(http.MethodGet, "/gameserverbuilds/test-build/gameserverdetails", nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/gameserverbuilds/%s/test-build/gameserverdetails", url, testNamespace), nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		res := w.Result()
@@ -195,7 +199,7 @@ var _ = Describe("GameServer API service tests", func() {
 	})
 	It("should get 404 on a non-existent GameServerDetail", func() {
 		r := setupRouter()
-		req := httptest.NewRequest(http.MethodGet, "/gameserverdetails/wrong-server", nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/gameserverdetails/%s/wrong-server", url, testNamespace), nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		res := w.Result()
@@ -204,7 +208,7 @@ var _ = Describe("GameServer API service tests", func() {
 	})
 	It("should get a GameServerDetail", func() {
 		r := setupRouter()
-		req := httptest.NewRequest(http.MethodGet, "/gameserverdetails/test-gameserver", nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/gameserverdetails/%s/test-gameserver", url, testNamespace), nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		res := w.Result()
@@ -263,7 +267,7 @@ var _ = BeforeSuite(func() {
 	kubeClient = clientBuilder.Build()
 	Expect(kubeClient).NotTo(BeNil())
 
-}, 60)
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
