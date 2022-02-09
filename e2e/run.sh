@@ -44,11 +44,8 @@ kubectl wait --for=condition=ready --timeout=300s pod -n thundernetes-system -l 
 
 echo "-----Running end to end tests-----"
 cd cmd/e2e
-go build && ./e2e ${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} && rm e2e
-
-echo "-----Running GameServer API tests-----"
-# create the gameserverapi namespace for the GameServer API tests
+# create the test namespaces
 kubectl create namespace gameserverapi
-go get github.com/onsi/ginkgo/v2
+kubectl create namespace mynamespace
 # https://onsi.github.io/ginkgo/#recommended-continuous-integration-configuration
-IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go run github.com/onsi/ginkgo/v2/ginkgo -r --procs=2 --compilers=2 --randomize-all --randomize-suites --fail-on-pending --keep-going --cover --race --trace
+IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go run github.com/onsi/ginkgo/v2/ginkgo -r --procs=4 --compilers=4 --randomize-all --randomize-suites --fail-on-pending --keep-going --race --trace

@@ -345,9 +345,10 @@ func updateInitializingGameServersToStandingBy(ctx context.Context, buildID stri
 	for _, gameServer := range gameServers.Items {
 		if gameServer.Status.State == "" || gameServer.Status.State == mpsv1alpha1.GameServerStateInitializing {
 			gs := getGameServer(ctx, gameServer.Name) // getting the latest updated GameServer object
+			patch := client.MergeFrom(gs.DeepCopy())
 			gs.Status.State = mpsv1alpha1.GameServerStateStandingBy
 			gs.Status.Health = mpsv1alpha1.Healthy
-			err = k8sClient.Status().Update(ctx, &gs)
+			err = k8sClient.Status().Patch(ctx, &gs, patch)
 			Expect(err).ToNot(HaveOccurred())
 		}
 	}
