@@ -29,7 +29,7 @@ import (
 var connectedPlayers = []string{"Amie", "Ken", "Dimitris"} // this should the same as in the netcore sample
 
 const (
-	testNamespace                  = "mynamespace"
+	testNamespace                  = "e2e"
 	connectedPlayersCount          = 3 // this should the same as in the netcore sample
 	LabelBuildID                   = "BuildID"
 	invalidStatusCode       string = "invalid status code"

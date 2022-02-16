@@ -46,6 +46,6 @@ echo "-----Running end to end tests-----"
 cd cmd/e2e
 # create the test namespaces
 kubectl create namespace gameserverapi
-kubectl create namespace mynamespace
+kubectl create namespace e2e
 # https://onsi.github.io/ginkgo/#recommended-continuous-integration-configuration
 IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go run github.com/onsi/ginkgo/v2/ginkgo -r --procs=4 --compilers=4 --randomize-all --randomize-suites --fail-on-pending --keep-going --race --trace
