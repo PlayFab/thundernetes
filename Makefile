@@ -68,7 +68,7 @@ installkind:
 	mv ./kind ./pkg/operator/testbin/bin/kind
 
 createkindcluster: 
-	./pkg/operator/testbin/bin/kind create cluster --config ./e2e/kind-config.yaml
+	./pkg/operator/testbin/bin/kind create cluster --config ./e2e/kind-config.yaml --image kindest/node:v1.22.5
 
 deletekindcluster:
 	./pkg/operator/testbin/bin/kind delete cluster 

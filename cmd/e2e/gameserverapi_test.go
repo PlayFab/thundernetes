@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,17 +20,9 @@ const (
 	port        = 5001
 	host        = "localhost"
 	contentType = "application/json"
-	timeout     = time.Second * 10
-	duration    = time.Second * 10
-	interval    = time.Millisecond * 250
 )
 
-var imgName string
-
 var _ = Describe("GameServerAPI tests", func() {
-	imgName = os.Getenv("IMG")
-	Expect(imgName).NotTo(BeEmpty())
-
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -43,7 +34,7 @@ var _ = Describe("GameServerAPI tests", func() {
 	buildNameNoImage := "test-build-gameserverapi-no-image"
 
 	It("should return an error when creating a GameServerBuild that does not have a name", func() {
-		build := createGameServerBuild(buildNameNoImage, testNamespace)
+		build := createGameServerBuild(buildNameNoImage, testNamespace, img)
 		build.Name = ""
 		b, err := json.Marshal(build)
 		Expect(err).ToNot(HaveOccurred())
@@ -73,7 +64,7 @@ var _ = Describe("GameServerAPI tests", func() {
 	})
 
 	It("should create a new GameServerBuild, list it and then delete it", func() {
-		build := createGameServerBuild(buildName, testNamespace)
+		build := createGameServerBuild(buildName, testNamespace, img)
 		b, err := json.Marshal(build)
 		Expect(err).ToNot(HaveOccurred())
 		req, err := client.Post(url+"/gameserverbuilds", contentType, bytes.NewReader(b))
@@ -111,14 +102,16 @@ var _ = Describe("GameServerAPI tests", func() {
 		Expect(bu.Name).To(Equal(buildName))
 
 		// list GameServers for GameServerBuild
-		r, err = client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s/gameservers", url, testNamespace, buildName))
-		Expect(err).ToNot(HaveOccurred())
 		var gsList mpsv1alpha1.GameServerList
-		body, err = ioutil.ReadAll(r.Body)
-		Expect(err).ToNot(HaveOccurred())
-		err = json.Unmarshal(body, &gsList)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(len(gsList.Items)).To(Equal(2))
+		Eventually(func(g Gomega) {
+			r, err = client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s/gameservers", url, testNamespace, buildName))
+			g.Expect(err).ToNot(HaveOccurred())
+			body, err = ioutil.ReadAll(r.Body)
+			g.Expect(err).ToNot(HaveOccurred())
+			err = json.Unmarshal(body, &gsList)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(len(gsList.Items)).To(Equal(2))
+		}, timeout, interval).Should(Succeed())
 
 		gsName := gsList.Items[0].Name
 		// get a GameServer
@@ -156,7 +149,7 @@ var _ = Describe("GameServerAPI tests", func() {
 			err = json.Unmarshal(body, &gsList)
 			Expect(err).ToNot(HaveOccurred())
 			return len(gsList.Items)
-		}, time.Second*5, time.Millisecond*500).Should(Equal(2))
+		}, timeout, interval).Should(Equal(2))
 
 		// TODO: allocate so GameServerDetails can be created
 		// TODO: list GameServerDetails for GameServerBuild
@@ -200,7 +193,7 @@ var _ = Describe("GameServerAPI tests", func() {
 	})
 })
 
-func createGameServerBuild(name, namespace string) mpsv1alpha1.GameServerBuild {
+func createGameServerBuild(name, namespace, img string) mpsv1alpha1.GameServerBuild {
 	return mpsv1alpha1.GameServerBuild{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -221,7 +214,7 @@ func createGameServerBuild(name, namespace string) mpsv1alpha1.GameServerBuild {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Image:           imgName,
+							Image:           img,
 							Name:            "netcore-sample",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: []corev1.ContainerPort{

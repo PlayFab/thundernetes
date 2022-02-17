@@ -169,8 +169,8 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	})
 
 	// user has decreased standingBy numbers
-	if standingByCount > gsb.Spec.StandingBy {
-		for i := 0; i < standingByCount-gsb.Spec.StandingBy && i < maxNumberOfGameServersToDelete; i++ {
+	if pendingCount+initializingCount+standingByCount > gsb.Spec.StandingBy {
+		for i := 0; i < pendingCount+initializingCount+standingByCount-gsb.Spec.StandingBy && i < maxNumberOfGameServersToDelete; i++ {
 			gs := gameServers.Items[i]
 			// we're deleting only initializing/pending/standingBy servers, never touching active
 			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
