@@ -102,7 +102,7 @@ CoreDNS is running at https://127.0.0.1:34253/api/v1/namespaces/kube-system/serv
 Once you have a Kubernetes cluster up and running, you can run the following command to install thundernetes. This will install thundernetes *without* TLS authentication for the allocation API service, which should only be used on test environments.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/master/installfiles/operator.yaml
+kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator.yaml
 ```
 
 Read the following section if you want to have TLS based authentication for the thundernetes API service.
@@ -128,7 +128,7 @@ kubectl create secret tls tls-secret -n thundernetes-system --cert=/path/to/publ
 Then, you can run the following script to install thundernetes with TLS security for the allocation API service.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/master/installfiles/operator_with_security.yaml
+kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator_with_security.yaml
 ```
 
 The two installation files (operator.yaml and operator_with_security.yaml) are identical except for the API_SERVICE_SECURITY environment variable that is passed into the controller container.
@@ -144,7 +144,7 @@ Thundernetes comes with two sample game server projects that are integrated with
 This sample, located [here](../samples/netcore), is a simple .NET Core Web API app that implements GSDK. You can install it on your Kubernetes cluster by runnning the following command:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/master/samples/netcore/sample.yaml
+kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/netcore/sample.yaml
 ```
 
 > To read about the fields that you need to specify for a GameServerBuild, you can check [this document](gameserverbuild.md).
@@ -220,7 +220,7 @@ The game server will remain in Active state as long as the game server process i
 This sample, located [here](../samples/openarena), is based on the popular open source FPS game [OpenArena](http://www.openarena.ws/smfnews.php). You can install it using this script
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/master/samples/openarena/sample.yaml
+kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/openarena/sample.yaml
 ```
 
 You can allocate a game server by using the same command as the fake game server.  To connect to an active server, you need to download the OpenArena client from [here](http://openarena.ws/download.php?view.4).

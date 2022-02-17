@@ -15,7 +15,7 @@ Refer to the instructions at the [quickstart guide](./quickstart.md) for creatin
 - Install thundernetes with: 
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/master/installfiles/operator.yaml
+kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator.yaml
 ```
 
 - Run this command to verify that the controller is up and running:
