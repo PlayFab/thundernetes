@@ -13,12 +13,13 @@ az login # you don't need to do this if you're using Azure Cloud shell
 # you should modify these values with your preferred ones
 AKS_RESOURCE_GROUP=thundernetes # name of the resource group AKS will be installed
 AKS_NAME=thundernetes # AKS cluster name
-AKS_LOCATION=westus2 # AKS datacenter location
+AKS_LOCATION=westus2 # AKS datacenter region
+AKS_VERSION=1.22.4 # replace with the Kubernetes version that is supported in the region
 
 # create a resource group
 az group create --name $AKS_RESOURCE_GROUP --location $AKS_LOCATION
 # create a new AKS cluster enabling the feature of Public IP per Node
-az aks create --resource-group $AKS_RESOURCE_GROUP --name $AKS_NAME --ssh-key-value ~/.ssh/id_rsa.pub --kubernetes-version 1.20.9 --enable-node-public-ip
+az aks create --resource-group $AKS_RESOURCE_GROUP --name $AKS_NAME --ssh-key-value ~/.ssh/id_rsa.pub --kubernetes-version $AKS_VERSION --enable-node-public-ip
 # get credentials for this cluster
 az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_NAME --file ~/.kube/config-thundernetes
 # check that cluster is up and running
