@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/go-logr/logr"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
@@ -11,6 +12,7 @@ import (
 // PortRegistry implements a custom map for the port registry
 type PortRegistry struct {
 	HostPorts         map[int32]bool
+	HostPortsMutex    sync.Mutex
 	Indexes           []int32
 	NextFreePortIndex int32
 	Min               int32         // Minimum Port
@@ -20,15 +22,24 @@ type PortRegistry struct {
 }
 
 // NewPortRegistry initializes the IndexedDictionary that holds the port registry.
+// min and max represent the minimum and the maximum ports. They are inclusive, e.g. min 0 and max 10 will give you 11 ports
 func NewPortRegistry(gameServers mpsv1alpha1.GameServerList, min, max int32, setupLog logr.Logger) (*PortRegistry, error) {
 	pr := &PortRegistry{
-		HostPorts:     make(map[int32]bool, max-min+1),
-		Indexes:       make([]int32, max-min+1),
-		Min:           min,
-		Max:           max,
-		portRequests:  make(chan struct{}, 100),
-		portResponses: make(chan int32, 100),
+		HostPorts:      make(map[int32]bool, max-min+1),
+		HostPortsMutex: sync.Mutex{},
+		Indexes:        make([]int32, max-min+1),
+		Min:            min,
+		Max:            max,
+		portRequests:   make(chan struct{}, 100),
+		portResponses:  make(chan int32, 100),
 	}
+
+	if min > max {
+		return nil, fmt.Errorf("min port %d is greater than max port %d", min, max)
+	}
+
+	defer pr.HostPortsMutex.Unlock()
+	pr.HostPortsMutex.Lock()
 
 	// gather ports for existing game servers
 	if len(gameServers.Items) > 0 {
@@ -68,13 +79,13 @@ func NewPortRegistry(gameServers mpsv1alpha1.GameServerList, min, max int32, set
 
 func (pr *PortRegistry) displayRegistry() {
 	fmt.Printf("-------------------------------------\n")
-	fmt.Printf("Ports: %v\n", pr.HostPorts)
+	fmt.Printf("HostPorts: %v\n", pr.HostPorts)
 	fmt.Printf("Indexes: %v\n", pr.Indexes)
 	fmt.Printf("NextIndex: %d\n", pr.NextFreePortIndex)
 	fmt.Printf("-------------------------------------\n")
 }
 
-// GetNewPort returns and registers a new port for the designated game server. Locks a mutex
+// GetNewPort returns and registers a new port for the designated game server
 func (pr *PortRegistry) GetNewPort() (int32, error) {
 	pr.portRequests <- struct{}{}
 
@@ -89,12 +100,15 @@ func (pr *PortRegistry) GetNewPort() (int32, error) {
 
 func (pr *PortRegistry) portProducer() {
 	for range pr.portRequests { //wait till a new request comes
-
+		pr.HostPortsMutex.Lock()
 		initialIndex := pr.NextFreePortIndex
 		for {
-			if !pr.HostPorts[pr.Indexes[pr.NextFreePortIndex]] {
+			portIsUsed := pr.HostPorts[pr.Indexes[pr.NextFreePortIndex]]
+
+			if !portIsUsed {
 				//we found a port
 				port := pr.Indexes[pr.NextFreePortIndex]
+
 				pr.HostPorts[port] = true
 
 				pr.increaseNextFreePortIndex()
@@ -112,6 +126,7 @@ func (pr *PortRegistry) portProducer() {
 				break
 			}
 		}
+		pr.HostPortsMutex.Unlock()
 	}
 }
 
@@ -122,10 +137,16 @@ func (pr *PortRegistry) Stop() {
 }
 
 // DeregisterServerPorts deregisters all host ports so they can be re-used by additional game servers
-func (pr *PortRegistry) DeregisterServerPorts(ports []int32) {
+func (pr *PortRegistry) DeregisterServerPorts(ports []int32) error {
+	defer pr.HostPortsMutex.Unlock()
+	pr.HostPortsMutex.Lock()
 	for i := 0; i < len(ports); i++ {
+		if _, ok := pr.HostPorts[ports[i]]; !ok {
+			return fmt.Errorf("port %d is not registered in HostPorts", ports[i])
+		}
 		pr.HostPorts[ports[i]] = false
 	}
+	return nil
 }
 
 func (pr *PortRegistry) assignRegisteredPorts(ports []int32) {
@@ -139,7 +160,9 @@ func (pr *PortRegistry) assignRegisteredPorts(ports []int32) {
 func (pr *PortRegistry) assignUnregisteredPorts() {
 	i := pr.NextFreePortIndex
 	for _, port := range pr.getPorts() {
-		if _, ok := pr.HostPorts[port]; !ok {
+		_, ok := pr.HostPorts[port]
+
+		if !ok {
 			pr.HostPorts[port] = false
 			pr.Indexes[i] = port
 			i++

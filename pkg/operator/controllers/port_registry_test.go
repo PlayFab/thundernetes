@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -21,7 +23,7 @@ const (
 	interval                                  = time.Millisecond * 250
 )
 
-var _ = Describe("Port registry tests", func() {
+var _ = Describe("Port registry tests", Ordered, func() {
 	log := logr.FromContextOrDiscard(context.Background())
 	portRegistry, err := NewPortRegistry(mpsv1alpha1.GameServerList{}, 20000, 20010, log)
 	Expect(err).ToNot(HaveOccurred())
@@ -71,14 +73,10 @@ var _ = Describe("Port registry tests", func() {
 
 	It("should return an error when we have exceeded the number of allocated ports", func() {
 		_, err := peekNextPort(portRegistry)
-		if err == nil {
-			Expect(err).To(HaveOccurred())
-		}
+		Expect(err).To(HaveOccurred())
 
 		_, err = portRegistry.GetNewPort()
-		if err == nil {
-			Expect(err).To(HaveOccurred())
-		}
+		Expect(err).To(HaveOccurred())
 
 		if displayPortRegistryVariablesDuringTesting {
 			portRegistry.displayRegistry()
@@ -99,7 +97,6 @@ var _ = Describe("Port registry tests", func() {
 		verifyUnassignedHostPorts(portRegistry, assignedPorts)
 	})
 	It("should return another port", func() {
-
 		peekPort, err := peekNextPort(portRegistry)
 		actualPort, _ := portRegistry.GetNewPort()
 		Expect(actualPort).To(BeNumerically("==", peekPort), fmt.Sprintf("Wrong port returned, peekPort:%d,actualPort:%d", peekPort, actualPort))
@@ -118,17 +115,120 @@ var _ = Describe("Port registry tests", func() {
 	})
 })
 
+var _ = Describe("Port registry with ten thousand ports", func() {
+	rand.Seed(time.Now().UnixNano())
+	log := logr.FromContextOrDiscard(context.Background())
+	min := int32(20000)
+	max := int32(29999)
+	portRegistry, err := NewPortRegistry(mpsv1alpha1.GameServerList{}, min, max, log)
+	Expect(err).ToNot(HaveOccurred())
+
+	assignedPorts := sync.Map{}
+	It("should work with allocating and deallocating ports", func() {
+		go portRegistry.portProducer()
+
+		// allocate all 10000 ports
+		var wg sync.WaitGroup
+		for i := 0; i < int(max-min+1); i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				n := rand.Intn(200) + 100 // n will be between 100 and 300
+				time.Sleep(time.Duration(n) * time.Millisecond)
+				port, err := portRegistry.GetNewPort()
+				Expect(err).ToNot(HaveOccurred())
+				_, ok := assignedPorts.Load(port)
+				if ok {
+					Fail(fmt.Sprintf("Port %d should not be in the assignedPorts map", port))
+				}
+				assignedPorts.Store(port, true)
+			}()
+		}
+		wg.Wait()
+
+		if displayPortRegistryVariablesDuringTesting {
+			portRegistry.displayRegistry()
+		}
+
+		m := syncMapToMapInt32Bool(&assignedPorts)
+		verifyAssignedHostPorts(portRegistry, m)
+		verifyUnassignedHostPorts(portRegistry, m)
+
+		// trying to get another port should fail, since we've allocated every available port
+		_, err := portRegistry.GetNewPort()
+		Expect(err).To(HaveOccurred())
+
+		//deallocate the 5000 even ports
+		for i := 0; i < int(max-min+1)/2; i++ {
+			wg.Add(1)
+			go func(portToDeallocate int) {
+				defer wg.Done()
+				n := rand.Intn(200) + 100 // n will be between 100 and 300
+				time.Sleep(time.Duration(n) * time.Millisecond)
+				err := portRegistry.DeregisterServerPorts([]int32{int32(portToDeallocate)})
+				Expect(err).ToNot(HaveOccurred())
+				assignedPorts.Delete(int32(portToDeallocate))
+			}(i*2 + int(min))
+		}
+		wg.Wait()
+
+		if displayPortRegistryVariablesDuringTesting {
+			portRegistry.displayRegistry()
+		}
+
+		m = syncMapToMapInt32Bool(&assignedPorts)
+		verifyAssignedHostPorts(portRegistry, m)
+		verifyUnassignedHostPorts(portRegistry, m)
+
+		// allocate 5000 ports
+		for i := 0; i < int(max-min+1)/2; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				n := rand.Intn(200) + 100 // n will be between 100 and 300
+				time.Sleep(time.Duration(n) * time.Millisecond)
+				port, err := portRegistry.GetNewPort()
+				Expect(err).ToNot(HaveOccurred())
+				_, ok := assignedPorts.Load(port)
+				if ok {
+					Fail(fmt.Sprintf("Port %d should not be in the assignedPorts map", port))
+				}
+				assignedPorts.Store(port, true)
+			}()
+		}
+		wg.Wait()
+
+		verifyAssignedHostPorts(portRegistry, syncMapToMapInt32Bool(&assignedPorts))
+		verifyUnassignedHostPorts(portRegistry, syncMapToMapInt32Bool(&assignedPorts))
+
+		// trying to get another port should fail, since we've allocated every available port
+		_, err = portRegistry.GetNewPort()
+		Expect(err).To(HaveOccurred())
+	})
+})
+
+// syncMapToMapInt32Bool converts a sync.Map to a map[int32]bool
+// useful as part of our test uses the sync.Map instead of the slice
+func syncMapToMapInt32Bool(sm *sync.Map) map[int32]bool {
+	m := make(map[int32]bool)
+	sm.Range(func(key, value interface{}) bool {
+		m[key.(int32)] = value.(bool)
+		return true
+	})
+	return m
+}
+
 func verifyAssignedHostPorts(portRegistry *PortRegistry, assignedHostPorts map[int32]bool) {
+	Expect(len(portRegistry.HostPorts)).Should(Equal(int(portRegistry.Max - portRegistry.Min + 1)))
 	for hostPort := range assignedHostPorts {
 		val, ok := portRegistry.HostPorts[hostPort]
 		Expect(ok).Should(BeTrue(), fmt.Sprintf("There should be an entry about hostPort %d", hostPort))
 		Expect(val).Should(BeTrue(), fmt.Sprintf("HostPort %d should be registered", hostPort))
 	}
-
 }
 
 func verifyUnassignedHostPorts(portRegistry *PortRegistry, assignedHostPorts map[int32]bool) {
-	Expect(len(portRegistry.HostPorts)).Should(BeNumerically("==", int(portRegistry.Max-portRegistry.Min+1)))
+	Expect(len(portRegistry.HostPorts)).Should(Equal(int(portRegistry.Max - portRegistry.Min + 1)))
 	for hostPort, ok := range portRegistry.HostPorts {
 		if ok { //ignore the assigned ones
 			continue
