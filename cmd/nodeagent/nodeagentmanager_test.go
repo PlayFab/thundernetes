@@ -122,6 +122,8 @@ var _ = Describe("nodeagent tests", func() {
 			if !ok {
 				return false
 			}
+			defer tempgs.(*GameServerDetails).Mutex.RUnlock()
+			tempgs.(*GameServerDetails).Mutex.RLock()
 			return tempgs.(*GameServerDetails).WasActivated && tempgs.(*GameServerDetails).PreviousGameState == GameStateStandingBy
 		}).Should(BeTrue())
 
@@ -203,6 +205,8 @@ var _ = Describe("nodeagent tests", func() {
 				// wait for the update trigger on the watch
 				Eventually(func() bool {
 					tempgs, ok := n.gameServerMap.Load(randomGameServerName)
+					defer tempgs.(*GameServerDetails).Mutex.RUnlock()
+					tempgs.(*GameServerDetails).Mutex.RLock()
 					if !ok {
 						return false
 					}
