@@ -141,10 +141,11 @@ func (pr *PortRegistry) DeregisterServerPorts(ports []int32) error {
 	defer pr.HostPortsMutex.Unlock()
 	pr.HostPortsMutex.Lock()
 	for i := 0; i < len(ports); i++ {
-		if _, ok := pr.HostPorts[ports[i]]; !ok {
-			return fmt.Errorf("port %d is not registered in HostPorts", ports[i])
+		p := ports[i]
+		if _, ok := pr.HostPorts[p]; !ok {
+			return fmt.Errorf("port %d is not registered in HostPorts", p)
 		}
-		pr.HostPorts[ports[i]] = false
+		pr.HostPorts[p] = false
 	}
 	return nil
 }

@@ -55,7 +55,7 @@ var _ = Describe("Port registry tests", Ordered, func() {
 		for i := 0; i < 7; i++ {
 			peekPort, err := peekNextPort(portRegistry)
 			actualPort, _ := portRegistry.GetNewPort()
-			Expect(actualPort).To(BeIdenticalTo(peekPort), fmt.Sprintf("Wrong port returned, peekPort:%d, actualPort:%d", peekPort, actualPort))
+			Expect(actualPort).To(Equal(peekPort), fmt.Sprintf("Wrong port returned, peekPort:%d, actualPort:%d", peekPort, actualPort))
 			Expect(err).ToNot(HaveOccurred())
 
 			registeredPorts[i] = actualPort
@@ -99,7 +99,7 @@ var _ = Describe("Port registry tests", Ordered, func() {
 	It("should return another port", func() {
 		peekPort, err := peekNextPort(portRegistry)
 		actualPort, _ := portRegistry.GetNewPort()
-		Expect(actualPort).To(BeNumerically("==", peekPort), fmt.Sprintf("Wrong port returned, peekPort:%d,actualPort:%d", peekPort, actualPort))
+		Expect(actualPort).To(Equal(peekPort), fmt.Sprintf("Wrong port returned, peekPort:%d,actualPort:%d", peekPort, actualPort))
 		Expect(err).ToNot(HaveOccurred())
 
 		assignedPorts[actualPort] = true
@@ -115,11 +115,11 @@ var _ = Describe("Port registry tests", Ordered, func() {
 	})
 })
 
-var _ = Describe("Port registry with ten thousand ports", func() {
+var _ = Describe("Port registry with one thousand ports", func() {
 	rand.Seed(time.Now().UnixNano())
 	log := logr.FromContextOrDiscard(context.Background())
 	min := int32(20000)
-	max := int32(29999)
+	max := int32(20999)
 	portRegistry, err := NewPortRegistry(mpsv1alpha1.GameServerList{}, min, max, log)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -127,13 +127,13 @@ var _ = Describe("Port registry with ten thousand ports", func() {
 	It("should work with allocating and deallocating ports", func() {
 		go portRegistry.portProducer()
 
-		// allocate all 10000 ports
+		// allocate all 1000 ports
 		var wg sync.WaitGroup
 		for i := 0; i < int(max-min+1); i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				n := rand.Intn(200) + 100 // n will be between 100 and 300
+				n := rand.Intn(200) + 50 // n will be between 50 and 250
 				time.Sleep(time.Duration(n) * time.Millisecond)
 				port, err := portRegistry.GetNewPort()
 				Expect(err).ToNot(HaveOccurred())
@@ -158,12 +158,12 @@ var _ = Describe("Port registry with ten thousand ports", func() {
 		_, err := portRegistry.GetNewPort()
 		Expect(err).To(HaveOccurred())
 
-		//deallocate the 5000 even ports
+		//deallocate the 500 even ports
 		for i := 0; i < int(max-min+1)/2; i++ {
 			wg.Add(1)
 			go func(portToDeallocate int) {
 				defer wg.Done()
-				n := rand.Intn(200) + 100 // n will be between 100 and 300
+				n := rand.Intn(200) + 50 // n will be between 50 and 250
 				time.Sleep(time.Duration(n) * time.Millisecond)
 				err := portRegistry.DeregisterServerPorts([]int32{int32(portToDeallocate)})
 				Expect(err).ToNot(HaveOccurred())
@@ -180,12 +180,12 @@ var _ = Describe("Port registry with ten thousand ports", func() {
 		verifyAssignedHostPorts(portRegistry, m)
 		verifyUnassignedHostPorts(portRegistry, m)
 
-		// allocate 5000 ports
+		// allocate 500 ports
 		for i := 0; i < int(max-min+1)/2; i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				n := rand.Intn(200) + 100 // n will be between 100 and 300
+				n := rand.Intn(200) + 50 // n will be between 50 and 250
 				time.Sleep(time.Duration(n) * time.Millisecond)
 				port, err := portRegistry.GetNewPort()
 				Expect(err).ToNot(HaveOccurred())
