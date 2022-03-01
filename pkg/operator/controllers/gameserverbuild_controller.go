@@ -168,19 +168,15 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return gameServers.Items[i].GetCreationTimestamp().After(gameServers.Items[j].GetCreationTimestamp().Time)
 	})
 
+	nonActiveGameServersCount := standingByCount + initializingCount + pendingCount
+
 	// user has decreased standingBy numbers
-	if pendingCount+initializingCount+standingByCount > gsb.Spec.StandingBy {
-		for i := 0; i < pendingCount+initializingCount+standingByCount-gsb.Spec.StandingBy && i < maxNumberOfGameServersToDelete; i++ {
+	if nonActiveGameServersCount > gsb.Spec.StandingBy {
+		for i := 0; i < nonActiveGameServersCount-gsb.Spec.StandingBy && i < maxNumberOfGameServersToDelete; i++ {
 			gs := gameServers.Items[i]
 			// we're deleting only initializing/pending/standingBy servers, never touching active
 			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
-				// we're requesting the GameServer to be deleted to have the same ResourceVersion
-				// since it might have been updated (e.g. allocated) and the cache hasn't been updated yet
-				if err := r.Delete(ctx, &gs, &client.DeleteOptions{
-					Preconditions: &metav1.Preconditions{
-						ResourceVersion: &gs.ResourceVersion,
-					},
-				}); err != nil {
+				if err := r.deleteGameServer(ctx, &gs); err != nil {
 					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
 						continue
 					}
@@ -194,19 +190,13 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// we need to check if we are above the max
-	// this will happen if the user modifies the spec.Max during the GameServerBuild's lifetime
-	if pendingCount+initializingCount+standingByCount+activeCount > gsb.Spec.Max {
-		for i := 0; i < pendingCount+initializingCount+standingByCount+activeCount-gsb.Spec.Max && i < maxNumberOfGameServersToDelete; i++ {
+	// this can happen if the user modifies the spec.Max during the GameServerBuild's lifetime
+	if nonActiveGameServersCount+activeCount > gsb.Spec.Max {
+		for i := 0; i < nonActiveGameServersCount+activeCount-gsb.Spec.Max && i < maxNumberOfGameServersToDelete; i++ {
 			gs := gameServers.Items[i]
 			// we're deleting only standingBy or initializing servers
 			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
-				// we're requesting the GameServer to be deleted to have the same ResourceVersion
-				// since it might have been updated (e.g. allocated) and the cache hasn't been updated yet
-				if err := r.Delete(ctx, &gs, &client.DeleteOptions{
-					Preconditions: &metav1.Preconditions{
-						ResourceVersion: &gs.ResourceVersion,
-					},
-				}); err != nil {
+				if err := r.deleteGameServer(ctx, &gs); err != nil {
 					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
 						continue
 					}
@@ -218,12 +208,13 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
-	nonActiveGameServersCount := standingByCount + initializingCount + pendingCount
 	// we are in need of standingBy servers, so we're creating them here
 	// we're also limiting the number of game servers that are created to avoid issues like this https://github.com/kubernetes-sigs/controller-runtime/issues/1782
+	// we attempt to create the missing number of game servers, but we don't want to create more than the max
 	for i := 0; i < gsb.Spec.StandingBy-nonActiveGameServersCount &&
 		i+nonActiveGameServersCount+activeCount < gsb.Spec.Max &&
 		i < maxNumberOfGameServersToAdd; i++ {
+
 		newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -240,8 +231,9 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	return r.updateStatus(ctx, &gsb, pendingCount, initializingCount, standingByCount, activeCount, crashesCount)
 }
 
+// updateStatus patches the GameServerBuild's status only if the status of at least one of its GameServers has changed
 func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1alpha1.GameServerBuild, pendingCount, initializingCount, standingByCount, activeCount, crashesCount int) (ctrl.Result, error) {
-	// update GameServerBuild status only if one of the fields has changed
+	// patch GameServerBuild status only if one of the fields has changed
 	if gsb.Status.CurrentPending != pendingCount ||
 		gsb.Status.CurrentInitializing != initializingCount ||
 		gsb.Status.CurrentActive != activeCount ||
@@ -255,17 +247,8 @@ func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1
 		gsb.Status.CurrentActive = activeCount
 		gsb.Status.CurrentStandingBy = standingByCount
 
-		// try and get existing crashesCount from the map
-		// if it doesn't exist, create it with initial value the number of crashes we detected on this reconcile loop
-		key := getKeyForCrashesPerBuildMap(gsb)
-		val, ok := crashesPerBuild.LoadOrStore(key, crashesCount)
-		// if we have existing crashes, get the value
-		var existingCrashes int = 0
-		if ok {
-			existingCrashes = val.(int)
-			// and store the new one
-			crashesPerBuild.Store(key, crashesCount+existingCrashes)
-		}
+		existingCrashes := r.getExistingCrashes(gsb, crashesCount)
+
 		// update the crashesCount status with the new value of total crashes
 		gsb.Status.CrashesCount = existingCrashes + crashesCount
 		gsb.Status.CurrentStandingByReadyDesired = fmt.Sprintf("%d/%d", standingByCount, gsb.Spec.StandingBy)
@@ -390,6 +373,34 @@ func (r *GameServerBuildReconciler) gameServersUnderCreationWereCreated(ctx cont
 	return true, nil
 }
 
+// getKeyForCrashesPerBuildMap returns the key for the map of crashes per build
+// key is namespace/name
 func getKeyForCrashesPerBuildMap(gsb *mpsv1alpha1.GameServerBuild) string {
 	return fmt.Sprintf("%s/%s", gsb.Namespace, gsb.Name)
+}
+
+// deleteGameServer deletes the provided GameServer
+func (r *GameServerBuildReconciler) deleteGameServer(ctx context.Context, gs *mpsv1alpha1.GameServer) error {
+	// we're requesting the GameServer to be deleted to have the same ResourceVersion
+	// since it might have been updated (e.g. allocated) and the cache hasn't been updated yet
+	return r.Client.Delete(ctx, gs, &client.DeleteOptions{
+		Preconditions: &metav1.Preconditions{
+			ResourceVersion: &gs.ResourceVersion,
+		}})
+}
+
+// getTotalCrashes returns the total number of crashes for this GameServerBuild
+func (r *GameServerBuildReconciler) getExistingCrashes(gsb *mpsv1alpha1.GameServerBuild, newCrashesCount int) int {
+	// try and get existing crashesCount from the map
+	// if it doesn't exist, create it with initial value the number of crashes we detected on this reconcile loop
+	key := getKeyForCrashesPerBuildMap(gsb)
+	val, ok := crashesPerBuild.LoadOrStore(key, newCrashesCount)
+	// if we have existing crashes, get the value
+	var existingCrashes int = 0
+	if ok {
+		existingCrashes = val.(int)
+		// and store the new one
+		crashesPerBuild.Store(key, newCrashesCount+existingCrashes)
+	}
+	return existingCrashes
 }
