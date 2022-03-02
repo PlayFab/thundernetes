@@ -34,7 +34,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("heartbeat with empty body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", nil)
 		w := httptest.NewRecorder()
-		n := NewNodeAgentManager(newDynamicInterface(), testNodeName)
+		n := NewNodeAgentManager(newDynamicInterface(), testNodeName, false)
 		n.heartbeatHandler(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -47,7 +47,7 @@ var _ = Describe("nodeagent tests", func() {
 		b, _ := json.Marshal(hb)
 		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", bytes.NewReader(b))
 		w := httptest.NewRecorder()
-		n := NewNodeAgentManager(newDynamicInterface(), testNodeName)
+		n := NewNodeAgentManager(newDynamicInterface(), testNodeName, false)
 		n.heartbeatHandler(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -65,7 +65,7 @@ var _ = Describe("nodeagent tests", func() {
 		w := httptest.NewRecorder()
 		dynamicClient := newDynamicInterface()
 
-		n := NewNodeAgentManager(dynamicClient, testNodeName)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
@@ -92,7 +92,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("should transition properly from standingBy to Active", func() {
 		dynamicClient := newDynamicInterface()
 
-		n := NewNodeAgentManager(dynamicClient, testNodeName)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
@@ -122,7 +122,7 @@ var _ = Describe("nodeagent tests", func() {
 			if !ok {
 				return false
 			}
-			return tempgs.(*GameServerDetails).WasActivated && tempgs.(*GameServerDetails).PreviousGameState == GameStateStandingBy
+			return tempgs.(*GameServerDetails).IsActive && tempgs.(*GameServerDetails).PreviousGameState == GameStateStandingBy
 		}).Should(BeTrue())
 
 		// heartbeat from the game is still StandingBy
@@ -145,7 +145,7 @@ var _ = Describe("nodeagent tests", func() {
 		_ = json.Unmarshal(resBody, &hbr)
 		Expect(hbr.Operation).To(Equal(GameOperationActive))
 
-		// next heartbeat response should be active as well
+		// next heartbeat response should be continue
 		hb = &HeartbeatRequest{
 			CurrentGameState:  GameStateActive, // heartbeat is now active
 			CurrentGameHealth: "Healthy",
@@ -162,15 +162,15 @@ var _ = Describe("nodeagent tests", func() {
 		hbr = HeartbeatResponse{}
 		err = json.Unmarshal(resBody, &hbr)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(hbr.Operation).To(Equal(GameOperationActive))
+		Expect(hbr.Operation).To(Equal(GameOperationContinue))
 	})
 	It("should handle a lot of simultaneous heartbeats from different game servers", func() {
 		rand.Seed(time.Now().UnixNano())
 
 		var wg sync.WaitGroup
 		dynamicClient := newDynamicInterface()
-		n := NewNodeAgentManager(dynamicClient, testNodeName)
-		for i := 0; i < 500; i++ {
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false)
+		for i := 0; i < 100; i++ {
 			wg.Add(1)
 			go func(randomGameServerName string) {
 				defer GinkgoRecover()
@@ -206,7 +206,7 @@ var _ = Describe("nodeagent tests", func() {
 					if !ok {
 						return false
 					}
-					return tempgs.(*GameServerDetails).WasActivated && tempgs.(*GameServerDetails).PreviousGameState == GameStateStandingBy
+					return tempgs.(*GameServerDetails).IsActive && tempgs.(*GameServerDetails).PreviousGameState == GameStateStandingBy
 				}).Should(BeTrue())
 
 				// heartbeat from the game is still StandingBy
@@ -229,7 +229,7 @@ var _ = Describe("nodeagent tests", func() {
 				_ = json.Unmarshal(resBody, &hbr)
 				Expect(hbr.Operation).To(Equal(GameOperationActive))
 
-				// next heartbeat response should be active as well
+				// next heartbeat response should be continue
 				hb = &HeartbeatRequest{
 					CurrentGameState:  GameStateActive, // heartbeat is now active
 					CurrentGameHealth: "Healthy",
@@ -246,7 +246,7 @@ var _ = Describe("nodeagent tests", func() {
 				hbr = HeartbeatResponse{}
 				err = json.Unmarshal(resBody, &hbr)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(hbr.Operation).To(Equal(GameOperationActive))
+				Expect(hbr.Operation).To(Equal(GameOperationContinue))
 
 			}(randStringRunes(10))
 			wg.Wait()

@@ -11,20 +11,24 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// internalServerError writes an internal server error to the response
 func internalServerError(w http.ResponseWriter, err error, msg string) {
 	log.Debugf("Error %s because of %s \n", msg, err.Error())
 	w.WriteHeader(http.StatusInternalServerError)
 	w.Write([]byte("500 - " + msg + " " + err.Error()))
 }
 
+// badRequest writes a bad request error to the response
 func badRequest(w http.ResponseWriter, err error, msg string) {
 	w.WriteHeader(http.StatusBadRequest)
 	w.Write([]byte("400 - " + msg + " " + err.Error()))
 }
 
-func validateHeartbeatRequestArgs(hb *HeartbeatRequest) error {
+// validateHeartbeatRequest validates the heartbeat request
+// returns an error if invalid
+func validateHeartbeatRequest(hb *HeartbeatRequest) error {
 	// some GSDKs (e.g. Unity) send empty string as Health
-	// we should accept it and set it to Healthy, till this is fixed
+	// we should accept it and set it to Healthy
 	if hb.CurrentGameHealth == "" {
 		hb.CurrentGameHealth = "Healthy"
 	}
@@ -38,6 +42,7 @@ func validateHeartbeatRequestArgs(hb *HeartbeatRequest) error {
 	return nil
 }
 
+// initializeKubernetesClient initializes and returns a dynamic Kubernetes client
 func initializeKubernetesClient() (dynamic.Interface, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -51,6 +56,10 @@ func initializeKubernetesClient() (dynamic.Interface, error) {
 	return client, nil
 }
 
+// isValidStateTransition returns true if the transition between the two states is valid
+// transition from "" to Initializing and StandingBy is valid
+// transition from Initializing to StandingBy is valid
+// transition from StandingBy to Active is valid
 func isValidStateTransition(old, new GameState) bool {
 	if old == "" && new == GameStateInitializing {
 		return true
@@ -70,6 +79,7 @@ func isValidStateTransition(old, new GameState) bool {
 	return false
 }
 
+// getLogger returns a logger for the specified game server name and namespace
 func getLogger(gameServerName, gameServerNamespace string) *log.Entry {
 	return log.WithFields(log.Fields{"GameServerName": gameServerName, "GameServerNamespace": gameServerNamespace})
 }

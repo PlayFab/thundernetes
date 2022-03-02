@@ -146,3 +146,5 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.hostIP
+        - name: LOG_LEVEL
+          value: ${LOG_LEVEL}

@@ -10,5 +10,5 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: thundernetes-operator
-  newTag: a7cbf9c
+  newName: docker.io/dgkanatsios/thundernetes-operator
+  newTag: a5c9cbf

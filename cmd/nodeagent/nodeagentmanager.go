@@ -23,15 +23,13 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-var (
-	logEveryHeartbeat = false
-)
-
 const (
 	GameServerName      = "GameServerName"
 	GameServerNamespace = "GameServerNamespace"
-	timeout             = 4
+	defaultTimeout      = 4
 	LabelNodeName       = "NodeName"
+	ErrStateNotExists   = "state does not exist"
+	ErrHealthNotExists  = "health does not exist"
 )
 
 var (
@@ -46,19 +44,26 @@ var (
 	}, []string{"namespace", "name"})
 )
 
+// NodeAgentManager manages the GameServer CRs that reside on this Node
+// these game server process heartbeat to the NodeAgent process
+// There is a two way communication between the game server and the NodeAgent
+// The game server process tells the NodeAgent about its state (if it's Initializing or StandingBy)
+// and NodeAgent tells the game server if it has been allocated (its state having been converted to Active)
 type NodeAgentManager struct {
-	gameServerMap *sync.Map // we use a sync map instead of a regular map since this will be updated by multiple goroutines
-	dynamicClient dynamic.Interface
-	watchStopper  chan struct{}
-	nodeName      string
+	gameServerMap     *sync.Map // we use a sync map instead of a regular map since this will be updated by multiple goroutines
+	dynamicClient     dynamic.Interface
+	watchStopper      chan struct{}
+	nodeName          string
+	logEveryHeartbeat bool
 }
 
-func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string) *NodeAgentManager {
+func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEveryHeartbeat bool) *NodeAgentManager {
 	n := &NodeAgentManager{
-		dynamicClient: dynamicClient,
-		watchStopper:  make(chan struct{}),
-		gameServerMap: &sync.Map{},
-		nodeName:      nodeName,
+		dynamicClient:     dynamicClient,
+		watchStopper:      make(chan struct{}),
+		gameServerMap:     &sync.Map{},
+		nodeName:          nodeName,
+		logEveryHeartbeat: logEveryHeartbeat,
 	}
 	n.startWatch()
 	return n
@@ -85,99 +90,82 @@ func (n *NodeAgentManager) startWatch() {
 // gameServerCreated is called when a GameServer CR is created
 func (n *NodeAgentManager) gameServerCreated(objUnstructured interface{}) {
 	obj := objUnstructured.(*unstructured.Unstructured)
-	gameServerName := obj.GetName()
-	gameServerNamespace := obj.GetNamespace()
-
-	logger := getLogger(gameServerName, gameServerNamespace)
-
-	// we should check if the object already has its .status set with state/health
-	// this can happen if NodeAgent crashes and starts again
-	// in this case, only the Created event will trigger
-	state, health, err := n.parseStateHealth(obj)
-	if err != nil {
-		logger.Warnf("parsing state/health: %s", err.Error())
+	if obj == nil {
+		return
 	}
-
-	var sessionID, sessionCookie string
-	var wasActivated bool = false
-
-	if state == string(GameStateActive) {
-		wasActivated = true
-		//if the saved state is active, this means that NodeAgent crashed and restarted while the GameServer was active
-		sessionID, sessionCookie = n.parseSessionDetails(obj, gameServerName, gameServerNamespace)
-		// we don't do current players since they will be parsed/updated in a subsequent heartbeat
-	}
-
-	n.gameServerMap.Store(gameServerName, &GameServerDetails{
-		GameServerNamespace: gameServerNamespace,
-		Mutex:               &sync.RWMutex{},
-		PreviousGameState:   GameState(state),
-		PreviousGameHealth:  health,
-		SessionID:           sessionID,
-		SessionCookie:       sessionCookie,
-		WasActivated:        wasActivated,
-	})
-
-	logger.Infof("GameServer %s/%s created", gameServerNamespace, gameServerName)
+	n.gameServerCreatedOrUpdated(obj)
 }
 
 // gameServerUpdated is called when a GameServer CR is updated
-func (n *NodeAgentManager) gameServerUpdated(oldObj, newObj interface{}) {
-	ctx := context.Background()
+func (n *NodeAgentManager) gameServerUpdated(_, newObj interface{}) {
+	obj := newObj.(*unstructured.Unstructured)
+	if obj == nil {
+		return
+	}
+	n.gameServerCreatedOrUpdated(obj)
+}
 
-	old := oldObj.(*unstructured.Unstructured)
-	new := newObj.(*unstructured.Unstructured)
-
-	gameServerName := old.GetName()
-	gameServerNamespace := old.GetNamespace()
+// gameServerCreatedOrUpdated is called when a GameServer CR is created or updated
+func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstructured) {
+	gameServerName := obj.GetName()
+	gameServerNamespace := obj.GetNamespace()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout*time.Second)
+	defer cancel()
 
 	logger := getLogger(gameServerName, gameServerNamespace)
 
-	oldState, oldHealth, oldErr := n.parseStateHealth(old)
-	if oldErr != nil {
-		logger.Warnf("error parsing old state/health: %s", oldErr.Error())
-		return
-	}
-
-	newState, newHealth, newErr := n.parseStateHealth(new)
-	if newErr != nil {
-		logger.Warnf("error parsing new state: %s", newErr.Error())
-		return
-	}
-
-	logger.Infof("GameServer CR updated, name: %s, old state:%s, new state:%s, old health:%s, new health: %s", old.GetName(), oldState, newState, oldHealth, newHealth)
-
+	// check if the details for this GameServer exist in the map
 	gsdi, exists := n.gameServerMap.Load(gameServerName)
 
 	if !exists {
-		logger.Errorf("GameServer %s/%s does not exist in map", gameServerNamespace, gameServerName)
+		// details for this GameServer do not exist in the map
+		// this means that either the GameServer was just created
+		// or that the NodeAgent crashed and we're having a new instance
+		// in any case, we're adding the details to the map
+		logger.Infof("GameServer %s/%s does not exist in map, we're creating it", gameServerNamespace, gameServerName)
+		gsdi = &GameServerDetails{
+			GameServerNamespace: gameServerNamespace,
+			Mutex:               &sync.RWMutex{},
+			// we're not adding details about health/state since the NodeAgent might have crashed
+			// and the health/state might have changed during the crash
+		}
+		n.gameServerMap.Store(gameServerName, gsdi)
+	}
+
+	gameServerState, _, err := n.parseStateHealth(obj)
+	if err != nil {
+		logger.Warnf("parsing state/health: %s. This is probably OK if the GameServer was just created", err.Error())
+	}
+
+	// we only care to continue if the state is Active
+	if gameServerState != string(GameStateActive) {
 		return
 	}
 
+	// server is Active, so get session details as well initial players details
+	sessionID, sessionCookie := n.parseSessionDetails(obj, gameServerName, gameServerNamespace)
+	logger.Infof("getting values from allocation - GameServer CR, sessionID:%s, sessionCookie:%s", sessionID, sessionCookie)
+	initialPlayers := n.getInitialPlayers(ctx, gameServerName, gameServerNamespace)
+	logger.Infof("getting values from allocation GameServerDetail CR, initialPlayers:%#v", initialPlayers)
+
+	// get a reference to the GameServerDetails instance for this GameServer
 	gsd := gsdi.(*GameServerDetails)
 
-	GameServerStates.WithLabelValues(gameServerName, newState).Set(1)
+	// we are setting the current state to 1 and the previous to zero (if exists)
+	// in this way, we can add all the "1"s together to get a total number of GameServers in a specific state
+	GameServerStates.WithLabelValues(gameServerName, gameServerState).Set(1)
 	if gsd.PreviousGameState != "" {
 		GameServerStates.WithLabelValues(gameServerName, string(gsd.PreviousGameState)).Set(0)
 	}
 
-	// we're only interested if the game server was allocated
-	if gsd.PreviousGameState == GameStateStandingBy && newState == string(GameStateActive) {
-		sessionID, sessionCookie := n.parseSessionDetails(new, gameServerName, gameServerNamespace)
-		logger.Infof("setting values from allocation - GameServer CR, sessionID:%s, sessionCookie:%s", sessionID, sessionCookie)
-
-		initialPlayers := n.getInitialPlayers(ctx, gameServerName, gameServerNamespace)
-		logger.Infof("setting values from allocation GameServerDetail CR, initialPlayers:%#v", initialPlayers)
-
-		gsd.Mutex.Lock()
-		defer gsd.Mutex.Unlock()
-		// we don't modify the state (should be StandingBy)
-		// we mark it as allocated plus add session details
-		gsd.WasActivated = true
-		gsd.SessionCookie = sessionCookie
-		gsd.SessionID = sessionID
-		gsd.InitialPlayers = initialPlayers
-	}
+	gsd.Mutex.Lock()
+	defer gsd.Mutex.Unlock()
+	// we mark the server as allocated plus add session details
+	// we're locking the mutex so the heartbeat handler method won't read this data at the same time
+	gsd.IsActive = true
+	gsd.SessionCookie = sessionCookie
+	gsd.SessionID = sessionID
+	gsd.InitialPlayers = initialPlayers
 }
 
 // gameServerDeleted is called when a GameServer CR is deleted
@@ -191,10 +179,15 @@ func (n *NodeAgentManager) gameServerDeleted(objUnstructured interface{}) {
 		GameServerNamespace: gameServerNamespace,
 	}).Infof("GameServer %s/%s deleted", gameServerNamespace, gameServerName)
 
+	// Delete is a no-op if the GameServer is not in the map
 	n.gameServerMap.Delete(gameServerName)
 }
 
 // heartbeatHandler is the http handler handling heartbeats from the GameServer Pods running on this Node
+// it responds by sending intructions/signal for the next operation
+// on Thundernetes, the only operation that NodeAgent can signal to the GameServer is that the GameServer has been allocated (its state has transitioned to Active)
+// when it's allocated, it will return an "Active" operation
+// in all other cases, it will return "Continue" (which basically means continue doing what you are already doing)
 func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	re := regexp.MustCompile(`.*/v1/sessionHosts\/(.*?)(/heartbeats|$)`)
@@ -209,14 +202,14 @@ func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := validateHeartbeatRequestArgs(&hb); err != nil {
+	if err := validateHeartbeatRequest(&hb); err != nil {
 		badRequest(w, err, "invalid heartbeat request")
 		return
 	}
 
 	gsdi, exists := n.gameServerMap.Load(gameServerName)
 	if !exists {
-		// this will probably happen when the GameServer CR is deleted. Pod will probably send some heartbeats before its deleted
+		// this will probably happen when the GameServer CR is deleted. Pod may send some heartbeats before it's deleted
 		internalServerError(w, fmt.Errorf("game server %s not found", gameServerName), "gameserver not found")
 		return
 	}
@@ -224,52 +217,52 @@ func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Reque
 	gsd := gsdi.(*GameServerDetails)
 	logger := getLogger(gameServerName, gsd.GameServerNamespace)
 
-	if logEveryHeartbeat {
+	if n.logEveryHeartbeat {
 		heartbeatString := fmt.Sprintf("%v", hb) // from CodeQL analysis: If unsanitized user input is written to a log entry, a malicious user may be able to forge new log entries.
 		heartbeatString = sanitize(heartbeatString)
 		logger.Infof("heartbeat received from sessionHostId %s, data %s", gameServerName, heartbeatString)
 	}
 
 	if err := n.updateHealthAndStateIfNeeded(ctx, &hb, gameServerName, gsd); err != nil {
-		logger.Errorf("error updating health %s", err.Error())
-		internalServerError(w, err, "error updating health")
+		logger.Errorf("updating health/state %s", err.Error())
+		internalServerError(w, err, "error updating health/state")
 		return
 	}
 
 	if err := n.updateConnectedPlayersIfNeeded(ctx, &hb, gameServerName, gsd); err != nil {
-		logger.Errorf("error updating connected players count %s", err.Error())
+		logger.Errorf("updating connected players count %s", err.Error())
 		internalServerError(w, err, "error updating connected players count")
 		return
 	}
 
-	// read the previous game state
-	// in most cases we're gonna return continue
 	gsd.Mutex.RLock()
-	heartbeatResponseState := gsd.PreviousGameState
-	wasActivated := gsd.WasActivated
-	gsd.Mutex.RUnlock()
-
-	// game server was just allocated, so we have to signal this to the game server (return GameStateActive instead of GameStateContinue)
-	if heartbeatResponseState == GameStateStandingBy && wasActivated {
-		gsd.Mutex.Lock()
-		gsd.PreviousGameState = GameStateActive
-		heartbeatResponseState = GameStateActive
-		gsd.Mutex.Unlock()
-	}
-
+	// check if the game server is active
+	isActive := gsd.IsActive
+	// get the session details (if any)
 	sc := &SessionConfig{
 		SessionId:      gsd.SessionID,
 		SessionCookie:  gsd.SessionCookie,
 		InitialPlayers: gsd.InitialPlayers,
 	}
+	gsd.Mutex.RUnlock()
 
+	operation := GameOperationContinue
+	// game server process internal state is StandingBy
+	// but the GameServer CR state is Active, so the server was just allocated
+	// in this case, we have to signal the transition to Active to the game server process
+	if hb.CurrentGameState == GameStateStandingBy && isActive {
+		logger.Debugf("GameServer %s is transitioning to Active", gameServerName)
+		operation = GameOperationActive
+	}
+
+	// prepare the heartbeat response
+	// this includes the current designated operation as well as any session configuration
 	hr := &HeartbeatResponse{
-		Operation:     n.getOperation(heartbeatResponseState),
+		Operation:     operation,
 		SessionConfig: *sc,
 	}
 
 	json, err := json.Marshal(hr)
-
 	if err != nil {
 		internalServerError(w, err, "error marshalling heartbeat response")
 		return
@@ -288,35 +281,52 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 		return nil
 	}
 
+	// the following can happen if the NodeAgent crashes while the game server is Active, so the cache will be empty
+	// in this case, we should update the cache with the Active state
+	// so that the update methods below can work appropriately
+	if hb.CurrentGameState == GameStateActive && gsd.PreviousGameState == "" {
+		gsd.Mutex.Lock()
+		logger.Info("GameServer is Active and previous state is empty - NodeAgent probably crashed and restarted")
+		gsd.PreviousGameState = GameStateActive
+		gsd.Mutex.Unlock()
+	}
+
 	ok := isValidStateTransition(gsd.PreviousGameState, hb.CurrentGameState)
 	if !ok {
 		return fmt.Errorf("invalid state transition from %s to %s", gsd.PreviousGameState, hb.CurrentGameState)
 	}
 
-	logger.Debugf("Health or state is different than before, updating. Old health %s, new health %s, old state %s, new state %s", sanitize(gsd.PreviousGameHealth), sanitize(hb.CurrentGameHealth), sanitize(string(gsd.PreviousGameState)), sanitize(string(hb.CurrentGameState)))
+	// if the previous cached state is StandingBy and the current state is Active,
+	// this means that the GameServer was allocated and we are in the process of handling the first heartbeat
+	// in this case, there is no need to update the GameServer CR status with the new state
+	// since it's already set to Active, otherwise the game server would not have been allocated
+	if !(gsd.PreviousGameState == GameStateStandingBy && hb.CurrentGameState == GameStateActive && gsd.PreviousGameHealth == hb.CurrentGameHealth) {
+		logger.Debugf("Health or state is different than before, updating. Old health: %s, new health: %s, old state: %s, new state: %s", sanitize(gsd.PreviousGameHealth), sanitize(hb.CurrentGameHealth), sanitize(string(gsd.PreviousGameState)), sanitize(string(hb.CurrentGameState)))
 
-	// the reason we're using unstructured to serialize the GameServerStatus is that we don't want extra fields (.Spec, .ObjectMeta) to be serialized
-	u := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"status": mpsv1alpha1.GameServerStatus{
-				State:  mpsv1alpha1.GameServerState(hb.CurrentGameState),
-				Health: mpsv1alpha1.GameServerHealth(hb.CurrentGameHealth),
+		// the reason we're using unstructured to serialize the GameServerStatus instead of the entire GameServer object
+		// is that we don't want extra fields (.Spec, .ObjectMeta) to be serialized
+		u := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"status": mpsv1alpha1.GameServerStatus{
+					State:  mpsv1alpha1.GameServerState(hb.CurrentGameState),
+					Health: mpsv1alpha1.GameServerHealth(hb.CurrentGameHealth),
+				},
 			},
-		},
-	}
+		}
 
-	// this will be marshaled as payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\",\"state\":\"%s\"}}", hb.CurrentGameHealth, hb.CurrentGameState)
-	payloadBytes, err := json.Marshal(u)
+		// this will be marshaled as payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\",\"state\":\"%s\"}}", hb.CurrentGameHealth, hb.CurrentGameState)
+		payloadBytes, err := json.Marshal(u)
 
-	if err != nil {
-		return err
-	}
+		if err != nil {
+			return err
+		}
 
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*timeout)
-	defer cancel()
-	_, err = n.dynamicClient.Resource(gameserverGVR).Namespace(gsd.GameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
-	if err != nil {
-		return err
+		ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*defaultTimeout)
+		defer cancel()
+		_, err = n.dynamicClient.Resource(gameserverGVR).Namespace(gsd.GameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
+		if err != nil {
+			return err
+		}
 	}
 
 	gsd.Mutex.Lock()
@@ -330,7 +340,7 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 // getInitialPlayers returns the initial players from the unstructured GameServerDetail CR
 func (n *NodeAgentManager) getInitialPlayers(ctx context.Context, gameServerName, gameServerNamespace string) []string {
 	logger := getLogger(gameServerName, gameServerNamespace)
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*timeout)
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*defaultTimeout)
 	defer cancel()
 	obj, err := n.dynamicClient.Resource(gameserverDetailGVR).Namespace(gameServerNamespace).Get(ctxWithTimeout, gameServerName, metav1.GetOptions{})
 	if err != nil {
@@ -368,7 +378,7 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 	for i := 0; i < len(hb.CurrentPlayers); i++ {
 		currentPlayerIDs[i] = hb.CurrentPlayers[i].PlayerId
 	}
-	logger.Infof("ConnectedPlayersCount is different than before, updating. Old connectedPlayersCount %d, new connectedPlayersCount %d", gsd.ConnectedPlayersCount, len(hb.CurrentPlayers))
+	logger.Infof("ConnectedPlayersCount is different than before, updating. Old connectedPlayersCount: %d, new connectedPlayersCount: %d", gsd.ConnectedPlayersCount, len(hb.CurrentPlayers))
 
 	gsdPatchSpec := mpsv1alpha1.GameServerDetailSpec{}
 	if connectedPlayersCount == 0 {
@@ -379,7 +389,8 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 		gsdPatchSpec.ConnectedPlayers = currentPlayerIDs
 	}
 
-	// the reason we're using unstructured to serialize the GameServerDetailSpec is that we don't want extra fields (.Status, .ObjectMeta) to be serialized
+	// the reason we're using unstructured to serialize the GameServerDetailSpec instead of the GameServerDetail object
+	// is that we don't want extra fields (.Status, .ObjectMeta) to be serialized
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"spec": gsdPatchSpec,
@@ -392,7 +403,7 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 		return err
 	}
 
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*timeout)
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*defaultTimeout)
 	defer cancel()
 
 	_, err = n.dynamicClient.Resource(gameserverDetailGVR).Namespace(gsd.GameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{})
@@ -415,7 +426,7 @@ func (n *NodeAgentManager) parseSessionDetails(u *unstructured.Unstructured, gam
 	sessionCookie, sessionCookieExists, SessionCookieErr := unstructured.NestedString(u.Object, "status", "sessionCookie")
 
 	if !sessionIDExists || !sessionCookieExists {
-		logger.Debugf("sessionID or sessionCookie do not exist, sessionIDExists:%t, sessionCookieExists:%t", sessionIDExists, sessionCookieExists)
+		logger.Debugf("sessionID or sessionCookie do not exist, sessionIDExists: %t, sessionCookieExists: %t", sessionIDExists, sessionCookieExists)
 	}
 
 	if sessionIDErr != nil {
@@ -438,31 +449,14 @@ func (n *NodeAgentManager) parseStateHealth(u *unstructured.Unstructured) (strin
 		return "", "", stateErr
 	}
 	if !stateExists {
-		return "", "", errors.New("state does not exist")
+		return "", "", errors.New(ErrStateNotExists)
 	}
 
 	if healthErr != nil {
 		return "", "", stateErr
 	}
 	if !healthExists {
-		return "", "", errors.New("health does not exist")
+		return "", "", errors.New(ErrHealthNotExists)
 	}
 	return state, health, nil
-}
-
-// getOperation returns the operation for the heartbeat response
-func (n *NodeAgentManager) getOperation(heartbeatResponseState GameState) GameOperation {
-	var op GameOperation = GameOperationContinue
-	if heartbeatResponseState == GameStateInvalid { // status has not been set yet
-		op = GameOperationContinue
-	} else if heartbeatResponseState == GameStateInitializing {
-		op = GameOperationContinue
-	} else if heartbeatResponseState == GameStateStandingBy {
-		op = GameOperationContinue
-	} else if heartbeatResponseState == GameStateActive {
-		op = GameOperationActive
-	} else if heartbeatResponseState == GameStateTerminated || heartbeatResponseState == GameStateTerminating {
-		op = GameOperationTerminate
-	}
-	return op
 }
