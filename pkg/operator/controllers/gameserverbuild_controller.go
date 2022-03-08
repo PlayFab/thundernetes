@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sort"
 	"sync"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
@@ -161,12 +160,6 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Exited", "GameServer %s session completed", gs.Name)
 		}
 	}
-
-	// we are sorting GameServers from newest to oldest, since newest have more chances of being in an initializing or pending state
-	// prioritizing deletion of newest GameServers, if this is needed
-	sort.SliceStable(gameServers.Items, func(i, j int) bool {
-		return gameServers.Items[i].GetCreationTimestamp().After(gameServers.Items[j].GetCreationTimestamp().Time)
-	})
 
 	nonActiveGameServersCount := standingByCount + initializingCount + pendingCount
 
