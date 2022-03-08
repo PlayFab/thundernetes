@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
@@ -165,7 +166,9 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// user has decreased standingBy numbers
 	if nonActiveGameServersCount > gsb.Spec.StandingBy {
-		for i := 0; i < nonActiveGameServersCount-gsb.Spec.StandingBy && i < maxNumberOfGameServersToDelete; i++ {
+		totalNumberOfGameServersToDelete := int(math.Min(float64(nonActiveGameServersCount-gsb.Spec.StandingBy), maxNumberOfGameServersToDelete))
+		deletedGameServersCount := 0
+		for i := 0; i < int(totalNumberOfGameServersToDelete); i++ {
 			gs := gameServers.Items[i]
 			// we're deleting only initializing/pending/standingBy servers, never touching active
 			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
@@ -175,10 +178,15 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 					}
 					return ctrl.Result{}, err
 				}
+				deletedGameServersCount = deletedGameServersCount + 1
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
 				addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 				r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "GameServer deleted", "GameServer %s deleted", gs.Name)
 			}
+		}
+		if deletedGameServersCount < totalNumberOfGameServersToDelete || nonActiveGameServersCount-gsb.Spec.StandingBy > maxNumberOfGameServersToDelete {
+			log.Info("unable to delete enough gameServers, requeuing", "nonActiveGameServersCount", nonActiveGameServersCount, "gsb.Spec.StandingBy", gsb.Spec.StandingBy, "maxNumberOfGameServersToDelete", maxNumberOfGameServersToDelete)
+			return ctrl.Result{Requeue: true}, nil
 		}
 	}
 
