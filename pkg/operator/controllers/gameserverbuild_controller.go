@@ -167,45 +167,19 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// user has decreased standingBy numbers
 	if nonActiveGameServersCount > gsb.Spec.StandingBy {
 		totalNumberOfGameServersToDelete := int(math.Min(float64(nonActiveGameServersCount-gsb.Spec.StandingBy), maxNumberOfGameServersToDelete))
-		deletedGameServersCount := 0
-		for i := 0; i < int(totalNumberOfGameServersToDelete); i++ {
-			gs := gameServers.Items[i]
-			// we're deleting only initializing/pending/standingBy servers, never touching active
-			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
-				if err := r.deleteGameServer(ctx, &gs); err != nil {
-					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
-						continue
-					}
-					return ctrl.Result{}, err
-				}
-				deletedGameServersCount = deletedGameServersCount + 1
-				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
-				addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
-				r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "GameServer deleted", "GameServer %s deleted", gs.Name)
-			}
-		}
-		if deletedGameServersCount < totalNumberOfGameServersToDelete || nonActiveGameServersCount-gsb.Spec.StandingBy > maxNumberOfGameServersToDelete {
-			log.Info("unable to delete enough gameServers, requeuing", "nonActiveGameServersCount", nonActiveGameServersCount, "gsb.Spec.StandingBy", gsb.Spec.StandingBy, "maxNumberOfGameServersToDelete", maxNumberOfGameServersToDelete)
-			return ctrl.Result{Requeue: true}, nil
+		err := r.deleteNonActiveGameServers(ctx, &gsb, &gameServers, totalNumberOfGameServersToDelete)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 
 	// we need to check if we are above the max
 	// this can happen if the user modifies the spec.Max during the GameServerBuild's lifetime
 	if nonActiveGameServersCount+activeCount > gsb.Spec.Max {
-		for i := 0; i < nonActiveGameServersCount+activeCount-gsb.Spec.Max && i < maxNumberOfGameServersToDelete; i++ {
-			gs := gameServers.Items[i]
-			// we're deleting only standingBy or initializing servers
-			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
-				if err := r.deleteGameServer(ctx, &gs); err != nil {
-					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
-						continue
-					}
-					return ctrl.Result{}, err
-				}
-				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
-				addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
-			}
+		totalNumberOfGameServersToDelete := int(math.Min(float64(nonActiveGameServersCount+activeCount-gsb.Spec.Max), maxNumberOfGameServersToDelete))
+		err := r.deleteNonActiveGameServers(ctx, &gsb, &gameServers, totalNumberOfGameServersToDelete)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -378,6 +352,31 @@ func (r *GameServerBuildReconciler) gameServersUnderCreationWereCreated(ctx cont
 // key is namespace/name
 func getKeyForCrashesPerBuildMap(gsb *mpsv1alpha1.GameServerBuild) string {
 	return fmt.Sprintf("%s/%s", gsb.Namespace, gsb.Name)
+}
+
+// deleteNonActiveGameServers loops through all the GameServers CRs and deletes non-Active ones
+func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Context,
+	gsb *mpsv1alpha1.GameServerBuild,
+	gameServers *mpsv1alpha1.GameServerList,
+	totalNumberOfGameServersToDelete int) error {
+	deletedGameServersCount := 0
+	for i := 0; i < len(gameServers.Items) && deletedGameServersCount < totalNumberOfGameServersToDelete; i++ {
+		gs := gameServers.Items[i]
+		// we're deleting only initializing/pending/standingBy servers, never touching active
+		if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
+			if err := r.deleteGameServer(ctx, &gs); err != nil {
+				if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
+					continue
+				}
+				return err
+			}
+			deletedGameServersCount = deletedGameServersCount + 1
+			GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
+			addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
+			r.Recorder.Eventf(gsb, corev1.EventTypeNormal, "GameServer deleted", "GameServer %s deleted", gs.Name)
+		}
+	}
+	return nil
 }
 
 // deleteGameServer deletes the provided GameServer
