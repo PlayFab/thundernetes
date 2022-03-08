@@ -286,7 +286,7 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 	// so that the update methods below can work appropriately
 	if hb.CurrentGameState == GameStateActive && gsd.PreviousGameState == "" {
 		gsd.Mutex.Lock()
-		logger.Info("GameServer is Active and previous state is empty - NodeAgent probably crashed and restarted")
+		logger.Info("GameServer is Active and previous state is empty, NodeAgent probably crashed and restarted. Manually setting previous state to Active")
 		gsd.PreviousGameState = GameStateActive
 		gsd.Mutex.Unlock()
 	}
