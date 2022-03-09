@@ -4,9 +4,9 @@
 ![](https://img.shields.io/badge/status-alpha-red.svg)
 [![CodeQL](https://github.com/PlayFab/thundernetes/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/PlayFab/thundernetes/actions/workflows/codeql-analysis.yml)
 
-# thundernetes
+# (code name) thundernetes
 
-> thundernetes is an experimental project and not recommended for production use. However, feel free to try it and let us know of any feedback!
+> Thundernetes is an experimental project and not recommended for production use. However, feel free to try it and let us know of any feedback! Thundernetes is a [code name](https://github.com/PlayFab/thundernetes/issues/177), project will soon have a new name!
 
 ## Description
 
