@@ -34,6 +34,10 @@ spec:
           image: controller:latest
           imagePullPolicy: IfNotPresent
           env:
+            - name: MIN_PORT
+              value: "10000"
+            - name: MAX_PORT
+              value: "12000"
             - name: API_SERVICE_SECURITY
               value: ${API_SERVICE_SECURITY}
             - name: THUNDERNETES_INIT_CONTAINER_IMAGE

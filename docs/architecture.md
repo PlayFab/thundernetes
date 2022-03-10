@@ -50,7 +50,9 @@ If you currently have [Prometheus](https://prometheus.io) & [Grafana](https://gr
 
 ## Port allocation
 
-Thundernetes requires ports in the range 10000-50000 to be open in the cluster (i.e. in the case of Azure Kubernetes Service, this port range must allow incoming traffic in the corresponding Network Security Group). Each GameServerBuild contains the *portsToExpose* field, which contains information about the port(s) that each GameServer listens to. When the GameServer Pod is created, each port in the *portsToExpose* field will be assigned a port in the range 10000-5000 (let's call it an external port) via a PortRegistry mechanism in the thundernetes controller. Game clients can send traffic to this external port and this will be forwarded to the game server container port. Once the GameServer session ends, the port is returned back to the pool of available ports and may be re-used in the future.
+Thundernetes requires ports in the range 10000-12000 to be open in the cluster (i.e. in the case of Azure Kubernetes Service, this port range must allow incoming traffic in the corresponding Network Security Group). This port range is configurable, check [here](howtos/configureportrange.md) for details. 
+
+Each GameServerBuild contains the *portsToExpose* field, which contains information about the port(s) that each GameServer listens to. When the GameServer Pod is created, each port in the *portsToExpose* field will be assigned a port in the (default) range 10000-12000 (let's call it an external port) via a PortRegistry mechanism in the thundernetes controller. Game clients can send traffic to this external port and this will be forwarded to the game server container port. Once the GameServer session ends, the port is returned back to the pool of available ports and may be re-used in the future.
 
 > Each port that is allocated by the PortRegistry is assigned to HostPort field of the Pod's definition. The fact that Nodes in the cluster have a Public IP makes this port accessible outside the cluster.
 

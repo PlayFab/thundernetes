@@ -28,11 +28,6 @@ const (
 	DataVolumeName      = "gsdkdata"
 	DataVolumeMountPath = "/gsdkdata"
 
-	// MinPort is minimum Port Number
-	MinPort int32 = 10000
-	// MaxPort is maximum Port Number
-	MaxPort int32 = 50000
-
 	RandStringSize = 5
 
 	LabelBuildID          = "BuildID"
