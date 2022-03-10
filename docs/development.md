@@ -1,3 +1,9 @@
+---
+layout: default
+title: Development
+nav_order: 9
+---
+
 # Development
 
 ## Release new thundernetes version

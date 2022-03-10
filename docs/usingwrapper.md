@@ -1,3 +1,9 @@
+---
+layout: default
+title: Using a wrapper utility
+nav_order: 3
+---
+
 # Using a wrapper utility 
 
 ## Mpswrapper
