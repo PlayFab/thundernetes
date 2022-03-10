@@ -1,3 +1,9 @@
+---
+layout: default
+title: Quickstart
+nav_order: 2
+---
+
 # Quickstart
 
 We've tested thundernetes on Azure Kubernetes Service (AKS) version 1.20.7 and 1.20.9 and [kind](https://kind.sigs.k8s.io/) but it can theoretically be installed on any Kubernetes cluster, optionally supporting Public IP per Node (which is something you want if you want to expose your game servers outside the cluster). Read the relevant section depending on where you want to install thundernetes.

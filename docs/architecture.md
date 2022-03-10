@@ -1,3 +1,9 @@
+---
+layout: default
+title: Architecture
+nav_order: 7
+---
+
 # Architecture
 
 This document describes the architecture of thundernetes as well as various design notes that are relevant to its implementation.

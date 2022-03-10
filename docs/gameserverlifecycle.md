@@ -1,3 +1,9 @@
+---
+layout: default
+title: Game Server lifecycle
+nav_order: 5
+---
+
 # Game Server lifecycle
 
 This document contains information about GSDK and how it affects the game server lifecycle on thundernetes.
@@ -25,7 +31,7 @@ You can view the states of your GameServers by typing `kubectl get gs`. The stat
 - **StandingBy**: GameServer transitions to this state when it calls the **ReadyForPlayers()** GSDK method. This state implies that the GameServer has loaded all the necessary assets and its ready for allocation.
 - **Active**: GameServer transitions to this state when it is [allocated](quickstart.md#allocate-a-game-server). This state implies that players can connect to the game server.
 
-GameServer process can terminate either gracefully or via a crash. This can happen at any state. Thundernetes will remove the Pod running this GameServer and will create a new one in its place. User is responsible for collecting logs while the Pod is running. Check [here](FAQ.md#grab-gameserver-logs) on how to do this.
+GameServer process can terminate either gracefully or via a crash. This can happen at any state. Thundernetes will remove the Pod running this GameServer and will create a new one in its place. User is responsible for collecting logs while the Pod is running. Check [here](howtos/gameserverlogs.md) on how to do this.
 
 > GameServer can never transition to StandingBy state from Active state. The only way to get a new game server in StandingBy state is if the GameServer process exits.
 > If the game server process crashes for more than `crashesToMarkUnhealthy` times (specified in the GameServerBuild spec, default value 5), then no more operations will be performed on the GameServerBuild. 

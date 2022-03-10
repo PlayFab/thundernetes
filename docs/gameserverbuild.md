@@ -1,3 +1,9 @@
+---
+layout: default
+title: GameServerBuild
+nav_order: 6
+---
+
 # GameServerBuild definition
 
 GameServerBuild defines the amount and the specification of the GameServers that you want to run in the cluster.

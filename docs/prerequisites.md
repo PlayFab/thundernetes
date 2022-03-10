@@ -1,3 +1,9 @@
+---
+layout: default
+title: Prerequisites
+nav_order: 10
+---
+
 # Prerequisites
 
 ## thundernetes foundational knowledge. 💖
