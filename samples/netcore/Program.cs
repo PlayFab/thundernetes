@@ -23,17 +23,14 @@ namespace netcore
             GameserverSDK.RegisterHealthCallback(IsHealthy);
             GameserverSDK.RegisterMaintenanceCallback(OnMaintenanceScheduled);
             
-            IDictionary<string, string> initialConfig = GameserverSDK.getConfigSettings();
-            // Start the http server
-            if (initialConfig?.ContainsKey(httpPortKey) == true)
+            var gameServerConnectionInfo = GameserverSDK.GetGameServerConnectionInfo();
+            var portInfo = gameServerConnectionInfo.GamePortsConfiguration.Where(x=>x.Name == httpPortKey);
+            if(portInfo.Count() == 0)
             {
-                httpPort = int.Parse(initialConfig[httpPortKey]);
-            }
-            else
-            {
-                Console.WriteLine("Cannot find gameport in GSDK Config Settings. Check your YAML definition");
+                Console.WriteLine("No port info found for " + httpPortKey);
                 return;
             }
+            httpPort = portInfo.Single().ServerListeningPort;
 
             Console.WriteLine($"Welcome to fake game server!");
             if(args.Length > 0)
