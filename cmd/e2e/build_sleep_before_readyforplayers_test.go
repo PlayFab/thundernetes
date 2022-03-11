@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -105,41 +104,12 @@ var _ = Describe("Build which sleeps before calling GSDK ReadyForPlayers", func(
 // createBuildWithSleepBeforeReadyForPlayers creates a build which game server process will sleep for a while before it calls ReadyForPlayers
 // useful to track the Initializing state of the GameServers
 func createBuildWithSleepBeforeReadyForPlayers(buildName, buildID, img string) *mpsv1alpha1.GameServerBuild {
-	return &mpsv1alpha1.GameServerBuild{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildName,
-			Namespace: testNamespace,
-		},
-		Spec: mpsv1alpha1.GameServerBuildSpec{
-			BuildID:       buildID,
-			TitleID:       "1E03",
-			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: containerName, PortName: portKey}},
-			StandingBy:    2,
-			Max:           4,
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Image:           img,
-							Name:            containerName,
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          portKey,
-									ContainerPort: 80,
-								},
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "SLEEP_BEFORE_READY_FOR_PLAYERS",
-									Value: "true",
-								},
-							},
-						},
-					},
-				},
-			},
+	gsb := createTestBuild(buildName, buildID, img)
+	gsb.Spec.Template.Spec.Containers[0].Env = []corev1.EnvVar{
+		{
+			Name:  "SLEEP_BEFORE_READY_FOR_PLAYERS",
+			Value: "true",
 		},
 	}
-
+	return gsb
 }

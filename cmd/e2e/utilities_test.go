@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -432,4 +433,38 @@ func verifyGameServerDetail(ctx context.Context, kubeClient client.Client, gameS
 	}
 
 	return nil
+}
+
+// createTestBuild creates a GameServerBuild with the given name and ID.
+func createTestBuild(buildName, buildID, img string) *mpsv1alpha1.GameServerBuild {
+	return &mpsv1alpha1.GameServerBuild{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      buildName,
+			Namespace: testNamespace,
+		},
+		Spec: mpsv1alpha1.GameServerBuildSpec{
+			BuildID:       buildID,
+			TitleID:       "1E03",
+			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: containerName, PortName: portKey}},
+			StandingBy:    2,
+			Max:           4,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Image:           img,
+							Name:            containerName,
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          portKey,
+									ContainerPort: 80,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }

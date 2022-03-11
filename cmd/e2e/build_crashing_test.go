@@ -7,8 +7,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -89,36 +87,8 @@ var _ = Describe("Crashing Build", func() {
 
 // createCrashingBuild creates a build which contains game servers that will crash on start
 func createCrashingBuild(buildName, buildID, img string) *mpsv1alpha1.GameServerBuild {
-	return &mpsv1alpha1.GameServerBuild{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildName,
-			Namespace: testNamespace,
-		},
-		Spec: mpsv1alpha1.GameServerBuildSpec{
-			BuildID:                buildID,
-			TitleID:                "1E03",
-			PortsToExpose:          []mpsv1alpha1.PortToExpose{{ContainerName: containerName, PortName: portKey}},
-			StandingBy:             2,
-			Max:                    4,
-			CrashesToMarkUnhealthy: 5,
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Image:           img,
-							Name:            containerName,
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Command:         []string{"/bin/sh", "-c", "sleep 2 && command_that_does_not_exist"},
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          portKey,
-									ContainerPort: 80,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+	gsb := createTestBuild(buildName, buildID, img)
+	gsb.Spec.Template.Spec.Containers[0].Command = []string{"/bin/sh", "-c", "sleep 2 && command_that_does_not_exist"}
+	gsb.Spec.CrashesToMarkUnhealthy = 5
+	return gsb
 }
