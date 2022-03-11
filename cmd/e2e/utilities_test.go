@@ -30,16 +30,17 @@ import (
 var connectedPlayers = []string{"Amie", "Ken", "Dimitris"} // this should the same as in the netcore sample
 
 const (
-	testNamespace                  = "e2e"
-	connectedPlayersCount          = 3 // this should the same as in the netcore sample
-	LabelBuildID                   = "BuildID"
-	invalidStatusCode       string = "invalid status code"
-	containerName           string = "netcore-sample" // this must be the same as the GameServer name
-	nodeAgentName           string = "nodeagent"
-	portKey                 string = "gameport"
-	safeToEvictPodAttribute string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
-	timeout                        = time.Second * 30
-	interval                       = time.Millisecond * 250
+	testNamespace                      = "e2e"
+	connectedPlayersCount              = 3 // this should the same as in the netcore sample
+	LabelBuildID                       = "BuildID"
+	invalidStatusCode           string = "invalid status code"
+	containerName               string = "netcore-sample" // this must be the same as the GameServer name
+	nodeAgentName               string = "nodeagent"
+	portKey                     string = "gameport"
+	safeToEvictPodAttribute     string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
+	timeout                            = time.Second * 30
+	interval                           = time.Millisecond * 250
+	thundernetesSystemNamespace        = "thundernetes-system"
 )
 
 type AllocationResult struct {
@@ -67,6 +68,12 @@ func createKubeClient(kubeConfig *rest.Config) (client.Client, error) {
 	return client.New(kubeConfig, client.Options{Scheme: scheme})
 }
 
+// validateThatAllocatedServersHaveReadyForPlayersUnblocked checks the logs for Pods whose parent GameServers are Active
+// the sample netcore application outputs a special string to the output when it's becoming Active
+// so this function
+// 1. checks that the string is present in the logs
+// 2. checks for other logs (like sessionCookie)
+// 3. checks for the presence of the GameServerDetails CR
 func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Context, kubeClient client.Client, coreClient *kubernetes.Clientset, buildID string, activesCount int) error {
 	var gameServers mpsv1alpha1.GameServerList
 	if err := kubeClient.List(ctx, &gameServers, client.MatchingLabels{LabelBuildID: buildID}); err != nil {
@@ -94,7 +101,7 @@ func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Contex
 	}
 	nodeAgentPod := nodeAgentPodList.Items[0]
 
-	nodeAgentLogs, err := getContainerLogs(ctx, coreClient, nodeAgentPod.Name, nodeAgentName, "thundernetes-system")
+	nodeAgentLogs, err := getContainerLogs(ctx, coreClient, nodeAgentPod.Name, nodeAgentName, thundernetesSystemNamespace)
 	if err != nil {
 		return err
 	}
@@ -134,6 +141,8 @@ func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Contex
 	return nil
 }
 
+// stopActiveGameServer find the child Pod for a GameServer and executes a "kill 1" command
+// which essentially kills the root process of container, hence the entire container
 func stopActiveGameServer(ctx context.Context, kubeClient client.Client, coreClient *kubernetes.Clientset, kubeConfig *rest.Config, buildID string) error {
 	var gameServers mpsv1alpha1.GameServerList
 	if err := kubeClient.List(ctx, &gameServers, client.MatchingLabels{LabelBuildID: buildID}); err != nil {
@@ -205,14 +214,6 @@ func executeRemoteCommand(coreClient *kubernetes.Clientset, pod *corev1.Pod, cfg
 		return "", "", err
 	}
 
-	// was removed since it failed on kind on GitHub Action
-	// Put the terminal into raw mode to prevent it echoing characters twice.
-	// oldState, err := terminal.MakeRaw(0)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer terminal.Restore(0, oldState)
-
 	err = exec.Stream(remotecommand.StreamOptions{
 		Stdout: buf,
 		Stderr: errBuf,
@@ -224,6 +225,7 @@ func executeRemoteCommand(coreClient *kubernetes.Clientset, pod *corev1.Pod, cfg
 	return buf.String(), errBuf.String(), nil
 }
 
+// getContainerLogs returns the logs for a running container
 func getContainerLogs(ctx context.Context, coreClient *kubernetes.Clientset, podName, containerName, podNamespace string) (string, error) {
 	podLogOpts := corev1.PodLogOptions{
 		Container: containerName,
@@ -244,6 +246,7 @@ func getContainerLogs(ctx context.Context, coreClient *kubernetes.Clientset, pod
 	return str, nil
 }
 
+// allocate sends a POST request for allocation to the Thundernetes allocation service
 func allocate(buildID, sessionID string, cert tls.Certificate) error {
 	// curl --key ~/private.pem --cert ~/public.pem --insecure -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f5","sessionID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f5"}' https://${IP}:5000/api/v1/allocate
 	tlsConfig := &tls.Config{
@@ -290,6 +293,8 @@ func allocate(buildID, sessionID string, cert tls.Certificate) error {
 	return nil
 }
 
+// verifyGameServerBuildOverall checks the state of the Pods, GameServers and the GameServerBuild
+// returns error if the state is different than the expected
 func verifyGameServerBuildOverall(ctx context.Context, kubeClient client.Client, state buildState) error {
 	if err := verifyPods(ctx, kubeClient, state); err != nil {
 		return err
@@ -303,10 +308,56 @@ func verifyGameServerBuildOverall(ctx context.Context, kubeClient client.Client,
 	return nil
 }
 
+// verifyPodsInHostNetwork checks if the Pods are in hostNetwork and if the containerPort is equal to hostPort
+// for the ports that we want exposed
+func verifyPodsInHostNetwork(ctx context.Context, kubeClient client.Client, gsb *mpsv1alpha1.GameServerBuild, state buildState) error {
+	var pods = corev1.PodList{}
+	opts := []client.ListOption{
+		client.InNamespace(gsb.Namespace),
+		client.MatchingLabels{"BuildName": gsb.Name, "BuildID": gsb.Spec.BuildID},
+	}
+
+	if err := kubeClient.List(ctx, &pods, opts...); err != nil {
+		return err
+	}
+
+	if len(pods.Items) != state.podRunningCount {
+		return fmt.Errorf("pod count is not equal to the expected %d", state.podRunningCount)
+	}
+
+	// for all Pods
+	for _, pod := range pods.Items {
+		if !pod.Spec.HostNetwork {
+			return fmt.Errorf("pod %s is not in host network", pod.Name)
+		}
+		// for all containers in this Pod
+		for _, container := range pod.Spec.Containers {
+			containerName := container.Name
+			for _, portToExpose := range gsb.Spec.PortsToExpose {
+				// get the ports that this container needs exposed, from the GameServerBuild definition
+				if containerName == portToExpose.ContainerName {
+					for _, containerPortMapping := range container.Ports {
+						// found a port
+						if containerPortMapping.Name == portToExpose.PortName {
+							// let's make sure that hostPort is the same as containerPort (work done by the controller)
+							if containerPortMapping.HostPort != containerPortMapping.ContainerPort {
+								return fmt.Errorf("hostPort != containerPort for hostNetwork pod %s container %s, port %s", pod.Name, containerName, portToExpose.PortName)
+							}
+						}
+					}
+				}
+			}
+
+		}
+	}
+	return nil
+}
+
+// verifyGameServerBuild checks if the GameServerBuild current state is equal to the expected
 func verifyGameServerBuild(ctx context.Context, kubeClient client.Client, state buildState) error {
 	gameServerBuild := mpsv1alpha1.GameServerBuild{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: state.buildName, Namespace: testNamespace}, &gameServerBuild); err != nil {
-		panic(err)
+		return err
 	}
 
 	if gameServerBuild.Status.CurrentInitializing != state.initializingCount {
@@ -329,10 +380,11 @@ func verifyGameServerBuild(ctx context.Context, kubeClient client.Client, state 
 	return nil
 }
 
+// verifyGameServers checks if the state of the GameServers is equal to the expected
 func verifyGameServers(ctx context.Context, kubeClient client.Client, state buildState) error {
 	gameServers := mpsv1alpha1.GameServerList{}
 	if err := kubeClient.List(ctx, &gameServers, client.InNamespace(testNamespace)); err != nil {
-		panic(err)
+		return err
 	}
 
 	var observedStandingByCount, observedActiveCount int
@@ -370,6 +422,7 @@ func verifyGameServers(ctx context.Context, kubeClient client.Client, state buil
 	return nil
 }
 
+// verifyGameServerPodEvictionAnnotation checks if the GameServer Pods have the safeToEvict annotation (used by the cluster autoscaler) set appropriately
 func verifyGameServerPodEvictionAnnotation(ctx context.Context, kubeClient client.Client, gameserver mpsv1alpha1.GameServer, safeToEvict string) error {
 	var pod corev1.Pod
 	if err := kubeClient.Get(ctx, types.NamespacedName{Namespace: gameserver.Namespace, Name: gameserver.Name}, &pod); err != nil {
@@ -384,6 +437,7 @@ func verifyGameServerPodEvictionAnnotation(ctx context.Context, kubeClient clien
 	return nil
 }
 
+// verifyPods checks if the Pod state is equal to the expected
 func verifyPods(ctx context.Context, kubeClient client.Client, state buildState) error {
 	pods := corev1.PodList{}
 
@@ -414,6 +468,7 @@ func verifyPods(ctx context.Context, kubeClient client.Client, state buildState)
 	return fmt.Errorf("Expecting %d Pods in state Running, got %d", state.podRunningCount, observedCount)
 }
 
+// verifyGameServerDetail checks if the GameServerDetail CR is valid and has the appropriate state
 func verifyGameServerDetail(ctx context.Context, kubeClient client.Client, gameServerDetailName string, expectedConnectedPlayersCount int, expectedConnectedPlayers []string) error {
 	gameServerDetail := mpsv1alpha1.GameServerDetail{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: gameServerDetailName, Namespace: testNamespace}, &gameServerDetail); err != nil {

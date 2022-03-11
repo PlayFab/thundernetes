@@ -39,6 +39,10 @@ var _ = Describe("Build with hostnetwork", func() {
 				gsbHealth:       mpsv1alpha1.BuildHealthy,
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
+
+			gsb := &mpsv1alpha1.GameServerBuild{}
+			err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithHostNetworkName, Namespace: testNamespace}, gsb)
+			g.Expect(verifyPodsInHostNetwork(ctx, kubeClient, gsb, state)).To(Succeed())
 		}, timeout, interval).Should(Succeed())
 
 		// update the standingBy to 3
@@ -59,6 +63,7 @@ var _ = Describe("Build with hostnetwork", func() {
 				gsbHealth:       mpsv1alpha1.BuildHealthy,
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
+			g.Expect(verifyPodsInHostNetwork(ctx, kubeClient, gsb, state)).To(Succeed())
 		}, timeout, interval).Should(Succeed())
 
 		// allocate a game server
@@ -77,6 +82,7 @@ var _ = Describe("Build with hostnetwork", func() {
 				gsbHealth:       mpsv1alpha1.BuildHealthy,
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
+			g.Expect(verifyPodsInHostNetwork(ctx, kubeClient, gsb, state)).To(Succeed())
 		}, timeout, interval).Should(Succeed())
 
 		Expect(validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, kubeClient, coreClient, testBuildWithHostNetworkID, 1)).To(Succeed())
@@ -95,6 +101,7 @@ var _ = Describe("Build with hostnetwork", func() {
 				gsbHealth:       mpsv1alpha1.BuildHealthy,
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
+			g.Expect(verifyPodsInHostNetwork(ctx, kubeClient, gsb, state)).To(Succeed())
 		}, timeout, interval).Should(Succeed())
 
 	})
