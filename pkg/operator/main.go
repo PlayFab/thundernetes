@@ -176,7 +176,7 @@ func initializePortRegistry(k8sClient client.Client, setupLog logr.Logger) error
 		return err
 	}
 
-	portRegistry, err = controllers.NewPortRegistry(gameServers, int32(minPort), int32(maxPort), setupLog)
+	portRegistry, err = controllers.NewPortRegistry(gameServers, minPort, maxPort, setupLog)
 	if err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func getTlsSecret(k8sClient client.Client, namespace string) ([]byte, []byte, er
 }
 
 // getMinMaxPortFromEnv returns minimum and maximum port from environment variables
-func getMinMaxPortFromEnv() (minPort, maxPort int, err error) {
+func getMinMaxPortFromEnv() (int32, int32, error) {
 	minPortStr := os.Getenv("MIN_PORT")
 	maxPortStr := os.Getenv("MAX_PORT")
 
@@ -211,7 +211,8 @@ func getMinMaxPortFromEnv() (minPort, maxPort int, err error) {
 		// this means that MAX_PORT is set, but not MIN_PORT
 		return 0, 0, errors.New("MIN_PORT env variable is not set")
 	}
-	minPort, err = strconv.Atoi(minPortStr)
+	// we use ParseInt insteaf of Atoi because CodeQL triggered this https://codeql.github.com/codeql-query-help/go/go-incorrect-integer-conversion/
+	minPortParsed, err := strconv.ParseInt(minPortStr, 10, 32)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -220,10 +221,13 @@ func getMinMaxPortFromEnv() (minPort, maxPort int, err error) {
 		// this means that MIN_PORT is set, but not MAX_PORT
 		return 0, 0, errors.New("MAX_PORT env variable is not set")
 	}
-	maxPort, err = strconv.Atoi(maxPortStr)
+	maxPortParsed, err := strconv.ParseInt(maxPortStr, 10, 32)
 	if err != nil {
 		return 0, 0, err
 	}
+
+	minPort := int32(minPortParsed)
+	maxPort := int32(maxPortParsed)
 
 	if minPort >= maxPort {
 		return 0, 0, errors.New("MIN_PORT cannot be greater or equal than MAX_PORT")
