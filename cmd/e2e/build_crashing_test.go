@@ -83,7 +83,7 @@ var _ = Describe("Crashing Build", func() {
 				gsbHealth:         mpsv1alpha1.BuildUnhealthy,
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
-		}, 30*time.Second, interval).Should(Succeed())
+		}, 40*time.Second, interval).Should(Succeed())
 	})
 })
 

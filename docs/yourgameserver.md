@@ -98,7 +98,18 @@ As soon as you build your container image, you should publish it to a container 
 
 ## Using host networking
 
-Thundernetes supports running your GameServer Pods under host networking. To do that, you need to provide a GameServerBuild YAML like [this](../samples/netcore/sample-hostnetwork.yaml), setting the `hostNetwork` value to true on PodSpec template. During Pod creation, thundernetes controllers will override the containerPort with the same value that will be assigned in the hostPort. 
+Thundernetes supports running your GameServer Pods under host networking. To do that, you need to provide a GameServerBuild YAML like [this](http://github.com/playfab/thundernetes/tree/main/samples/netcore/sample-hostnetwork.yaml), setting the `hostNetwork` value to true on PodSpec template. During Pod creation, thundernetes controllers will override the containerPort with the same value that will be assigned in the hostPort. 
+
+You **have to** use the generated port when you instantiate your game server process. To grab the port number, you should use GSDK.
+
+```csharp
+string ListeningPortKey = "nameOfThePortInTheGameServerBuild";
+IDictionary<string, string> initialConfig = GameserverSDK.getConfigSettings();
+if (initialConfig?.ContainsKey(ListeningPortKey) == true)
+{
+  int listeningPort = int.Parse(initialConfig[ListeningPortKey]);
+  // instantiate your game server with the value of the listeningPort
+```
 
 > Unfortunately, it is still necessary to provide a `containerPort` value in the GameServerBuild YAML, since it is required for GameServerBuild validation. However, as mentioned, this provided value is used nowhere since it's overwritten by the `hostPort` value.
 
