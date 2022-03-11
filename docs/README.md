@@ -21,8 +21,9 @@ Thundernetes is a project from the Azure PlayFab Multiplayer Servers (MPS) team 
 - as part of your CI/CD pipeline, you can publish the game server to a container registry and then have it deploy to a Kubernetes cluster where you can run your tests
 - For a game server to be able to run in thundernetes, it must use the PlayFab Game Server SDK (GSDK) either directly on the game server binary or indirectly, via a wrapper.
 
-Thundernetes requires a Kubernetes cluster with Public IP per Node. We've tested it extensively on [Azure Kubernetes Service - AKS](https://docs.microsoft.com/azure/aks/intro-kubernetes) as well as in local clusters using [kind](https://kind.sigs.k8s.io/). You also need to have ports 10000-50000 open in your cluster, since these are the ports that Thundernetes will set up on your Kubernetes Nodes so they can receive game network traffic and forward to your game server Pod.
+Thundernetes requires a Kubernetes cluster with Public IP per Node. We've tested it extensively on [Azure Kubernetes Service - AKS](https://docs.microsoft.com/azure/aks/intro-kubernetes) as well as in local clusters using [kind](https://kind.sigs.k8s.io/). You also need to have ports 10000-12000 open in your cluster, since these are the ports that Thundernetes by default will set up on your Kubernetes Nodes so they can receive game network traffic and forward to your game server Pod. 
 
+> This port range is configurable, check [here](howtos/configureportrange.md) for details. 
 > You can use a Kubernetes cluster without a Public IP. However, you would need to configure your own network architecture if you want to access your game servers. For example, if you use a cloud provider's Load Balancer, you would need to configure routes from Load Balancer's public endpoints to the internal ones on your Kubernetes cluster.
 > You can try Azure Kubernetes Service for free [azure.com/free](https://azure.com/free).
 

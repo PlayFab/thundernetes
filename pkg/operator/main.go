@@ -18,8 +18,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"os"
+	"strconv"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -168,8 +170,13 @@ func initializePortRegistry(k8sClient client.Client, setupLog logr.Logger) error
 		return err
 	}
 
-	var err error
-	portRegistry, err = controllers.NewPortRegistry(gameServers, controllers.MinPort, controllers.MaxPort, setupLog)
+	minPort, maxPort, err := getMinMaxPortFromEnv()
+
+	if err != nil {
+		return err
+	}
+
+	portRegistry, err = controllers.NewPortRegistry(gameServers, minPort, maxPort, setupLog)
 	if err != nil {
 		return err
 	}
@@ -187,4 +194,44 @@ func getTlsSecret(k8sClient client.Client, namespace string) ([]byte, []byte, er
 		return nil, nil, err
 	}
 	return []byte(secret.Data[certificateFileName]), []byte(secret.Data[privateKeyFileName]), nil
+}
+
+// getMinMaxPortFromEnv returns minimum and maximum port from environment variables
+func getMinMaxPortFromEnv() (int32, int32, error) {
+	minPortStr := os.Getenv("MIN_PORT")
+	maxPortStr := os.Getenv("MAX_PORT")
+
+	// if both of them are not set, return default values
+	if minPortStr == "" && maxPortStr == "" {
+		setupLog.Info("MIN_PORT and MAX_PORT environment variables are not set. Using default values 10000 and 12000.")
+		return 10000, 12000, nil
+	}
+
+	if minPortStr == "" {
+		// this means that MAX_PORT is set, but not MIN_PORT
+		return 0, 0, errors.New("MIN_PORT env variable is not set")
+	}
+	// we use ParseInt insteaf of Atoi because CodeQL triggered this https://codeql.github.com/codeql-query-help/go/go-incorrect-integer-conversion/
+	minPortParsed, err := strconv.ParseInt(minPortStr, 10, 32)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if maxPortStr == "" {
+		// this means that MIN_PORT is set, but not MAX_PORT
+		return 0, 0, errors.New("MAX_PORT env variable is not set")
+	}
+	maxPortParsed, err := strconv.ParseInt(maxPortStr, 10, 32)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	minPort := int32(minPortParsed)
+	maxPort := int32(maxPortParsed)
+
+	if minPort >= maxPort {
+		return 0, 0, errors.New("MIN_PORT cannot be greater or equal than MAX_PORT")
+	}
+
+	return minPort, maxPort, nil
 }

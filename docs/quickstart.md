@@ -31,19 +31,23 @@ az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_NAME --f
 # check that cluster is up and running
 export KUBECONFIG=~/.kube/config-thundernetes
 kubectl cluster-info
-# open ports 10000-50000 to the internet, by modifying the Network Security Group (NSG)
+# open ports 10000-12000 to the internet, by modifying the Network Security Group (NSG)
 # check the instructions on the next section
 ```
 
-### Expose ports 10000-50000 to the Internet
+### Expose ports 10000-12000 to the Internet
 
-Thundernetes requires VMs to have Public IPs (so game servers can be accessible) and be able to accept network traffic at port range 10000-50000 from the Internet. To allow that you need to perform the following steps *after your AKS cluster gets created*:
+Thundernetes requires VMs to have Public IPs (so game servers can be accessible) and be able to accept network traffic at port range 10000-12000 from the Internet.
+
+> This port range is configurable, check [here](howtos/configureportrange.md) for details. 
+
+To allow this you need to perform the following steps *after your AKS cluster gets created*:
 
 * Login to the Azure Portal
 * Find the resource group where the AKS resources are kept, it should have a name like `MC_resourceGroupName_AKSName_location`. Alternative, you can type `az resource show --namespace Microsoft.ContainerService --resource-type managedClusters -g $AKS_RESOURCE_GROUP -n $AKS_NAME -o json | jq .properties.nodeResourceGroup` on your shell to find it.
 * Find the Network Security Group object, which should have a name like `aks-agentpool-********-nsg`
 * Select **Inbound Security Rules**
-* Select **Add** to create a new Rule with **Any** as the protocol (you could also select between TCP or UDP, depending on your game) and **10000-50000** as the Destination Port Ranges. Pick a proper name for the rule and leave everything else at their default values
+* Select **Add** to create a new Rule with **Any** as the protocol (you could also select between TCP or UDP, depending on your game) and **10000-12000** as the Destination Port Ranges. Pick a proper name for the rule and leave everything else at their default values
 
 Alternatively, you can use the following command, after setting the `$RESOURCE_GROUP_WITH_AKS_RESOURCES` and `$NSG_NAME` variables with proper values:
 
@@ -57,7 +61,7 @@ az network nsg rule create \
   --direction Inbound \
   --priority 1000 \
   --source-port-range "*" \
-  --destination-port-range 10000-50000
+  --destination-port-range 10000-12000
 ```
 
 Last but not least, don't forget to install kubectl ([instructions](https://kubernetes.io/docs/tasks/tools/#kubectl)) to manage your Kubernetes cluster.
@@ -71,7 +75,7 @@ You can use a variety of options to run Kubernetes locally, either [kind](https:
 * Create a "kind-config.yaml" file to configure the cluster, using the contents listed below. 
 
 Special attention is needed on the ports you will forward (the "containerPort" listed below). First of all, you need to expose port 5000 since this is the port used by the thundernetes GameServer allocation API service. You will use this port to do game server allocations.
-After that, you can optionally specify ports to test your game server by sending traffic to it. Thundernetes dynamically allocates ports for your game server, ranging from 10000 to 50000. Port assignment from this range is sequential. For example, if you use two game servers with each one having a single port, the first game server port will be mapped to port 10000 and the second will be mapped to port 10001. Be aware that if you scale down your GameServerBuild and scale it up again, you probably will not get the same port. Consequently, pay special attention to the ports that you will use in your kind configuration.
+After that, you can optionally specify ports to test your game server by sending traffic to it. Thundernetes dynamically allocates ports for your game server, ranging from 10000 to 12000. Port assignment from this range is sequential. For example, if you use two game servers with each one having a single port, the first game server port will be mapped to port 10000 and the second will be mapped to port 10001. Be aware that if you scale down your GameServerBuild and scale it up again, you probably will not get the same port. Consequently, pay special attention to the ports that you will use in your kind configuration.
 
 Save this content to a file called `kind-config.yaml`.
 
