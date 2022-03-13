@@ -62,7 +62,7 @@ vet: ## Run go vet against code.
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" THUNDERNETES_SAMPLE_IMAGE=$(IMAGE_NAME_SAMPLE):$(NETCORE_SAMPLE_TAG) THUNDERNETES_INIT_CONTAINER_IMAGE=$(IMAGE_NAME_INIT_CONTAINER):$(IMAGE_TAG) go test ./... -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" THUNDERNETES_SAMPLE_IMAGE=$(IMAGE_NAME_SAMPLE):$(NETCORE_SAMPLE_TAG) THUNDERNETES_INIT_CONTAINER_IMAGE=$(IMAGE_NAME_INIT_CONTAINER):$(IMAGE_TAG) go test -race ./... -v -coverprofile cover.out
 	
 ##@ Build
 

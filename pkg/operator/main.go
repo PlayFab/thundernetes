@@ -36,19 +36,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/go-logr/logr"
+
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	"github.com/playfab/thundernetes/pkg/operator/controllers"
 
 	//+kubebuilder:scaffold:imports
 
-	"github.com/playfab/thundernetes/pkg/operator/http"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/playfab/thundernetes/pkg/operator/http"
 )
 
 var (
-	scheme       = runtime.NewScheme()
-	setupLog     = ctrl.Log.WithName("setup")
-	portRegistry *controllers.PortRegistry
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
 )
 
 const (
@@ -94,6 +95,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// initialize a live API client, used for the PortRegistry
 	k8sClient, err := client.New(ctrl.GetConfigOrDie(), client.Options{Scheme: scheme})
 	if err != nil {
 		setupLog.Error(err, "unable to start live API client")
@@ -116,8 +118,14 @@ func main() {
 		}
 	}
 
-	if err = initializePortRegistry(k8sClient, setupLog); err != nil {
+	portRegistry, err := initializePortRegistry(k8sClient, mgr.GetClient(), setupLog)
+	if err != nil {
 		setupLog.Error(err, "unable to initialize portRegistry")
+		os.Exit(1)
+	}
+	// add the portRegistry to the manager so it can reconcile the Nodes
+	if err := portRegistry.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PortRegistry")
 		os.Exit(1)
 	}
 
@@ -140,8 +148,10 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "GameServerBuild")
 		os.Exit(1)
 	}
+
 	//+kubebuilder:scaffold:builder
 
+	// initialize the allocation API service
 	err = http.NewAllocationApiServer(mgr, crt, key)
 	if err != nil {
 		setupLog.Error(err, "unable to create HTTP allocation API Server", "Allocation API Server", "HTTP Allocation API Server")
@@ -164,26 +174,46 @@ func main() {
 	}
 }
 
-func initializePortRegistry(k8sClient client.Client, setupLog logr.Logger) error {
+// initializePortRegistry performs some initialization and creates a new PortRegistry struct
+// the k8sClient is a live API client and is used to get the existing gameservers and the "Ready" Nodes
+// the crClient is the cached controller-runtime client, used to watch for changes to the nodes from inside the PortRegistry
+func initializePortRegistry(k8sClient client.Client, crClient client.Client, setupLog logr.Logger) (*controllers.PortRegistry, error) {
 	var gameServers mpsv1alpha1.GameServerList
 	if err := k8sClient.List(context.Background(), &gameServers); err != nil {
-		return err
+		return nil, err
 	}
 
+	var nodes corev1.NodeList
+	if err := k8sClient.List(context.Background(), &nodes); err != nil {
+		return nil, err
+	}
+
+	schedulableAndReadyNodeCount := 0
+	for i := 0; i < len(nodes.Items); i++ {
+		if controllers.IsNodeReadyAndSchedulable(&nodes.Items[i]) {
+			schedulableAndReadyNodeCount = schedulableAndReadyNodeCount + 1
+		}
+	}
+
+	// get the min/max port from enviroment variables
+	// the code does not offer any protection in case the port range changes while game servers are running
 	minPort, maxPort, err := getMinMaxPortFromEnv()
-
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	portRegistry, err = controllers.NewPortRegistry(gameServers, minPort, maxPort, setupLog)
+	setupLog.Info("initializing port registry", "minPort", minPort, "maxPort", maxPort, "schedulableAndReadyNodeCount", schedulableAndReadyNodeCount)
+
+	portRegistry, err := controllers.NewPortRegistry(crClient, &gameServers, minPort, maxPort, schedulableAndReadyNodeCount, setupLog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return portRegistry, nil
 }
 
+// getTlsSecret returns the TLS secret from the given namespace
+// used in the allocation API service
 func getTlsSecret(k8sClient client.Client, namespace string) ([]byte, []byte, error) {
 	var secret corev1.Secret
 	err := k8sClient.Get(context.Background(), types.NamespacedName{

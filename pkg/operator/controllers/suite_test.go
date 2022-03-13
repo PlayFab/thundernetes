@@ -75,16 +75,25 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
+	// generate a port registry for the tests
+	portRegistry, err := NewPortRegistry(k8sClient, &mpsv1alpha1.GameServerList{}, 20000, 20100, 1, ctrl.Log)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = portRegistry.SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
 	err = (&GameServerBuildReconciler{
-		Client:   k8sManager.GetClient(),
-		Scheme:   k8sManager.GetScheme(),
-		Recorder: k8sManager.GetEventRecorderFor("GameServerBuildReconciler"),
+		Client:       k8sManager.GetClient(),
+		Scheme:       k8sManager.GetScheme(),
+		PortRegistry: portRegistry,
+		Recorder:     k8sManager.GetEventRecorderFor("GameServerBuildReconciler"),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&GameServerReconciler{
 		Client:                     k8sManager.GetClient(),
 		Scheme:                     k8sManager.GetScheme(),
+		PortRegistry:               portRegistry,
 		Recorder:                   k8sManager.GetEventRecorderFor("GameServerReconciler"),
 		GetPublicIpForNodeProvider: func(_ context.Context, _ client.Reader, _ string) (string, error) { return "testPublicIP", nil },
 	}).SetupWithManager(k8sManager)

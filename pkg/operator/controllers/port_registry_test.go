@@ -2,13 +2,21 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"math/rand"
+	"reflect"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 )
@@ -22,138 +30,405 @@ const (
 )
 
 var _ = Describe("Port registry tests", func() {
-	log := logr.FromContextOrDiscard(context.Background())
-	portRegistry, err := NewPortRegistry(mpsv1alpha1.GameServerList{}, 20000, 20010, log)
-	Expect(err).ToNot(HaveOccurred())
-	registeredPorts := make([]int32, 7)
-	assignedPorts := make(map[int32]bool)
-
+	const testMinPort = 20000
+	const testMaxPort = 20009
 	It("should allocate hostPorts when creating game servers", func() {
+		portRegistry, _ := getPortRegistryKubeClientForTesting(testMinPort, testMaxPort)
+		Expect(portRegistry.Min).To(Equal(int32(testMinPort)))
+		Expect(portRegistry.Max).To(Equal(int32(testMaxPort)))
+		assignedPorts := make(map[int32]int)
 		// get 4 ports
 		for i := 0; i < 4; i++ {
 			port, err := portRegistry.GetNewPort()
 			Expect(err).ToNot(HaveOccurred())
+			validatePort(port, testMinPort, testMaxPort)
 			if _, ok := assignedPorts[port]; ok {
 				Fail(fmt.Sprintf("Port %d should not be in the assignedPorts map", port))
 			}
-			assignedPorts[port] = true
+			assignedPorts[port] = assignedPorts[port] + 1
 		}
 
-		verifyAssignedHostPorts(portRegistry, assignedPorts)
-		verifyUnassignedHostPorts(portRegistry, assignedPorts)
-
-		if displayPortRegistryVariablesDuringTesting {
-			portRegistry.displayRegistry()
-		}
-
-		go portRegistry.portProducer()
-		// end of initialization
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 4)
 	})
-	It("should allocate more ports", func() {
-		for i := 0; i < 7; i++ {
-			peekPort, err := peekNextPort(portRegistry)
-			actualPort, _ := portRegistry.GetNewPort()
-			Expect(actualPort).To(BeIdenticalTo(peekPort), fmt.Sprintf("Wrong port returned, peekPort:%d, actualPort:%d", peekPort, actualPort))
+	It("should fail to allocate more ports than the maximum", func() {
+		portRegistry, _ := getPortRegistryKubeClientForTesting(testMinPort, testMaxPort)
+		assignedPorts := make(map[int32]int)
+		for i := testMinPort; i <= testMaxPort; i++ {
+			port, err := portRegistry.GetNewPort()
+			fmt.Fprintf(GinkgoWriter, "port: %d\n", port)
 			Expect(err).ToNot(HaveOccurred())
-
-			registeredPorts[i] = actualPort
-
-			assignedPorts[actualPort] = true
-
-			verifyAssignedHostPorts(portRegistry, assignedPorts)
-			verifyUnassignedHostPorts(portRegistry, assignedPorts)
+			validatePort(port, testMinPort, testMaxPort)
+			if _, ok := assignedPorts[port]; ok {
+				Fail(fmt.Sprintf("Port %d should not be in the assignedPorts map", port))
+			}
+			assignedPorts[port] = assignedPorts[port] + 1
 		}
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 
-		if displayPortRegistryVariablesDuringTesting {
-			portRegistry.displayRegistry()
-		}
+		// this one should fail
+		_, err := portRegistry.GetNewPort()
+		Expect(err).To(HaveOccurred())
 	})
 
-	It("should return an error when we have exceeded the number of allocated ports", func() {
-		_, err := peekNextPort(portRegistry)
-		if err == nil {
-			Expect(err).To(HaveOccurred())
+	It("should increase/decrease NodeCount when we add/delete Nodes from the cluster", func() {
+		portRegistry, kubeClient := getPortRegistryKubeClientForTesting(testMinPort, testMaxPort)
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node2",
+			},
 		}
-
-		_, err = portRegistry.GetNewPort()
-		if err == nil {
-			Expect(err).To(HaveOccurred())
-		}
-
-		if displayPortRegistryVariablesDuringTesting {
-			portRegistry.displayRegistry()
-		}
-	})
-	It("should successfully deallocate ports", func() {
-		portRegistry.DeregisterServerPorts(registeredPorts)
-
-		for _, val := range registeredPorts {
-			delete(assignedPorts, val)
-		}
-
-		if displayPortRegistryVariablesDuringTesting {
-			portRegistry.displayRegistry()
-		}
-
-		verifyAssignedHostPorts(portRegistry, assignedPorts)
-		verifyUnassignedHostPorts(portRegistry, assignedPorts)
-	})
-	It("should return another port", func() {
-
-		peekPort, err := peekNextPort(portRegistry)
-		actualPort, _ := portRegistry.GetNewPort()
-		Expect(actualPort).To(BeNumerically("==", peekPort), fmt.Sprintf("Wrong port returned, peekPort:%d,actualPort:%d", peekPort, actualPort))
+		err := kubeClient.Create(context.Background(), node)
 		Expect(err).ToNot(HaveOccurred())
+		// do a manual reconcile since we haven't added the controller to the manager
+		portRegistry.Reconcile(context.Background(), reconcile.Request{})
+		Eventually(func() error {
+			return verifyHostPortsPerNode(portRegistry, 2)
+		}).Should(Succeed())
 
-		assignedPorts[actualPort] = true
+		err = kubeClient.Delete(context.Background(), node)
+		Expect(err).ToNot(HaveOccurred())
+		portRegistry.Reconcile(context.Background(), reconcile.Request{})
+		Eventually(func() error {
+			return verifyHostPortsPerNode(portRegistry, 1)
+		}).Should(Succeed())
+	})
 
-		verifyAssignedHostPorts(portRegistry, assignedPorts)
-		verifyUnassignedHostPorts(portRegistry, assignedPorts)
+	It("should successfully allocate ports on two Nodes", func() {
+		portRegistry, kubeClient := getPortRegistryKubeClientForTesting(testMinPort, testMaxPort)
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node2",
+			},
+		}
+		err := kubeClient.Create(context.Background(), node)
+		Expect(err).ToNot(HaveOccurred())
+		// do a manual reconcile since we haven't added the controller to the manager
+		portRegistry.Reconcile(context.Background(), reconcile.Request{})
+		Eventually(func() error {
+			return verifyHostPortsPerNode(portRegistry, 2)
+		}).Should(Succeed())
 
-		if displayPortRegistryVariablesDuringTesting {
-			portRegistry.displayRegistry()
+		assignedPorts := make(map[int32]int)
+		// get 15 ports
+		for i := 0; i < 15; i++ {
+			port, err := portRegistry.GetNewPort()
+			Expect(err).ToNot(HaveOccurred())
+			validatePort(port, testMinPort, testMaxPort)
+			assignedPorts[port] = assignedPorts[port] + 1
 		}
 
-		portRegistry.Stop()
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 15)
+	})
+
+	It("should successfully deallocate ports - one Node scenario", func() {
+		portRegistry, _ := getPortRegistryKubeClientForTesting(testMinPort, testMaxPort)
+		Expect(portRegistry.Min).To(Equal(int32(testMinPort)))
+		Expect(portRegistry.Max).To(Equal(int32(testMaxPort)))
+		assignedPorts := make(map[int32]int)
+		// get 10 ports
+		for i := 0; i < 10; i++ {
+			port, err := portRegistry.GetNewPort()
+			Expect(err).ToNot(HaveOccurred())
+			validatePort(port, testMinPort, testMaxPort)
+			if _, ok := assignedPorts[port]; ok {
+				Fail(fmt.Sprintf("Port %d should not be in the assignedPorts map", port))
+			}
+			assignedPorts[port] = assignedPorts[port] + 1
+		}
+
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
+		// deallocate two ports
+		portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3})
+		delete(assignedPorts, testMinPort+1)
+		delete(assignedPorts, testMinPort+3)
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 8)
+	})
+
+	It("should successfully deallocate ports - two Nodes to one scenario", func() {
+		portRegistry, kubeClient := getPortRegistryKubeClientForTesting(testMinPort, testMaxPort)
+		Expect(portRegistry.Min).To(Equal(int32(testMinPort)))
+		Expect(portRegistry.Max).To(Equal(int32(testMaxPort)))
+		assignedPorts := make(map[int32]int)
+		// get 10 ports
+		for i := 0; i < 10; i++ {
+			port, err := portRegistry.GetNewPort()
+			Expect(err).ToNot(HaveOccurred())
+			validatePort(port, testMinPort, testMaxPort)
+			if _, ok := assignedPorts[port]; ok {
+				Fail(fmt.Sprintf("Port %d should not be in the assignedPorts map", port))
+			}
+			assignedPorts[port] = assignedPorts[port] + 1
+		}
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
+		// deallocate two ports
+		portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3})
+		delete(assignedPorts, testMinPort+1)
+		delete(assignedPorts, testMinPort+3)
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 8)
+
+		// add a second Node
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node2",
+			},
+		}
+		err := kubeClient.Create(context.Background(), node)
+		Expect(err).ToNot(HaveOccurred())
+		// do a manual reconcile since we haven't added the controller to the manager
+		portRegistry.Reconcile(context.Background(), reconcile.Request{})
+		Eventually(func() error {
+			return verifyHostPortsPerNode(portRegistry, 2)
+		}).Should(Succeed())
+
+		// get 8 ports, we have 16 in total
+		for i := 0; i < 8; i++ {
+			port, err := portRegistry.GetNewPort()
+			Expect(err).ToNot(HaveOccurred())
+			validatePort(port, testMinPort, testMaxPort)
+			assignedPorts[port] = assignedPorts[port] + 1
+		}
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 16)
+
+		// deallocate eight ports
+		i := 0
+		portsToDeallocate := make([]int32, 8)
+		for port, val := range portRegistry.HostPortsPerNode[1] {
+			if val {
+				portsToDeallocate[i] = port
+				i++
+				assignedPorts[port] = assignedPorts[port] - 1
+				if assignedPorts[port] == 0 {
+					delete(assignedPorts, port)
+				}
+			}
+			if i == 8 {
+				break
+			}
+		}
+		// if i is less than 8, this means that we didn't find all the ports on the second Node
+		// so let's delete them from the first
+		if i < 8 {
+			for port, val := range portRegistry.HostPortsPerNode[0] {
+				if val {
+					portsToDeallocate[i] = port
+					i++
+					assignedPorts[port] = assignedPorts[port] - 1
+					if assignedPorts[port] == 0 {
+						delete(assignedPorts, port)
+					}
+				}
+				if i == 8 {
+					break
+				}
+			}
+		}
+
+		portRegistry.DeregisterServerPorts(portsToDeallocate)
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 8)
+
+		// now delete the second node
+		err = kubeClient.Delete(context.Background(), node)
+		Expect(err).ToNot(HaveOccurred())
+		portRegistry.Reconcile(context.Background(), reconcile.Request{})
+		Eventually(func() error {
+			return verifyHostPortsPerNode(portRegistry, 1)
+		}).Should(Succeed())
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 8)
+	})
+
+})
+
+var _ = Describe("Port registry with two thousand ports, five hundred on four nodes", func() {
+	rand.Seed(time.Now().UnixNano())
+	min := int32(20000)
+	max := int32(20499)
+
+	portRegistry, kubeClient := getPortRegistryKubeClientForTesting(min, max)
+	Expect(portRegistry.Min).To(Equal(min))
+	Expect(portRegistry.Max).To(Equal(max))
+	assignedPorts := sync.Map{}
+
+	// add three nodes
+	for i := 0; i < 3; i++ {
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: fmt.Sprintf("node%d", i+2),
+			},
+		}
+		err := kubeClient.Create(context.Background(), node)
+		Expect(err).ToNot(HaveOccurred())
+		portRegistry.Reconcile(context.Background(), reconcile.Request{})
+	}
+
+	Eventually(func() error {
+		return verifyHostPortsPerNode(portRegistry, 4)
+	}).Should(Succeed())
+
+	It("should work with allocating and deallocating ports", func() {
+		// allocate all 2000 ports
+		var wg sync.WaitGroup
+		for i := 0; i < int(max-min+1)*4; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				n := rand.Intn(200) + 50 // n will be between 50 and 250
+				time.Sleep(time.Duration(n) * time.Millisecond)
+				port, err := portRegistry.GetNewPort()
+				Expect(err).ToNot(HaveOccurred())
+				val, ok := assignedPorts.Load(port)
+				if !ok {
+					assignedPorts.Store(port, 1)
+				} else {
+					assignedPorts.Store(port, val.(int)+1)
+				}
+			}()
+		}
+		wg.Wait()
+		m := syncMapToMapInt32Int(&assignedPorts)
+		verifyExpectedHostPorts(portRegistry, m, 2000)
+
+		// trying to get another port should fail, since we've allocated every available port
+		_, err := portRegistry.GetNewPort()
+		Expect(err).To(HaveOccurred())
+
+		//deallocate 1000 ports
+		for i := 0; i < int(max-min+1)*2; i++ {
+			wg.Add(1)
+			go func(portToDeallocate int32) {
+				defer wg.Done()
+				n := rand.Intn(200) + 50 // n will be between 50 and 250
+				time.Sleep(time.Duration(n) * time.Millisecond)
+				portRegistry.DeregisterServerPorts([]int32{portToDeallocate})
+				val, ok := assignedPorts.Load(portToDeallocate)
+				if !ok {
+					Fail(fmt.Sprintf("port %d was not found in the map", portToDeallocate))
+				}
+				assignedPorts.Store(portToDeallocate, val.(int)-1)
+			}(int32((i / 2) + int(min))) // , this outputs 20000 2 times, 20001 2 times, 20002 2 times etc.
+		}
+		wg.Wait()
+
+		m = syncMapToMapInt32Int(&assignedPorts)
+		verifyExpectedHostPorts(portRegistry, m, 1000)
+
+		// allocate 500 ports
+		for i := 0; i < int(max-min+1); i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				n := rand.Intn(200) + 50 // n will be between 50 and 250
+				time.Sleep(time.Duration(n) * time.Millisecond)
+				port, err := portRegistry.GetNewPort()
+				Expect(err).ToNot(HaveOccurred())
+				val, ok := assignedPorts.Load(port)
+				if !ok {
+					assignedPorts.Store(port, 1)
+				} else {
+					assignedPorts.Store(port, val.(int)+1)
+				}
+			}()
+		}
+		wg.Wait()
+
+		m = syncMapToMapInt32Int(&assignedPorts)
+		verifyExpectedHostPorts(portRegistry, m, 1500)
+
+		// allocate another 500 ports
+		for i := 0; i < int(max-min+1); i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				n := rand.Intn(200) + 50 // n will be between 50 and 250
+				time.Sleep(time.Duration(n) * time.Millisecond)
+				port, err := portRegistry.GetNewPort()
+				Expect(err).ToNot(HaveOccurred())
+				val, ok := assignedPorts.Load(port)
+				if !ok {
+					assignedPorts.Store(port, 1)
+				} else {
+					assignedPorts.Store(port, val.(int)+1)
+				}
+			}()
+		}
+		wg.Wait()
+
+		m = syncMapToMapInt32Int(&assignedPorts)
+		verifyExpectedHostPorts(portRegistry, m, 2000)
+
+		// trying to get another port should fail, since we've allocated every available port
+		_, err = portRegistry.GetNewPort()
+		Expect(err).To(HaveOccurred())
 	})
 })
 
-func verifyAssignedHostPorts(portRegistry *PortRegistry, assignedHostPorts map[int32]bool) {
-	for hostPort := range assignedHostPorts {
-		val, ok := portRegistry.HostPorts[hostPort]
-		Expect(ok).Should(BeTrue(), fmt.Sprintf("There should be an entry about hostPort %d", hostPort))
-		Expect(val).Should(BeTrue(), fmt.Sprintf("HostPort %d should be registered", hostPort))
-	}
-
+// validatePort checks if the port is in the range testMinPort<=port<=testMaxPort
+func validatePort(port, testMinPort, testMaxPort int32) {
+	Expect(port).Should(BeNumerically(">=", testMinPort))
+	Expect(port).Should(BeNumerically("<=", testMaxPort))
 }
 
-func verifyUnassignedHostPorts(portRegistry *PortRegistry, assignedHostPorts map[int32]bool) {
-	Expect(len(portRegistry.HostPorts)).Should(BeNumerically("==", int(portRegistry.Max-portRegistry.Min+1)))
-	for hostPort, ok := range portRegistry.HostPorts {
-		if ok { //ignore the assigned ones
-			continue
+// verifyExpectedHostPorts compares the hostPortsPerNode map on the PortRegistry to the expectedHostPorts map
+func verifyExpectedHostPorts(portRegistry *PortRegistry, expectedHostPorts map[int32]int, expectedTotalHostPortsCount int) {
+	actualHostPorts := make(map[int32]int)
+	for nodeIndex := 0; nodeIndex < portRegistry.NodeCount; nodeIndex++ {
+		for port := portRegistry.Min; port <= portRegistry.Max; port++ {
+			if val := portRegistry.HostPortsPerNode[nodeIndex][port]; val {
+				actualHostPorts[port] = actualHostPorts[port] + 1
+			}
 		}
-		exists := assignedHostPorts[hostPort]
-		Expect(exists).To(BeFalse())
 	}
+	Expect(reflect.DeepEqual(actualHostPorts, expectedHostPorts)).To(BeTrue())
+	actualTotalHostPortsCount := 0
+	for nodeIndex := 0; nodeIndex < portRegistry.NodeCount; nodeIndex++ {
+		for port := portRegistry.Min; port <= portRegistry.Max; port++ {
+			if val := portRegistry.HostPortsPerNode[nodeIndex][port]; val {
+				actualTotalHostPortsCount++
+			}
+		}
+	}
+	Expect(actualTotalHostPortsCount).To(Equal(expectedTotalHostPortsCount))
 }
 
-func peekNextPort(pr *PortRegistry) (int32, error) {
-	tempPointer := pr.NextFreePortIndex
-	tempPointerCopy := tempPointer
-	for {
-		if !pr.HostPorts[pr.Indexes[tempPointer]] { //port not taken
-			return pr.Indexes[tempPointer], nil
-		}
-
-		tempPointer++
-		if tempPointer == (pr.Max - pr.Min + 1) {
-			tempPointer = 0
-		}
-
-		if tempPointer == tempPointerCopy {
-			//we've done a full circle, no ports available
-			return 0, errors.New("No ports available")
+// verifyHostPortsPerNode verifies that the hostPortsPerNode map on the PortRegistry has the proper length
+// and its item has the correct length as well
+func verifyHostPortsPerNode(portRegistry *PortRegistry, expectedNodeCount int) error {
+	if portRegistry.NodeCount != expectedNodeCount {
+		return fmt.Errorf("NodeCount is not %d, it is %d", expectedNodeCount, portRegistry.NodeCount)
+	}
+	if len(portRegistry.HostPortsPerNode) != expectedNodeCount {
+		return fmt.Errorf("HostPortsPerNode is not %d, it is %d", expectedNodeCount, len(portRegistry.HostPortsPerNode))
+	}
+	for i := 0; i < expectedNodeCount; i++ {
+		if len(portRegistry.HostPortsPerNode[i]) != int(portRegistry.Max-portRegistry.Min+1) {
+			return fmt.Errorf("len(HostPortsPerNode[%d]) is not %d, it is %d", i, portRegistry.Max-portRegistry.Min+1, len(portRegistry.HostPortsPerNode[i]))
 		}
 	}
+	return nil
+}
+
+// getPortRegistryKubeClientForTesting returns a PortRegistry and a fake Kubernetes client for testing
+func getPortRegistryKubeClientForTesting(min, max int32) (*PortRegistry, client.Client) {
+	log := logr.FromContextOrDiscard(context.Background())
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node1",
+		},
+	}
+	clientBuilder := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(node)
+	kubeClient := clientBuilder.Build()
+	Expect(kubeClient).NotTo(BeNil())
+	portRegistry, err := NewPortRegistry(kubeClient, &mpsv1alpha1.GameServerList{}, min, max, 1, log)
+	Expect(err).ToNot(HaveOccurred())
+	return portRegistry, kubeClient
+}
+
+// syncMapToMapInt32Bool converts a sync.Map to a map[int32]int
+// useful as part of our test uses the sync.Map instead of the slice
+func syncMapToMapInt32Int(sm *sync.Map) map[int32]int {
+	m := make(map[int32]int)
+	sm.Range(func(key, value interface{}) bool {
+		m[key.(int32)] = value.(int)
+		return true
+	})
+	return m
 }

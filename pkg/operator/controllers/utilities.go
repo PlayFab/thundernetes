@@ -365,3 +365,15 @@ func getContainerHostPortTuples(pod *corev1.Pod) string {
 	}
 	return strings.TrimSuffix(ports.String(), ",")
 }
+
+func IsNodeReadyAndSchedulable(node *corev1.Node) bool {
+	if !node.Spec.Unschedulable {
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+				return true
+			}
+		}
+	}
+
+	return false
+}
