@@ -183,6 +183,8 @@ func initializePortRegistry(k8sClient client.Client, crClient client.Client, set
 		return nil, err
 	}
 
+	useExclusivelyGameServerNodesForPortRegistry := useExclusivelyGameServerNodesForPortRegistry()
+
 	var nodes corev1.NodeList
 	if err := k8sClient.List(context.Background(), &nodes); err != nil {
 		return nil, err
@@ -191,7 +193,9 @@ func initializePortRegistry(k8sClient client.Client, crClient client.Client, set
 	schedulableAndReadyNodeCount := 0
 	for i := 0; i < len(nodes.Items); i++ {
 		if controllers.IsNodeReadyAndSchedulable(&nodes.Items[i]) {
-			schedulableAndReadyNodeCount = schedulableAndReadyNodeCount + 1
+			if useExclusivelyGameServerNodesForPortRegistry && nodes.Items[i].Labels[controllers.LabelGameServerNode] == "true" {
+				schedulableAndReadyNodeCount = schedulableAndReadyNodeCount + 1
+			}
 		}
 	}
 
@@ -204,7 +208,7 @@ func initializePortRegistry(k8sClient client.Client, crClient client.Client, set
 
 	setupLog.Info("initializing port registry", "minPort", minPort, "maxPort", maxPort, "schedulableAndReadyNodeCount", schedulableAndReadyNodeCount)
 
-	portRegistry, err := controllers.NewPortRegistry(crClient, &gameServers, minPort, maxPort, schedulableAndReadyNodeCount, setupLog)
+	portRegistry, err := controllers.NewPortRegistry(crClient, &gameServers, minPort, maxPort, schedulableAndReadyNodeCount, useExclusivelyGameServerNodesForPortRegistry, setupLog)
 	if err != nil {
 		return nil, err
 	}
@@ -264,4 +268,8 @@ func getMinMaxPortFromEnv() (int32, int32, error) {
 	}
 
 	return minPort, maxPort, nil
+}
+
+func useExclusivelyGameServerNodesForPortRegistry() bool {
+	return os.Getenv("PORT_REGISTRY_EXCLUSIVELY_GAMESERVER_NODES") == "true"
 }

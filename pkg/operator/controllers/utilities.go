@@ -42,6 +42,8 @@ const (
 	GameSharedContentDirectory = DataVolumeMountPath + "/GameSharedContent"
 
 	DaemonSetPort int32 = 56001
+
+	LabelGameServerNode string = "mps.playfab.com/gameservernode"
 )
 
 var InitContainerImage string
@@ -366,6 +368,7 @@ func getContainerHostPortTuples(pod *corev1.Pod) string {
 	return strings.TrimSuffix(ports.String(), ",")
 }
 
+// IsNodeReadyAndSchedulable returns true if the node is ready and schedulable
 func IsNodeReadyAndSchedulable(node *corev1.Node) bool {
 	if !node.Spec.Unschedulable {
 		for _, condition := range node.Status.Conditions {
@@ -374,6 +377,9 @@ func IsNodeReadyAndSchedulable(node *corev1.Node) bool {
 			}
 		}
 	}
-
 	return false
+}
+
+func shouldUseExclusivelyGameServersAndNodeIsNotGameServerNode(useExclusivelyGameServerNodesForPortRegistry bool, node *corev1.Node) bool {
+	return useExclusivelyGameServerNodesForPortRegistry && node.Labels[LabelGameServerNode] != "true"
 }

@@ -17,12 +17,13 @@ import (
 
 // PortRegistry implements a custom map for the port registry
 type PortRegistry struct {
-	client           client.Client    // used to get the list of nodes
-	NodeCount        int              // the number of Ready and Schedulable nodes in the cluster
-	HostPortsPerNode []map[int32]bool // a map of all the ports per node. false if available, true if registered
-	Min              int32            // Minimum Port
-	Max              int32            // Maximum Port
-	lockMutex        sync.Mutex       // lock for the map
+	client                                       client.Client    // used to get the list of nodes
+	NodeCount                                    int              // the number of Ready and Schedulable nodes in the cluster
+	HostPortsPerNode                             []map[int32]bool // a map of all the ports per node. false if available, true if registered
+	Min                                          int32            // Minimum Port
+	Max                                          int32            // Maximum Port
+	lockMutex                                    sync.Mutex       // lock for the map
+	useExclusivelyGameServerNodesForPortRegistry bool
 }
 
 // NewPortRegistry initializes the IndexedDictionary that holds the port registry
@@ -33,7 +34,7 @@ type PortRegistry struct {
 // We also set up a Kubernetes Watch for the Nodes
 // When a new Node is added to the cluster, we add a new set of ports to the map (size = Max-Min+1)
 // When a Node is removed, we have to delete the port range for this Node from the map
-func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerList, min, max int32, nodeCount int, setupLog logr.Logger) (*PortRegistry, error) {
+func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerList, min, max int32, nodeCount int, useExclusivelyGameServerNodesForPortRegistry bool, setupLog logr.Logger) (*PortRegistry, error) {
 	if min > max {
 		return nil, errors.New("min port cannot be greater than max port")
 	}
@@ -43,6 +44,7 @@ func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerLi
 		Min:       min,
 		Max:       max,
 		lockMutex: sync.Mutex{},
+		useExclusivelyGameServerNodesForPortRegistry: useExclusivelyGameServerNodesForPortRegistry,
 	}
 
 	// add the necessary set of ports to the map
@@ -82,7 +84,12 @@ func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerLi
 func (pr *PortRegistry) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	var nodeList v1.NodeList
-	err := pr.client.List(ctx, &nodeList)
+	var err error
+	if pr.useExclusivelyGameServerNodesForPortRegistry {
+		err = pr.client.List(ctx, &nodeList, client.MatchingLabels{LabelGameServerNode: "true"})
+	} else {
+		err = pr.client.List(ctx, &nodeList)
+	}
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -206,15 +213,29 @@ func (pr *PortRegistry) SetupWithManager(mgr ctrl.Manager) error {
 		For(&v1.Node{}).
 		WithEventFilter(predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
-				return IsNodeReadyAndSchedulable(e.Object.(*v1.Node))
+				node := e.Object.(*v1.Node)
+				if shouldUseExclusivelyGameServersAndNodeIsNotGameServerNode(pr.useExclusivelyGameServerNodesForPortRegistry, node) {
+					return false
+				}
+				return IsNodeReadyAndSchedulable(node)
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool {
+				node := e.Object.(*v1.Node)
+				if shouldUseExclusivelyGameServersAndNodeIsNotGameServerNode(pr.useExclusivelyGameServerNodesForPortRegistry, node) {
+					return false
+				}
 				return true
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldNode := e.ObjectOld.(*v1.Node)
 				newNode := e.ObjectNew.(*v1.Node)
+				if shouldUseExclusivelyGameServersAndNodeIsNotGameServerNode(pr.useExclusivelyGameServerNodesForPortRegistry, newNode) {
+					return false
+				}
 				return IsNodeReadyAndSchedulable(oldNode) != IsNodeReadyAndSchedulable(newNode)
+			},
+			GenericFunc: func(e event.GenericEvent) bool {
+				return false
 			},
 		}).
 		Complete(pr)

@@ -11,4 +11,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: docker.io/dgkanatsios/thundernetes-operator
-  newTag: 477d7b9
+  newTag: c27f5a0

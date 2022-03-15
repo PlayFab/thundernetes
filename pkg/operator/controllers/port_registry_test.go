@@ -417,7 +417,7 @@ func getPortRegistryKubeClientForTesting(min, max int32) (*PortRegistry, client.
 	clientBuilder := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(node)
 	kubeClient := clientBuilder.Build()
 	Expect(kubeClient).NotTo(BeNil())
-	portRegistry, err := NewPortRegistry(kubeClient, &mpsv1alpha1.GameServerList{}, min, max, 1, log)
+	portRegistry, err := NewPortRegistry(kubeClient, &mpsv1alpha1.GameServerList{}, min, max, 1, false, log)
 	Expect(err).ToNot(HaveOccurred())
 	return portRegistry, kubeClient
 }

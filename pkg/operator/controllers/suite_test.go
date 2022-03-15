@@ -76,7 +76,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	// generate a port registry for the tests
-	portRegistry, err := NewPortRegistry(k8sClient, &mpsv1alpha1.GameServerList{}, 20000, 20100, 1, ctrl.Log)
+	portRegistry, err := NewPortRegistry(k8sClient, &mpsv1alpha1.GameServerList{}, 20000, 20100, 1, false, ctrl.Log)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = portRegistry.SetupWithManager(k8sManager)
