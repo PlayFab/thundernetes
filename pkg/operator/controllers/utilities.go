@@ -380,6 +380,9 @@ func IsNodeReadyAndSchedulable(node *corev1.Node) bool {
 	return false
 }
 
-func shouldUseExclusivelyGameServersAndNodeIsNotGameServerNode(useExclusivelyGameServerNodesForPortRegistry bool, node *corev1.Node) bool {
-	return useExclusivelyGameServerNodesForPortRegistry && node.Labels[LabelGameServerNode] != "true"
+// useSpecificNodePoolAndNodeNotGameServer returns true if
+// 1. the cluster contains a specific Node Pool/Group for GameServers (designated by the mps.playfab.com/gameservernode=true Label)
+// 2. and the current Node does *not* have this Label
+func useSpecificNodePoolAndNodeNotGameServer(useSpecificNodePool bool, node *corev1.Node) bool {
+	return useSpecificNodePool && node.Labels[LabelGameServerNode] != "true"
 }

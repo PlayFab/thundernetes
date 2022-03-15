@@ -101,7 +101,11 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if containsString(gs.GetFinalizers(), finalizerName) {
 			patch := client.MergeFrom(gs.DeepCopy())
 			// our finalizer is present, so lets handle any external dependency
-			r.unassignPorts(&gs)
+			err := r.unassignPorts(&gs)
+			if err != nil {
+				// we're logging the error but no more actions
+				log.Error(err, "unable to unassign ports. PortRegistry might be corrupt", "GameServer", gs.Name)
+			}
 			// remove our finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(&gs, finalizerName)
 			if err := r.Patch(ctx, &gs, patch); err != nil {
@@ -223,7 +227,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 // unassignPorts will remove any ports that are used by this GameServer from the port registry
-func (r *GameServerReconciler) unassignPorts(gs *mpsv1alpha1.GameServer) {
+func (r *GameServerReconciler) unassignPorts(gs *mpsv1alpha1.GameServer) error {
 	hostPorts := make([]int32, 0)
 	for i := 0; i < len(gs.Spec.Template.Spec.Containers); i++ {
 		container := gs.Spec.Template.Spec.Containers[i]
@@ -233,7 +237,7 @@ func (r *GameServerReconciler) unassignPorts(gs *mpsv1alpha1.GameServer) {
 			}
 		}
 	}
-	r.PortRegistry.DeregisterServerPorts(hostPorts)
+	return r.PortRegistry.DeregisterServerPorts(hostPorts)
 }
 
 // SetupWithManager sets up the controller with the Manager.

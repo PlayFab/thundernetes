@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -17,39 +18,45 @@ import (
 
 // PortRegistry implements a custom map for the port registry
 type PortRegistry struct {
-	client                                       client.Client    // used to get the list of nodes
-	NodeCount                                    int              // the number of Ready and Schedulable nodes in the cluster
-	HostPortsPerNode                             []map[int32]bool // a map of all the ports per node. false if available, true if registered
-	Min                                          int32            // Minimum Port
-	Max                                          int32            // Maximum Port
-	lockMutex                                    sync.Mutex       // lock for the map
-	useExclusivelyGameServerNodesForPortRegistry bool
+	client              client.Client // used to get the list of nodes
+	NodeCount           int           // the number of Ready and Schedulable nodes in the cluster
+	HostPortsPerNode    map[int32]int // a slice for the entire port range. increases by 1 for each registered port
+	Min                 int32         // Minimum Port
+	Max                 int32         // Maximum Port
+	lockMutex           sync.Mutex    // lock for the map
+	useSpecificNodePool bool          // if true, we only take into account Nodes that have the Label "mps.playfab.com/gameservernode"=true
+	nextPortNumber      int32         // the next port to be assigned
 }
 
-// NewPortRegistry initializes the IndexedDictionary that holds the port registry
+// NewPortRegistry initializes the map[port]counter that holds the port registry
 // The way that this works is the following:
-// We keep a map (HostPortsPerNode) of all the port numbers and registered status (bool) for every Node
-// every time a new port is requested, we check if there is an available port on any of the nodes
-// if there is, we set it to true
+// We keep a map (HostPortsPerNode) of all the port numbers
+// every time a new port is requested, we check if the counter for this port is less than the number of Nodes
+// if it is, we increase it by one. If not, we check the next port.
+// the nextPortNumber facilitates getting the next port (port+1),
+// since getting the same port again would cause the GameServer Pod to be placed on a different Node, to avoid collision.
+// This would have a negative impact in cases where we want as many GameServers as possible on the same Node.
 // We also set up a Kubernetes Watch for the Nodes
-// When a new Node is added to the cluster, we add a new set of ports to the map (size = Max-Min+1)
-// When a Node is removed, we have to delete the port range for this Node from the map
-func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerList, min, max int32, nodeCount int, useExclusivelyGameServerNodesForPortRegistry bool, setupLog logr.Logger) (*PortRegistry, error) {
+// When a new Node is added or removed to the cluster, we modify the NodeCount variable
+func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerList, min, max int32, nodeCount int, useSpecificNodePool bool, setupLog logr.Logger) (*PortRegistry, error) {
 	if min > max {
 		return nil, errors.New("min port cannot be greater than max port")
 	}
 
 	pr := &PortRegistry{
-		client:    client,
-		Min:       min,
-		Max:       max,
-		lockMutex: sync.Mutex{},
-		useExclusivelyGameServerNodesForPortRegistry: useExclusivelyGameServerNodesForPortRegistry,
+		client:              client,
+		Min:                 min,
+		Max:                 max,
+		lockMutex:           sync.Mutex{},
+		useSpecificNodePool: useSpecificNodePool,
+		nextPortNumber:      min,
+		NodeCount:           nodeCount,
 	}
 
-	// add the necessary set of ports to the map
-	for i := 0; i < nodeCount; i++ {
-		pr.onNodeAdded()
+	// initialize the ports
+	pr.HostPortsPerNode = make(map[int32]int)
+	for port := pr.Min; port <= pr.Max; port++ {
+		pr.HostPortsPerNode[port] = 0
 	}
 
 	// gather ports for existing game servers
@@ -85,14 +92,18 @@ func (pr *PortRegistry) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	log := log.FromContext(ctx)
 	var nodeList v1.NodeList
 	var err error
-	if pr.useExclusivelyGameServerNodesForPortRegistry {
+
+	// if we have a specific node pool/group for game servers (with mps.playfab.com/gameservernode=true Label)
+	if pr.useSpecificNodePool {
 		err = pr.client.List(ctx, &nodeList, client.MatchingLabels{LabelGameServerNode: "true"})
-	} else {
+	} else { // get all the Nodes
 		err = pr.client.List(ctx, &nodeList)
 	}
+
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
 	// calculate how many nodes are ready and schedulable
 	schedulableNodesCount := 0
 	for i := 0; i < len(nodeList.Items); i++ {
@@ -101,15 +112,16 @@ func (pr *PortRegistry) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		}
 	}
 	log.Info("Reconciling Nodes", "schedulableNodesCount", schedulableNodesCount, "currentNodesCount", pr.NodeCount)
+
 	// most probably it will just be a single node added or removed, but just in case
 	if pr.NodeCount > schedulableNodesCount {
 		for i := pr.NodeCount - 1; i >= schedulableNodesCount; i-- {
-			log.Info("Removing Node")
+			log.Info("Node was removed")
 			pr.onNodeRemoved()
 		}
 	} else if pr.NodeCount < schedulableNodesCount {
 		for i := pr.NodeCount; i < schedulableNodesCount; i++ {
-			log.Info("Adding Node")
+			log.Info("Node was added")
 			pr.onNodeAdded()
 		}
 	}
@@ -121,14 +133,7 @@ func (pr *PortRegistry) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 func (pr *PortRegistry) onNodeAdded() {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
-	// create a new port range for the node
-	hostPorts := make(map[int32]bool, pr.Max-pr.Min+1)
-	for i := pr.Min; i <= pr.Max; i++ {
-		hostPorts[i] = false
-	}
-	// add it to the map
-	pr.HostPortsPerNode = append(pr.HostPortsPerNode, hostPorts)
-	pr.NodeCount = pr.NodeCount + 1
+	pr.NodeCount++
 }
 
 // onNodeRemoved is called when a Node is removed from the cluster
@@ -137,57 +142,44 @@ func (pr *PortRegistry) onNodeAdded() {
 func (pr *PortRegistry) onNodeRemoved() {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
-	// we're removing the last Node port set
-	indexToRemove := len(pr.HostPortsPerNode) - 1
-	for port := pr.Min; port <= pr.Max; port++ {
-		if pr.HostPortsPerNode[indexToRemove][port] {
-			// find a new place (node) for this registered port
-			for i := 0; i < len(pr.HostPortsPerNode)-1; i++ {
-				if !pr.HostPortsPerNode[i][port] {
-					pr.HostPortsPerNode[i][port] = true
-					break
-				}
-			}
-		}
-	}
-	// removes the last item from the slice
-	pr.HostPortsPerNode = pr.HostPortsPerNode[:len(pr.HostPortsPerNode)-1]
-	pr.NodeCount = pr.NodeCount - 1
+	pr.NodeCount--
 }
 
 // GetNewPort returns and registers a new port for the designated game server
 // One may wonder what happens if two GameServer Pods get assigned the same HostPort
-// The answer is that we will not have a collision, since Kubernetes is pretty smart and will place the Pod on a different Node, to prevent collision
+// The answer is that we will not have a collision, since Kubernetes is pretty smart and will place the Pod on a different Node, to prevent it
 func (pr *PortRegistry) GetNewPort() (int32, error) {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
-	// loops through all the Node maps, returns the first available port
-	// we expect game servers to go up and down all the time, so the
-	// location of the first available port is non-deterministic
-	for nodeIndex := 0; nodeIndex < int(pr.NodeCount); nodeIndex++ {
-		for port := pr.Min; port <= pr.Max; port++ {
-			if !pr.HostPortsPerNode[nodeIndex][port] {
-				pr.HostPortsPerNode[nodeIndex][port] = true
-				return port, nil
+
+	for port := pr.nextPortNumber; port <= pr.Max; port++ {
+		// this port is used less than maximum times (where maximum is the number of nodes)
+		if pr.HostPortsPerNode[port] < pr.NodeCount {
+			pr.HostPortsPerNode[port]++
+			pr.nextPortNumber = port + 1
+			// we did a full cycle on the map
+			if pr.nextPortNumber > pr.Max {
+				pr.nextPortNumber = pr.Min
 			}
+			return port, nil
 		}
 	}
+
 	return -1, errors.New("cannot register a new port. No available ports")
 }
 
 // DeregisterServerPorts deregisters all host ports so they can be re-used by additional game servers
-func (pr *PortRegistry) DeregisterServerPorts(ports []int32) {
+func (pr *PortRegistry) DeregisterServerPorts(ports []int32) error {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
 	for i := 0; i < len(ports); i++ {
-		for nodeIndex := 0; nodeIndex < pr.NodeCount; nodeIndex++ {
-			if pr.HostPortsPerNode[nodeIndex][ports[i]] {
-				// setting the port to false means it can be re-used
-				pr.HostPortsPerNode[nodeIndex][ports[i]] = false
-				break
-			}
+		if pr.HostPortsPerNode[ports[i]] > 0 {
+			pr.HostPortsPerNode[ports[i]]--
+		} else {
+			return fmt.Errorf("cannot deregister port %d, it is not registered", ports[i])
 		}
 	}
+	return nil
 }
 
 // assignRegisteredPorts assigns ports that are already registered
@@ -196,13 +188,7 @@ func (pr *PortRegistry) assignRegisteredPorts(ports []int32) {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
 	for i := 0; i < len(ports); i++ {
-		for nodeIndex := 0; nodeIndex < pr.NodeCount; nodeIndex++ {
-			if pr.HostPortsPerNode[nodeIndex][ports[i]] {
-				// setting the port to true means it's registered
-				pr.HostPortsPerNode[nodeIndex][ports[i]] = true
-				break
-			}
-		}
+		pr.HostPortsPerNode[ports[i]]++
 	}
 }
 
@@ -214,14 +200,16 @@ func (pr *PortRegistry) SetupWithManager(mgr ctrl.Manager) error {
 		WithEventFilter(predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
 				node := e.Object.(*v1.Node)
-				if shouldUseExclusivelyGameServersAndNodeIsNotGameServerNode(pr.useExclusivelyGameServerNodesForPortRegistry, node) {
+				if useSpecificNodePoolAndNodeNotGameServer(pr.useSpecificNodePool, node) {
 					return false
 				}
 				return IsNodeReadyAndSchedulable(node)
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool {
 				node := e.Object.(*v1.Node)
-				if shouldUseExclusivelyGameServersAndNodeIsNotGameServerNode(pr.useExclusivelyGameServerNodesForPortRegistry, node) {
+				// ignore this Node if we have a specific node pool for game servers (with mps.playfab.com/gameservernode=true Label)
+				// and the current Node does not have this Label
+				if useSpecificNodePoolAndNodeNotGameServer(pr.useSpecificNodePool, node) {
 					return false
 				}
 				return true
@@ -229,7 +217,7 @@ func (pr *PortRegistry) SetupWithManager(mgr ctrl.Manager) error {
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldNode := e.ObjectOld.(*v1.Node)
 				newNode := e.ObjectNew.(*v1.Node)
-				if shouldUseExclusivelyGameServersAndNodeIsNotGameServerNode(pr.useExclusivelyGameServerNodesForPortRegistry, newNode) {
+				if useSpecificNodePoolAndNodeNotGameServer(pr.useSpecificNodePool, newNode) {
 					return false
 				}
 				return IsNodeReadyAndSchedulable(oldNode) != IsNodeReadyAndSchedulable(newNode)

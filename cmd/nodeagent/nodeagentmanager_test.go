@@ -203,7 +203,7 @@ var _ = Describe("nodeagent tests", func() {
 				// update GameServer CR to active
 				gs.Object["status"].(map[string]interface{})["state"] = "Active"
 				gs.Object["status"].(map[string]interface{})["health"] = "Healthy"
-				gs.Object["status"].(map[string]interface{})["sessiocCookie"] = "cookie123"
+				gs.Object["status"].(map[string]interface{})["sessionCookie"] = "cookie123"
 				_, err = dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Update(context.Background(), gs, metav1.UpdateOptions{})
 				Expect(err).ToNot(HaveOccurred())
 

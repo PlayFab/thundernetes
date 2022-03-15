@@ -42,6 +42,7 @@ var _ = Describe("Port registry tests", func() {
 			port, err := portRegistry.GetNewPort()
 			Expect(err).ToNot(HaveOccurred())
 			validatePort(port, testMinPort, testMaxPort)
+			Expect(port).To(Equal(int32(testMinPort + i)))
 			if _, ok := assignedPorts[port]; ok {
 				Fail(fmt.Sprintf("Port %d should not be in the assignedPorts map", port))
 			}
@@ -55,7 +56,6 @@ var _ = Describe("Port registry tests", func() {
 		assignedPorts := make(map[int32]int)
 		for i := testMinPort; i <= testMaxPort; i++ {
 			port, err := portRegistry.GetNewPort()
-			fmt.Fprintf(GinkgoWriter, "port: %d\n", port)
 			Expect(err).ToNot(HaveOccurred())
 			validatePort(port, testMinPort, testMaxPort)
 			if _, ok := assignedPorts[port]; ok {
@@ -138,7 +138,8 @@ var _ = Describe("Port registry tests", func() {
 
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 		// deallocate two ports
-		portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3})
+		err := portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3})
+		Expect(err).ToNot(HaveOccurred())
 		delete(assignedPorts, testMinPort+1)
 		delete(assignedPorts, testMinPort+3)
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 8)
@@ -161,7 +162,8 @@ var _ = Describe("Port registry tests", func() {
 		}
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 		// deallocate two ports
-		portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3})
+		err := portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3})
+		Expect(err).ToNot(HaveOccurred())
 		delete(assignedPorts, testMinPort+1)
 		delete(assignedPorts, testMinPort+3)
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 8)
@@ -172,7 +174,7 @@ var _ = Describe("Port registry tests", func() {
 				Name: "node2",
 			},
 		}
-		err := kubeClient.Create(context.Background(), node)
+		err = kubeClient.Create(context.Background(), node)
 		Expect(err).ToNot(HaveOccurred())
 		// do a manual reconcile since we haven't added the controller to the manager
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
@@ -189,42 +191,18 @@ var _ = Describe("Port registry tests", func() {
 		}
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 16)
 
-		// deallocate eight ports
-		i := 0
-		portsToDeallocate := make([]int32, 8)
-		for port, val := range portRegistry.HostPortsPerNode[1] {
-			if val {
-				portsToDeallocate[i] = port
-				i++
+		// deallocate six ports that exist on the second Node
+		deletedPortsCount := 0
+		for port := portRegistry.Min; port <= portRegistry.Max; port++ {
+			if portRegistry.HostPortsPerNode[port] == 2 {
+				err := portRegistry.DeregisterServerPorts([]int32{port})
 				assignedPorts[port] = assignedPorts[port] - 1
-				if assignedPorts[port] == 0 {
-					delete(assignedPorts, port)
-				}
-			}
-			if i == 8 {
-				break
+				Expect(err).ToNot(HaveOccurred())
+				deletedPortsCount++
 			}
 		}
-		// if i is less than 8, this means that we didn't find all the ports on the second Node
-		// so let's delete them from the first
-		if i < 8 {
-			for port, val := range portRegistry.HostPortsPerNode[0] {
-				if val {
-					portsToDeallocate[i] = port
-					i++
-					assignedPorts[port] = assignedPorts[port] - 1
-					if assignedPorts[port] == 0 {
-						delete(assignedPorts, port)
-					}
-				}
-				if i == 8 {
-					break
-				}
-			}
-		}
-
-		portRegistry.DeregisterServerPorts(portsToDeallocate)
-		verifyExpectedHostPorts(portRegistry, assignedPorts, 8)
+		Expect(deletedPortsCount).To(Equal(6))
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 
 		// now delete the second node
 		err = kubeClient.Delete(context.Background(), node)
@@ -233,7 +211,15 @@ var _ = Describe("Port registry tests", func() {
 		Eventually(func() error {
 			return verifyHostPortsPerNode(portRegistry, 1)
 		}).Should(Succeed())
-		verifyExpectedHostPorts(portRegistry, assignedPorts, 8)
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
+
+		// deallocate three ports
+		err = portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 2, testMinPort + 3})
+		Expect(err).ToNot(HaveOccurred())
+		delete(assignedPorts, testMinPort+1)
+		delete(assignedPorts, testMinPort+2)
+		delete(assignedPorts, testMinPort+3)
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 7)
 	})
 
 })
@@ -298,7 +284,8 @@ var _ = Describe("Port registry with two thousand ports, five hundred on four no
 				defer wg.Done()
 				n := rand.Intn(200) + 50 // n will be between 50 and 250
 				time.Sleep(time.Duration(n) * time.Millisecond)
-				portRegistry.DeregisterServerPorts([]int32{portToDeallocate})
+				err := portRegistry.DeregisterServerPorts([]int32{portToDeallocate})
+				Expect(err).ToNot(HaveOccurred())
 				val, ok := assignedPorts.Load(portToDeallocate)
 				if !ok {
 					Fail(fmt.Sprintf("port %d was not found in the map", portToDeallocate))
@@ -370,22 +357,14 @@ func validatePort(port, testMinPort, testMaxPort int32) {
 // verifyExpectedHostPorts compares the hostPortsPerNode map on the PortRegistry to the expectedHostPorts map
 func verifyExpectedHostPorts(portRegistry *PortRegistry, expectedHostPorts map[int32]int, expectedTotalHostPortsCount int) {
 	actualHostPorts := make(map[int32]int)
-	for nodeIndex := 0; nodeIndex < portRegistry.NodeCount; nodeIndex++ {
-		for port := portRegistry.Min; port <= portRegistry.Max; port++ {
-			if val := portRegistry.HostPortsPerNode[nodeIndex][port]; val {
-				actualHostPorts[port] = actualHostPorts[port] + 1
-			}
+	actualTotalHostPortsCount := 0
+	for port, count := range portRegistry.HostPortsPerNode {
+		if count > 0 {
+			actualHostPorts[port] = count
+			actualTotalHostPortsCount += count
 		}
 	}
 	Expect(reflect.DeepEqual(actualHostPorts, expectedHostPorts)).To(BeTrue())
-	actualTotalHostPortsCount := 0
-	for nodeIndex := 0; nodeIndex < portRegistry.NodeCount; nodeIndex++ {
-		for port := portRegistry.Min; port <= portRegistry.Max; port++ {
-			if val := portRegistry.HostPortsPerNode[nodeIndex][port]; val {
-				actualTotalHostPortsCount++
-			}
-		}
-	}
 	Expect(actualTotalHostPortsCount).To(Equal(expectedTotalHostPortsCount))
 }
 
@@ -394,14 +373,6 @@ func verifyExpectedHostPorts(portRegistry *PortRegistry, expectedHostPorts map[i
 func verifyHostPortsPerNode(portRegistry *PortRegistry, expectedNodeCount int) error {
 	if portRegistry.NodeCount != expectedNodeCount {
 		return fmt.Errorf("NodeCount is not %d, it is %d", expectedNodeCount, portRegistry.NodeCount)
-	}
-	if len(portRegistry.HostPortsPerNode) != expectedNodeCount {
-		return fmt.Errorf("HostPortsPerNode is not %d, it is %d", expectedNodeCount, len(portRegistry.HostPortsPerNode))
-	}
-	for i := 0; i < expectedNodeCount; i++ {
-		if len(portRegistry.HostPortsPerNode[i]) != int(portRegistry.Max-portRegistry.Min+1) {
-			return fmt.Errorf("len(HostPortsPerNode[%d]) is not %d, it is %d", i, portRegistry.Max-portRegistry.Min+1, len(portRegistry.HostPortsPerNode[i]))
-		}
 	}
 	return nil
 }
