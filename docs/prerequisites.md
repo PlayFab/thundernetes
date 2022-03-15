@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Prerequisites
-nav_order: 10
+nav_order: 3
 ---
 
 # Prerequisites
@@ -10,7 +10,7 @@ nav_order: 10
 
 Here you will find resources that will fill the knowledge gaps when working with technologies within thundernetes. 
 
-👉**thundernetes** was named after a combination of the words *thunderhead* and *kubernetes*. 
+👉**Thundernetes** was named after a combination of the words *thunderhead* and *kubernetes*. 
 Thunderhead is the internal code name for the [Azure PlayFab Multiplayer Servers](https://azure.microsoft.com/services/playfab/multiplayer-services/) service. 
 
 ## Docker and Containerisation 🚢
@@ -32,15 +32,14 @@ Kubernetes is built on top of Docker to run containers at scale across many mach
 
 ## Game Servers 👾
 
-Thundernetes is a preview project from teams from Azure and XBox that enables you to run Linux game servers that use the PlayFab Game Server SDK (GSDK) on your Kubernetes cluster. 
+Thundernetes is a preview project from teams from Azure and Xbox that enables you to run Linux game servers that use the open source Azure PlayFab Game Server SDK (GSDK) on your Kubernetes cluster. 
 
 - [Integrating Game Servers with Game Server SDK (GSDK)](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/integrating-game-servers-with-gsdk)
-- [Azure PlayFab Multiplayer Servers Gameserver Samples](https://github.com/PlayFab/MpsSamples)
-- [PlayFab Game Server SDK](https://github.com/PlayFab/gsdk)
+- [Azure PlayFab Game Server SDK](https://github.com/PlayFab/gsdk)
 
 ## Azure Account ☁️
 
-You can host you Kubernetes clusters in Azure. If you don't have an account you can create one for free.
+You can host your Kubernetes clusters in Azure. If you don't have an account you can create one for free.
 - [Create your Azure Account](https://azure.microsoft.com/free/?WT.mc_id=A261C142F)
 
 ### Azure Blob Storage
@@ -49,10 +48,11 @@ You can host you Kubernetes clusters in Azure. If you don't have an account you 
 
 ## Game Engine 🎮
 
-Using your multiplayer game to intergrate with thundernetes.
+Using your multiplayer game to integrate with Thundernetes.
 
 - [Unreal Engine](https://www.unrealengine.com/)
 - [Unity](https://unity.com/)
+- [Azure PlayFab Multiplayer Servers Gameserver Samples](https://github.com/PlayFab/MpsSamples)
 
 ## Metrics 💹
 

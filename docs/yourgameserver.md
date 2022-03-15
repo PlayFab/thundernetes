@@ -1,12 +1,12 @@
 ---
 layout: default
 title: Running your own game server
-nav_order: 4
+nav_order: 5
 ---
 
-# How to run your game server on thundernetes?
+# How to run your game server on Thundernetes?
 
-You can use thundernetes to host your game servers. This guide will walk you through on using thundernetes i) locally using kind and ii) on Azure Kubernetes Service.
+You can use Thundernetes to host your game servers. This guide will walk you through on using Thundernetes i) locally using kind or ii) on Azure Kubernetes Service.
 
 ## Creating a local cluster with kind
 

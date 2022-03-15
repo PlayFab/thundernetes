@@ -8,51 +8,44 @@ permalink: /
 
 # Thundernetes 
 
-Welcome to (code name) Thundernetes! Please use the links on the left to navigate the documentation.
+Welcome to Thundernetes, an open source project from teams in Azure/XBOX that enables you to run Linux game servers on your Kubernetes cluster! 
 
-## Description
+:exclamation: Latest release: [![GitHub release](https://img.shields.io/github/release/playfab/thundernetes.svg)](https://github.com/playfab/thundernetes/releases)
 
-Thundernetes is a project from the Azure PlayFab Multiplayer Servers (MPS) team that enables you to run Linux game servers on your Kubernetes cluster. Thundernetes can be useful in the following scenarios:
+## Prerequisite knowledge
 
-- host your game servers on a Kubernetes cluster, either on a public cloud provider or on-premises
-- do manual allocations of game server sessions
-- validate your game server integration with GSDK
-- as part of your iterative development process, you can use thundernetes to test your game server code before pushing it to the MPS service
-- as part of your CI/CD pipeline, you can publish the game server to a container registry and then have it deploy to a Kubernetes cluster where you can run your tests
-- For a game server to be able to run in thundernetes, it must use the PlayFab Game Server SDK (GSDK) either directly on the game server binary or indirectly, via a wrapper.
+New to Kubernetes or containers? Check our [prerequisites](prerequisites.md) document that has resources that will fill the knowledge gaps when working with technologies within Thundernetes. 
 
-Thundernetes requires a Kubernetes cluster with Public IP per Node. We've tested it extensively on [Azure Kubernetes Service - AKS](https://docs.microsoft.com/azure/aks/intro-kubernetes) as well as in local clusters using [kind](https://kind.sigs.k8s.io/). You also need to have ports 10000-12000 open in your cluster, since these are the ports that Thundernetes by default will set up on your Kubernetes Nodes so they can receive game network traffic and forward to your game server Pod. 
+## Requirements
 
-> This port range is configurable, check [here](howtos/configureportrange.md) for details. 
-> You can use a Kubernetes cluster without a Public IP. However, you would need to configure your own network architecture if you want to access your game servers. For example, if you use a cloud provider's Load Balancer, you would need to configure routes from Load Balancer's public endpoints to the internal ones on your Kubernetes cluster.
-> You can try Azure Kubernetes Service for free [azure.com/free](https://azure.com/free).
+Thundernetes requires:
 
-## Prerequisites
+- A Kubernetes cluster, either on-premise or on a public cloud provider. Ideally, the cluster should support having a Public IP per Node to allow external incoming connections
+- A game server 
+  - integrated with the open source [Game Server SDK](https://playfab.com/gsdk) (GSDK). GSDK has been battle-tested by multiple AAA titles for years on the [Azure PlayFab Multiplayer Servers service](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/) and supports multiple popular programming languages and game engines like Unity, Unreal, C#, C++, Java, Go.
+  - built as a Linux container image. This image should be deployed to a container registry that your Kubernetes cluster can access.
 
-Check our [prerequisites](docs/prerequisites.md) document that has resources that will fill the knowledge gaps when working with technologies within thundernetes. 
+> **_NOTE_**: You can avoid having to integrate with GSDK by using the [wrapper sample](usingwrapper.md). This sample is great if you want to experiment with Thundernetes, however proper GSDK integration is highly recommended.
 
 ## Quickstart
 
-Check the [quickstart](docs/quickstart.md) document on how to install thundernetes on your cluster and run the sample game server. 
+Check the [quickstart](quickstart.md) document on how to install Thundernetes on your cluster and run a sample game server to verify that Thundernetes is working properly. 
 
-### Installing on Azure Kubernetes Service
+Click on the following image to see how easy it is to install and use Thundernetes:
 
-Click on the following image for a quick preview of the quickstart:
+[![asciicast](https://asciinema.org/a/438455.svg)](https://asciinema.org/a/438455)
 
-[![asciicast](https://asciinema.org/a/438455.png)](https://asciinema.org/a/438455)
+## Recommended links
 
-## Links
-
-- [Prerequisites](prerequisites.md) - resources that will fill the knowledge gaps when working with technologies within thundernetes
-- [Quickstart](quickstart.md) - Recommended - how to install thundernetes on your cluster and run the sample game server
-- [Defining a GameServerBuild](gameserverbuild.md) - Recommended - how to define a GameServerBuild in YAML
-- [Your game server](yourgameserver.md) - how to use thundernetes with your own game server
+- [Using a wrapper](usingwrapper.md) - use a wrapper process to launch your game server in Thundernetes, without integrating with GSDK
+- [Your game server](yourgameserver.md) - how to use Thundernetes with your own game server
+- [Defining a GameServerBuild](gameserverbuild.md) - how to define a GameServerBuild in YAML
 - [Game Server lifecycle](gameserverlifecycle.md) - game server process lifecycle
-- [Architecture](architecture.md)
-- [Frequently Asked Questions](FAQ.md)
-- [Troubleshooting Guide](troubleshooting/README.md) - public repository for all of thundernetes Troubleshooting guides
-- [Development notes](development.md) - useful if you are working on thundernetes development
+- [Architecture](architecture.md) - overview of Thundernetes architecture
+- [Troubleshooting Guide](troubleshooting/README.md) - public repository for all of Thundernetes troubleshooting guides
+- [Development notes](development.md) - useful development notes if you are plan on contributing to Thundernetes
+- [Frequently Asked Questions](FAQ.md) - frequently asked questions
 
 ## Contributing
 
-If you are interested in contributing to thundernetes, please read our [Contributing Guide](contributing.md) and open a PR. We'd be more than happy to help you out!
+If you are interested in contributing to Thundernetes, please read our [Contributing Guide](contributing.md) and open a PR. We'd be more than happy to help you out!
