@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"math/rand"
@@ -18,7 +19,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type allocateHandler struct {
@@ -33,6 +36,7 @@ func (h *allocateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	log := log.FromContext(ctx)
 
 	if r.Method != http.MethodPost && r.Method != http.MethodPatch {
 		badRequestError(ctx, w, errors.New("invalid method"), "Only POST and PATCH are accepted")
@@ -72,7 +76,7 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 
 	// check if this server is already allocated
 	var gameserversForSessionID mpsv1alpha1.GameServerList
-	err = h.client.List(r.Context(), &gameserversForSessionID, &client.ListOptions{
+	err = h.client.List(ctx, &gameserversForSessionID, &client.ListOptions{
 		FieldSelector: fields.SelectorFromSet(fields.Set{"status.sessionID": args.SessionID}),
 		LabelSelector: labels.SelectorFromSet(labels.Set{controllers.LabelBuildID: args.BuildID}),
 	})
@@ -87,6 +91,7 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// found a GameServer in this GameServerBuild with the same sessionID
 	if len(gameserversForSessionID.Items) == 1 {
 		// return it
 		gs := gameserversForSessionID.Items[0]
@@ -101,7 +106,7 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 
 	// get the standingBy GameServers for this BuildID
 	var gameserversStandingBy mpsv1alpha1.GameServerList
-	err = h.client.List(r.Context(), &gameserversStandingBy, &client.ListOptions{
+	err = h.client.List(ctx, &gameserversStandingBy, &client.ListOptions{
 		FieldSelector: fields.SelectorFromSet(fields.Set{"status.state": "StandingBy"}),
 		LabelSelector: labels.SelectorFromSet(labels.Set{controllers.LabelBuildID: args.BuildID}),
 	})
@@ -115,24 +120,36 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// pick a random one
+	// pick a random GameServer to allocate
 	gs := gameserversStandingBy.Items[rand.Intn(len(gameserversStandingBy.Items))]
 
+	// get a GameServerDetail object for this GameServer
 	gsd := createGameServerDetailForGameServer(&gs, args.InitialPlayers)
 
-	err = h.client.Create(r.Context(), &gsd)
+	// create it
+	err = h.client.Create(ctx, &gsd)
 	if err != nil {
 		internalServerError(ctx, w, err, "cannot create GameServerDetail")
 		return
 	}
 
-	// set the relevant status fields
+	// set the relevant status fields for the GameServer
 	gs.Status.State = mpsv1alpha1.GameServerStateActive
 	gs.Status.SessionID = args.SessionID
 	gs.Status.SessionCookie = args.SessionCookie
 
-	err = h.client.Status().Update(r.Context(), &gs)
+	// we use .Update instead of .Patch to avoid simultaneous allocations updating the same GameServer
+	// this is a very unlikely scenario, since the .Create on the GameServerDetail would fail
+	err = h.client.Status().Update(ctx, &gs)
 	if err != nil {
+		// we are in a semi-corrupt state, since a GameServerDetail object has been created but we failed to update the GameServer object
+		// we launch a goroutine to delete the GameServerDetail object
+		go func() {
+			err := h.deleteGameServerDetail(ctx, &gsd)
+			if err != nil {
+				log.Error(err, fmt.Sprintf("Failed to delete GameServerDetail object %s", gsd.Name))
+			}
+		}()
 		internalServerError(ctx, w, err, "cannot update game server")
 		return
 	}
@@ -150,6 +167,7 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 	controllers.AllocationsCounter.WithLabelValues(gs.Labels[controllers.LabelBuildName]).Inc()
 }
 
+// createGameServerDetailForGameServer returns a new GameServerDetail object for the given GameServer containing the initialPlayers string slice
 func createGameServerDetailForGameServer(gs *mpsv1alpha1.GameServer, initialPlayers []string) mpsv1alpha1.GameServerDetail {
 	return mpsv1alpha1.GameServerDetail{
 		ObjectMeta: metav1.ObjectMeta{
@@ -169,4 +187,16 @@ func createGameServerDetailForGameServer(gs *mpsv1alpha1.GameServer, initialPlay
 			ConnectedPlayersCount: 0,
 		},
 	}
+}
+
+// deleteFameServerDetail deletes the GameServerDetail object for the given GameServer with backoff retries
+func (h *allocateHandler) deleteGameServerDetail(ctx context.Context, gsd *mpsv1alpha1.GameServerDetail) error {
+	err := retry.OnError(retry.DefaultBackoff,
+		func(_ error) bool {
+			return true // TODO: check if we can do something better here, like check for timeouts?
+		}, func() error {
+			err := h.client.Delete(ctx, gsd)
+			return err
+		})
+	return err
 }

@@ -166,9 +166,6 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	// other status updates on the GameServer state are provided by the daemonset
-	// which calls the K8s API server
-
 	// if a game server is active, there are players present.
 	// When using the cluster autoscaler, an annotation will be added
 	// to prevent the node from being scaled down.
@@ -199,7 +196,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// we're adding the Label here so the DaemonSet watch can get the update information about the GameServer
-	// unfortunately, we can't track CRDs on a Watch via .status
+	// unfortunately, we can't track CRDs on a Watch via .status yet. If this was the case, we could PATCH the NodeName via the patch code above
 	// https://github.com/kubernetes/kubernetes/issues/53459
 	if _, exists := gs.Labels[LabelNodeName]; !exists {
 		// code from: https://sdk.operatorframework.io/docs/building-operators/golang/references/client/#patch
@@ -265,10 +262,12 @@ func (r *GameServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+// addSafeToEvictAnnotationIfNecessary will set the safe-to-evict attribute to true on Initalizing or StandingBy GameServers
+// and will set it to false for Active (so they don't go down during a potential cluster scale down)
 func (r *GameServerReconciler) addSafeToEvictAnnotationIfNecessary(ctx context.Context, gs *mpsv1alpha1.GameServer, pod *corev1.Pod) error {
 	// we don't need to check if pod.ObjectMeta.Annotations is nil since the check below accomodates for that
 	// https://go.dev/play/p/O9QmzPnKsOK
-	if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
+	if gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 		if _, ok := pod.ObjectMeta.Annotations[safeToEvictPodAttribute]; !ok {
 			return r.patchPodSafeToEvictAnnotation(ctx, pod, true)
 		}
@@ -281,6 +280,7 @@ func (r *GameServerReconciler) addSafeToEvictAnnotationIfNecessary(ctx context.C
 	return nil
 }
 
+// patchPodSafeToEvictAnnotation will set the safeToEvictPodAttribute annotation on the Pod
 func (r *GameServerReconciler) patchPodSafeToEvictAnnotation(ctx context.Context, pod *corev1.Pod, safeToEvict bool) error {
 	patch := client.MergeFrom(pod.DeepCopy())
 	if pod.ObjectMeta.Annotations == nil {
