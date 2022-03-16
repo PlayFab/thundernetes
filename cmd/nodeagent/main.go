@@ -126,7 +126,7 @@ func stopHttpServer(srv *http.Server, ctx context.Context) {
 // setLogLevel sets the log level based on the LOG_LEVEL environment variable
 func setLogLevel() {
 	log.SetOutput(os.Stdout)
-	log.SetFormatter(&log.JSONFormatter{})
+	log.SetFormatter(&log.TextFormatter{})
 
 	logLevel, err := log.ParseLevel(os.Getenv("LOG_LEVEL"))
 	if err != nil {
