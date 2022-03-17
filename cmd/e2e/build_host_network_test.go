@@ -8,15 +8,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("Build which sleeps before calling GSDK ReadyForPlayers", func() {
-	testBuildSleepBeforeReadyForPlayersName := "sleepbeforereadyforplayers"
-	testBuildSleepBeforeReadyForPlayersID := "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
+var _ = Describe("Build with hostnetwork", func() {
+	testBuildWithHostNetworkName := "hostnetwork"
+	testBuildWithHostNetworkID := "8512e8da-c82f-4a35-86c5-9d2b5fabd6f6"
 	It("should scale as usual", func() {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		Expect(err).ToNot(HaveOccurred())
@@ -25,7 +24,7 @@ var _ = Describe("Build which sleeps before calling GSDK ReadyForPlayers", func(
 		kubeConfig := ctrl.GetConfigOrDie()
 		kubeClient, err := createKubeClient(kubeConfig)
 		Expect(err).ToNot(HaveOccurred())
-		err = kubeClient.Create(ctx, createBuildWithSleepBeforeReadyForPlayers(testBuildSleepBeforeReadyForPlayersName, testBuildSleepBeforeReadyForPlayersID, img))
+		err = kubeClient.Create(ctx, createBuildWithHostNetwork(testBuildWithHostNetworkName, testBuildWithHostNetworkID, img))
 		Expect(err).ToNot(HaveOccurred())
 
 		coreClient, err := kubernetes.NewForConfig(kubeConfig)
@@ -33,18 +32,22 @@ var _ = Describe("Build which sleeps before calling GSDK ReadyForPlayers", func(
 
 		Eventually(func(g Gomega) {
 			state := buildState{
-				buildName:       testBuildSleepBeforeReadyForPlayersName,
-				buildID:         testBuildSleepBeforeReadyForPlayersID,
+				buildName:       testBuildWithHostNetworkName,
+				buildID:         testBuildWithHostNetworkID,
 				standingByCount: 2,
 				podRunningCount: 2,
 				gsbHealth:       mpsv1alpha1.BuildHealthy,
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
+
+			gsb := &mpsv1alpha1.GameServerBuild{}
+			err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithHostNetworkName, Namespace: testNamespace}, gsb)
+			g.Expect(verifyPodsInHostNetwork(ctx, kubeClient, gsb, state)).To(Succeed())
 		}, timeout, interval).Should(Succeed())
 
 		// update the standingBy to 3
 		gsb := &mpsv1alpha1.GameServerBuild{}
-		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildSleepBeforeReadyForPlayersName, Namespace: testNamespace}, gsb)
+		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithHostNetworkName, Namespace: testNamespace}, gsb)
 		Expect(err).ToNot(HaveOccurred())
 		patch := client.MergeFrom(gsb.DeepCopy())
 		gsb.Spec.StandingBy = 3
@@ -53,63 +56,60 @@ var _ = Describe("Build which sleeps before calling GSDK ReadyForPlayers", func(
 
 		Eventually(func(g Gomega) {
 			state := buildState{
-				buildName:       testBuildSleepBeforeReadyForPlayersName,
-				buildID:         testBuildSleepBeforeReadyForPlayersID,
+				buildName:       testBuildWithHostNetworkName,
+				buildID:         testBuildWithHostNetworkID,
 				standingByCount: 3,
 				podRunningCount: 3,
 				gsbHealth:       mpsv1alpha1.BuildHealthy,
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
+			g.Expect(verifyPodsInHostNetwork(ctx, kubeClient, gsb, state)).To(Succeed())
 		}, timeout, interval).Should(Succeed())
 
 		// allocate a game server
 		sessionID2 := uuid.New().String()
-		err = allocate(testBuildSleepBeforeReadyForPlayersID, sessionID2, cert)
+		err = allocate(testBuildWithHostNetworkID, sessionID2, cert)
 		Expect(err).ToNot(HaveOccurred())
 
 		// so we now should have 1 active and 3 standingBy
 		Eventually(func(g Gomega) {
 			state := buildState{
-				buildName:       testBuildSleepBeforeReadyForPlayersName,
-				buildID:         testBuildSleepBeforeReadyForPlayersID,
+				buildName:       testBuildWithHostNetworkName,
+				buildID:         testBuildWithHostNetworkID,
 				standingByCount: 3,
 				activeCount:     1,
 				podRunningCount: 4,
 				gsbHealth:       mpsv1alpha1.BuildHealthy,
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
+			g.Expect(verifyPodsInHostNetwork(ctx, kubeClient, gsb, state)).To(Succeed())
 		}, timeout, interval).Should(Succeed())
 
-		Expect(validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, kubeClient, coreClient, testBuildSleepBeforeReadyForPlayersID, 1)).To(Succeed())
+		Expect(validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, kubeClient, coreClient, testBuildWithHostNetworkID, 1)).To(Succeed())
 
 		// killing an Active game server
-		err = stopActiveGameServer(ctx, kubeClient, coreClient, kubeConfig, testBuildSleepBeforeReadyForPlayersID)
+		err = stopActiveGameServer(ctx, kubeClient, coreClient, kubeConfig, testBuildWithHostNetworkID)
 		Expect(err).ToNot(HaveOccurred())
 
 		// so we now should have 3 standingBy
 		Eventually(func(g Gomega) {
 			state := buildState{
-				buildName:       testBuildSleepBeforeReadyForPlayersName,
-				buildID:         testBuildSleepBeforeReadyForPlayersID,
+				buildName:       testBuildWithHostNetworkName,
+				buildID:         testBuildWithHostNetworkID,
 				standingByCount: 3,
 				podRunningCount: 3,
 				gsbHealth:       mpsv1alpha1.BuildHealthy,
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
+			g.Expect(verifyPodsInHostNetwork(ctx, kubeClient, gsb, state)).To(Succeed())
 		}, timeout, interval).Should(Succeed())
 
 	})
 })
 
-// createBuildWithSleepBeforeReadyForPlayers creates a build which game server process will sleep for a while before it calls ReadyForPlayers
-// useful to track the Initializing state of the GameServers
-func createBuildWithSleepBeforeReadyForPlayers(buildName, buildID, img string) *mpsv1alpha1.GameServerBuild {
+// createBuildWithHostNetwork creates a GameServerBuild with hostnetwork enabled for its game server processes
+func createBuildWithHostNetwork(buildName, buildID, img string) *mpsv1alpha1.GameServerBuild {
 	gsb := createTestBuild(buildName, buildID, img)
-	gsb.Spec.Template.Spec.Containers[0].Env = []corev1.EnvVar{
-		{
-			Name:  "SLEEP_BEFORE_READY_FOR_PLAYERS",
-			Value: "true",
-		},
-	}
+	gsb.Spec.Template.Spec.HostNetwork = true
 	return gsb
 }

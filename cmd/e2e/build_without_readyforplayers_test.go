@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -114,41 +113,12 @@ var _ = Describe("Build without ReadyForPlayers GSDK call", func() {
 
 // createBuildWithoutReadyForPlayers creates a GameServerBuild which game server process do not call ReadyForPlayers
 func createBuildWithoutReadyForPlayers(buildName, buildID, img string) *mpsv1alpha1.GameServerBuild {
-	return &mpsv1alpha1.GameServerBuild{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildName,
-			Namespace: testNamespace,
-		},
-		Spec: mpsv1alpha1.GameServerBuildSpec{
-			BuildID:       buildID,
-			TitleID:       "1E03",
-			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: containerName, PortName: portKey}},
-			StandingBy:    2,
-			Max:           4,
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Image:           img,
-							Name:            containerName,
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          portKey,
-									ContainerPort: 80,
-								},
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "SKIP_READY_FOR_PLAYERS",
-									Value: "true",
-								},
-							},
-						},
-					},
-				},
-			},
+	gsb := createTestBuild(buildName, buildID, img)
+	gsb.Spec.Template.Spec.Containers[0].Env = []corev1.EnvVar{
+		{
+			Name:  "SKIP_READY_FOR_PLAYERS",
+			Value: "true",
 		},
 	}
-
+	return gsb
 }
