@@ -75,7 +75,7 @@ type ConnectedPlayer struct {
 
 // GameServerDetails contains data regarding the details for the session that occurs when the GameServer state changes
 type GameServerDetails struct {
-	WasActivated          bool // set to true when
+	IsActive              bool // the GameState is Active on the Kubernetes API server
 	SessionID             string
 	SessionCookie         string
 	InitialPlayers        []string
