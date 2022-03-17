@@ -122,14 +122,10 @@ var _ = Describe("nodeagent tests", func() {
 			if !ok {
 				return false
 			}
-<<<<<<< HEAD
-			return tempgs.(*GameServerDetails).IsActive && tempgs.(*GameServerDetails).PreviousGameState == GameStateStandingBy
-=======
 			tempgs.(*GameServerDetails).Mutex.RLock()
 			gsd := *tempgs.(*GameServerDetails)
 			tempgs.(*GameServerDetails).Mutex.RUnlock()
-			return gsd.WasActivated && gsd.PreviousGameState == GameStateStandingBy
->>>>>>> PortRegistry V2
+			return gsd.IsActive && gsd.PreviousGameState == GameStateStandingBy
 		}).Should(BeTrue())
 
 		// heartbeat from the game is still StandingBy
