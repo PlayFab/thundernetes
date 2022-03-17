@@ -42,6 +42,8 @@ const (
 	GameSharedContentDirectory = DataVolumeMountPath + "/GameSharedContent"
 
 	DaemonSetPort int32 = 56001
+
+	LabelGameServerNode string = "mps.playfab.com/gameservernode"
 )
 
 var InitContainerImage string
@@ -364,4 +366,23 @@ func getContainerHostPortTuples(pod *corev1.Pod) string {
 		}
 	}
 	return strings.TrimSuffix(ports.String(), ",")
+}
+
+// IsNodeReadyAndSchedulable returns true if the node is ready and schedulable
+func IsNodeReadyAndSchedulable(node *corev1.Node) bool {
+	if !node.Spec.Unschedulable {
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// useSpecificNodePoolAndNodeNotGameServer returns true if
+// 1. the cluster contains a specific Node Pool/Group for GameServers (designated by the mps.playfab.com/gameservernode=true Label)
+// 2. and the current Node does *not* have this Label
+func useSpecificNodePoolAndNodeNotGameServer(useSpecificNodePool bool, node *corev1.Node) bool {
+	return useSpecificNodePool && node.Labels[LabelGameServerNode] != "true"
 }
