@@ -1,13 +1,16 @@
 ---
 layout: default
-title: Stuck game servers
+title: Game server is stuck
 parent: Troubleshooting
 nav_order: 2
 ---
 
-# Help! What should we do if a GameServer gets stuck? 
+# What should we do if a GameServer gets stuck? 
 
-You can run ```kubectl delete gs <Name>``` since this will take down both the GameServer instance, the corresponding Pod as well as the GameServerDetail CRD instance (in case the game server was allocated). 
+Sometimes the GameServer process might not responding, due to a programming bug or a misconfiguration. You can check the logs by using the command ```kubectl logs <Name>``` and running a command shell into the Pod with ```kubectl exec -it <Name> -- sh```. It might be useful to also check the NodeAgent logs for the Node that this Pod is running on, check [here](controllernodeagent.md) for more information.
 
-:exclamation: Do not delete the Pod. It will be deleted automatically when the GameServer is deleted.
-:exclamation: Do not manually override GameServer.status details, this will create issues during controller reconciliation. 
+If you want to delete the Pod, you can use the kubectl command ```kubectl delete gs <Name>``` since this will take down both the GameServer instance, the corresponding Pod as well as the GameServerDetail CR instance (in case the game server was allocated). 
+
+❗ Do not directly delete the Pod. It will be deleted automatically when the GameServer is deleted.
+
+❗ Do not manually overwrite GameServer.status details, this will create issues during controller reconciliation. 

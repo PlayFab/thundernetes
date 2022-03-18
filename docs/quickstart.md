@@ -6,9 +6,9 @@ nav_order: 2
 
 # Quickstart
 
-We've tested thundernetes on Azure Kubernetes Service (AKS) version 1.20.7 and 1.20.9 and [kind](https://kind.sigs.k8s.io/) but it can theoretically be installed on any Kubernetes cluster, optionally supporting Public IP per Node (which is something you want if you want to expose your game servers outside the cluster). Read the relevant section depending on where you want to install thundernetes.
+We've tested Thundernetes on the latest versions of Azure Kubernetes Service (AKS) and [kind](https://kind.sigs.k8s.io/) but it can theoretically be installed on any Kubernetes cluster supporting Public IP per Node (which is something you want if you want to expose your game servers outside the cluster). Read the relevant section depending on where you want to install Thundernetes.
 
-> If you are using Windows, we recommend using [Windows Subsystem for Linux](https://docs.microsoft.com/windows/wsl/install-win10) to run the CLI commands listed below.
+> If you are using Windows, we recommend using [Windows Subsystem for Linux](https://docs.microsoft.com/windows/wsl/install) to run the CLI commands listed below.
 
 ## Create an Azure Kubernetes Service cluster with a Public IP per Node
 
@@ -26,7 +26,7 @@ AKS_VERSION=1.22.4 # replace with the Kubernetes version that is supported in th
 az group create --name $AKS_RESOURCE_GROUP --location $AKS_LOCATION
 # create a new AKS cluster enabling the feature of Public IP per Node
 az aks create --resource-group $AKS_RESOURCE_GROUP --name $AKS_NAME --ssh-key-value ~/.ssh/id_rsa.pub --kubernetes-version $AKS_VERSION --enable-node-public-ip
-# get credentials for this cluster
+# get credentials for this cluster, saving them in a separate file
 az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_NAME --file ~/.kube/config-thundernetes
 # check that cluster is up and running
 export KUBECONFIG=~/.kube/config-thundernetes
@@ -41,9 +41,9 @@ Thundernetes requires VMs to have Public IPs (so game servers can be accessible)
 
 > This port range is configurable, check [here](howtos/configureportrange.md) for details. 
 
-To allow this you need to perform the following steps *after your AKS cluster gets created*:
+To open the ports you need to perform the following steps *after your AKS cluster gets created*:
 
-* Login to the Azure Portal
+* Login to the [Azure Portal](https://portal.azure.com)
 * Find the resource group where the AKS resources are kept, it should have a name like `MC_resourceGroupName_AKSName_location`. Alternative, you can type `az resource show --namespace Microsoft.ContainerService --resource-type managedClusters -g $AKS_RESOURCE_GROUP -n $AKS_NAME -o json | jq .properties.nodeResourceGroup` on your shell to find it.
 * Find the Network Security Group object, which should have a name like `aks-agentpool-********-nsg`
 * Select **Inbound Security Rules**
@@ -74,7 +74,7 @@ You can use a variety of options to run Kubernetes locally, either [kind](https:
 * Install kind using the instructions [here](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 * Create a "kind-config.yaml" file to configure the cluster, using the contents listed below. 
 
-Special attention is needed on the ports you will forward (the "containerPort" listed below). First of all, you need to expose port 5000 since this is the port used by the thundernetes GameServer allocation API service. You will use this port to do game server allocations.
+Special attention is needed on the ports you will forward (the "containerPort" listed below). First of all, you need to expose port 5000 since this is the port used by the Thundernetes GameServer allocation API service. You will use this port to do game server allocations.
 After that, you can optionally specify ports to test your game server by sending traffic to it. Thundernetes dynamically allocates ports for your game server, ranging from 10000 to 12000. Port assignment from this range is sequential. For example, if you use two game servers with each one having a single port, the first game server port will be mapped to port 10000 and the second will be mapped to port 10001. Be aware that if you scale down your GameServerBuild and scale it up again, you probably will not get the same port. Consequently, pay special attention to the ports that you will use in your kind configuration.
 
 Save this content to a file called `kind-config.yaml`.
@@ -108,19 +108,17 @@ Kubernetes control plane is running at https://127.0.0.1:34253
 CoreDNS is running at https://127.0.0.1:34253/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
 ```
 
-## Install thundernetes with the installation script
+## Install Thundernetes with the installation script
 
-Once you have a Kubernetes cluster up and running, you can run the following command to install thundernetes. This will install thundernetes *without* TLS authentication for the allocation API service, which should only be used on test environments.
+Once you have a Kubernetes cluster up and running, you can run the following command to install Thundernetes. This will install thundernetes *without* TLS authentication for the allocation API service, which should only be used on test environments.
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator.yaml
 ```
 
-Read the following section if you want to have TLS based authentication for the thundernetes API service.
-
 ### Install thundernetes with TLS authentication
 
-You need to create/configure the certificate that will be used to protect the allocation API service.
+You need to create/configure the certificate that will be used to protect the allocation API service. A properly configured certificate (signed by a well-known CA) is recommended for production environments.
 
 For testing purposes, you can generate a self-signed certificate and use it to secure the allocation API service. You can use OpenSSL to create a self-signed certificate and key (of course, this scenario is not recommended for production).
 
@@ -136,7 +134,7 @@ kubectl create namespace thundernetes-system
 kubectl create secret tls tls-secret -n thundernetes-system --cert=/path/to/public.pem --key=/path/to/private.pem
 ```
 
-Then, you can run the following script to install thundernetes with TLS security for the allocation API service.
+Then, you can run the following script to install Thundernetes with TLS security for the allocation API service.
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator_with_security.yaml
@@ -144,15 +142,15 @@ kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/ins
 
 The two installation files (operator.yaml and operator_with_security.yaml) are identical except for the API_SERVICE_SECURITY environment variable that is passed into the controller container.
 
-At this point, you are ready to run your game server on thundernetes. If you want to run one of our sample game servers, please read on. Otherwise, if you want to run your own game server, please go to [this document](developertool.md).
+At this point, you are ready to run a test game server on Thundernetes to verify that the system is working as expected. If you want to run one of our sample game servers, read on. Otherwise, if you want to run your own game server, go to [this document](developertool.md).
 
 ## Run sample game servers
 
-Thundernetes comes with two sample game server projects that are integrated with [GSDK](https://github.com/PlayFab/gsdk). You can use either one of them to validate your thundernetes installation.
+Thundernetes comes with two sample game server projects that are already integrated with [GSDK](https://github.com/PlayFab/gsdk). You can use either one of them to validate your Thundernetes installation.
 
 ### .NET Core Fake game server
 
-This sample, located [here](../samples/netcore), is a simple .NET Core Web API app that implements GSDK. You can install it on your Kubernetes cluster by runnning the following command:
+This sample, located [here](https://github.com/playfab/thundernetes/samples/netcore), is a simple .NET Core Web API app that implements GSDK. You can install it on your Kubernetes cluster by runnning the following command:
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/netcore/sample.yaml
@@ -160,7 +158,7 @@ kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/sam
 
 > To read about the fields that you need to specify for a GameServerBuild, you can check [this document](gameserverbuild.md).
 
-Try using `kubectl get gs` to see the running game servers:
+Try using `kubectl get gs` to see the running game servers, you should see something similar to this:
 
 ```bash
 dgkanatsios@desktopdigkanat:thundernetes$ kubectl get gs
@@ -183,7 +181,7 @@ To scale your GameServerBuild, you can do `kubectl edit gsb gameserverbuild-samp
 
 #### Allocate a game server
 
-Allocating a GameServer will transition its state from "StandingBy" to "Active" and will unblock the "ReadyForPlayers" GSDK call.
+Allocating a GameServer will transition its state from "StandingBy" to "Active" and will unblock the "ReadyForPlayers" GSDK call. You can read [this document](gameserverlifecycle.md) to learn more about the lifecycle of a GameServer.
 
 If you are running on Azure Kubernetes Service, you can use the following command to allocate a game server:
 
@@ -191,13 +189,16 @@ If you are running on Azure Kubernetes Service, you can use the following comman
 # grab the IP of the external load balancer that is used to route traffic to the allocation API service
 IP=$(kubectl get svc -n thundernetes-system thundernetes-controller-manager -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 # do the allocation call. Make sure the buildID is the same as the one that you created your Build with
+# the sessionID is a unique identifier (GUID) that you can use to track the game server session
 curl -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f6","sessionID":"ac1b7082-d811-47a7-89ae-fe1a9c48a6da"}' http://${IP}:5000/api/v1/allocate
 ```
 
-As you can see, the arguments to the allocation call are two:
+The arguments to the allocation call are two:
 
 * buildID: this must be the same as the buildID configured in the GameServerBuild
-* sessionID: a GUID that you can use to identify the game server session. Must be unique for each game server you allocate. If you try to allocate using a sessionID that is in use, the call will return the details of the existing game server. This call is equivalent to calling [RequestMultiplayerServer](https://docs.microsoft.com/rest/api/playfab/multiplayer/multiplayer-server/request-multiplayer-server) in PlayFab Multiplayer Servers.
+* sessionID: a GUID that you can use to identify the game server session. Must be unique for each game server you allocate. If you try to allocate using a sessionID that is in use, the call will return the details of the existing game server. 
+
+> The allocation call is equivalent to calling [RequestMultiplayerServer](https://docs.microsoft.com/rest/api/playfab/multiplayer/multiplayer-server/request-multiplayer-server) in PlayFab Multiplayer Servers.
 
 Result of the allocate call is the IP/Port of the server in JSON format.
 
@@ -205,14 +206,14 @@ Result of the allocate call is the IP/Port of the server in JSON format.
 {"IPV4Address":"52.183.89.4","Ports":"80:10000","SessionID":"ac1b7082-d811-47a7-89ae-fe1a9c48a6da"}
 ```
 
-You can now use the IP/Port to connect to the allocated game server. The fake game server exposes a /hello endpoint that returns the hostname of the container.
+You can now use the IP/Port to connect to the allocated game server. The fake game server exposes a `/Hello` endpoint that returns the hostname of the container.
 
 ```bash
 dgkanatsios@desktopdigkanat:thundernetes$ curl 52.183.89.4:10000/Hello
 Hello from fake GameServer with hostname gameserverbuild-sample-netcore-mveex
 ```
 
-At the same time, you can check your game servers again. Since the original request was for 2 standingBy and 4 maximum servers, we can now see that we have 2 standingBy and 1 active.
+At the same time, you can check your game servers again. Since the original request was for 2 standingBy and 4 maximum servers and the allocation call converted one StandingBy to Active, Thundernetes created another GameServer, which reached the StandingBy state. We can now see that we have 2 StandingBy and 1 Active. We can also see the SessionID of the Active GameServer.
 
 ```bash
 dgkanatsios@desktopdigkanat:thundernetes$ kubectl get gs
@@ -224,11 +225,11 @@ gameserverbuild-sample-netcore-pxrqx   Healthy   StandingBy   52.183.89.4   80:1
 
 #### Lifecycle of a game server
 
-The game server will remain in Active state as long as the game server process is running. Once the game server process exits, the game server pod will be deleted and a new one will be created in its place. For more information on the GameServer lifecycle, please check [here](gameserverlifecycle.md).
+The game server will remain in Active state as long as the game server process is running. Once the game server process exits, the GameServer Custom Resource will be deleted. This will make the game server pod to be deleted and a new one will be created in its place (provided we are not beyond the GameServerBuild's maximum). For more information on the GameServer lifecycle, please check [here](gameserverlifecycle.md).
 
 ### Openarena
 
-This sample, located [here](../samples/openarena), is based on the popular open source FPS game [OpenArena](http://www.openarena.ws/smfnews.php). You can install it using this script
+This sample, located [here](https://github.com/playfab/thundernetes/samples/openarena), is based on the popular open source FPS game [OpenArena](http://www.openarena.ws/smfnews.php). You can install it using this script:
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/openarena/sample.yaml

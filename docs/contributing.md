@@ -1,3 +1,9 @@
+---
+layout: default
+title: Contributing
+nav_order: 11
+---
+
 # Contributing Guide
 
 Welcome! We are glad that you want to contribute to our project! 💖
@@ -22,7 +28,6 @@ bug report and let us know!
   * [Pull Request Workflow](#pull-request-workflow)
   * [Pull Request Checklist](#pull-request-checklist)
   * [Sign Your Commits](#sign-your-commits)
-    * [DCO](#dco)
     * [CLA](#cla)
 
 ## Ways to Contribute
@@ -107,41 +112,9 @@ before you submit your code:
 * Any new or changed code include test additions or changes, as appropriate.
 * Documentation is updated as required by the scope of the change.
 * CHANGELOG.md is updated to reflect this change.
-* Commits are signed with DCO
 * Our CLA has been signed
 
 ## Sign Your Commits
-
-### DCO
-
-Licensing is important to open source projects. It provides some assurances that
-the software will continue to be available based under the terms that the
-author(s) desired. We require that contributors sign off on commits submitted to
-our project's repositories. The [Developer Certificate of Origin
-(DCO)](https://developercertificate.org/) is a way to certify that you wrote and
-have the right to contribute the code you are submitting to the project.
-
-You sign-off by adding the following to your commit messages. Your sign-off must
-match the git user and email associated with the commit.
-
-```text
-    This is my commit message
-
-    Signed-off-by: Your Name <your.name@example.com>
-```
-
-Git has a `-s` command line option to do this automatically:
-
-```text
-    git commit -s -m 'This is my commit message'
-```
-
-If you forgot to do this and have not yet pushed your changes to the remote
-repository, you can amend your commit with the sign-off by running
-
-```text
-    git commit --amend -s 
-```
 
 ### CLA
 

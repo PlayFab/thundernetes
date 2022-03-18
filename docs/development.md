@@ -1,21 +1,24 @@
 ---
 layout: default
 title: Development
-nav_order: 9
+nav_order: 12
 ---
 
 # Development
 
-## Release new thundernetes version
+This document contains development notes and tips for working with Thundernetes source code.
+
+## Release new Thundernetes version
 
 This will require 2 PRs.
 
-- Make sure you update `.version` file on the root of this repository with the new version
+- Make sure you update `.versions` file on the root of this repository with the new version
 - Run `make clean` to ensure any cached artifacts of old builds are deleted.
 - Push and merge
-- Run the GitHub Actions workflow [here](https://github.com/PlayFab/thundernetes/actions/workflows/publish.yml) to create the new images
+- Manually run the GitHub Actions workflow [here](https://github.com/PlayFab/thundernetes/actions/workflows/publish.yml) to create the new images
+- Git pull the latest changes from the main branch
 - Run `make create-install-files` to generate the operator install files
-- Replace the image on the [netcore-sample YAML files](../samples/netcore)
+- Replace the image on the [netcore-sample YAML files](https://github.com/PlayFab/thundernetes/samples/netcore)
 - Push and merge
 
 ## Metrics
@@ -25,7 +28,7 @@ This will require 2 PRs.
 
 ## Running end to end tests on macOS
 
-First of all, end to end tests require `envsubst` utility, assuming that you have Homebrew installed you can get it via `brew install gettext &&brew link --force gettext`.
+First of all, end to end tests require `envsubst` utility, assuming that you have Homebrew installed you can get it via `brew install gettext && brew link --force gettext`.
 We assume that you have installed Go, then you should install kind with `go install sigs.k8s.io/kind@latest`. Kind will be installed in `$(go env GOPATH)/bin` directory. Then, you should move kind to the `<projectRoot>/operator/testbin/bin/` folder with a command like `cp $(go env GOPATH)/bin/kind ./operator/testbin/bin/kind`. You can run end to end tests with `make builddockerlocal createkindcluster e2elocal`.
 
 ## Various scripts
@@ -271,4 +274,5 @@ To test your changes to thundernetes to a Kubernetes cluster, you can use the fo
 - Run `create-install-files-dev` to create the install files for the cluster
 - Checkout the `installfilesdev` folder for the generated install files. This file is included in .gitignore so it will never be committed.
 - Test your changes as required.
+- single command: `NS=docker.io/dgkanatsios/ make clean build push create-install-files-dev`
  
