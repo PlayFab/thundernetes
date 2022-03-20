@@ -56,4 +56,4 @@ volumes:
 
 - Mpswrapper code is [here](https://github.com/PlayFab/MpsSamples/tree/master/wrappingGsdk) and the latest container image version can be found [here](https://github.com/PlayFab/MpsSamples/pkgs/container/mpswrapper)
 - Instructions on how to mount an Azure Files share on your Kubernetes Pods can be found [here](https://docs.microsoft.com/en-us/azure/aks/azure-files-volume)
-- You can find a sample YAML file [here](https://github.com/playfab/thundernetes/samples/fileshare/sample.yaml)
+- You can find a sample YAML file [here](https://github.com/playfab/thundernetes/blob/main/samples/fileshare/sample.yaml)
