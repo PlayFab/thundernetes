@@ -26,9 +26,9 @@ You can view the states of your GameServers by typing `kubectl get gs`. The stat
 
 GameServer Pods in the Initializing or StandingBy state can be taken down during a cluster scale-down. Thundernetes makes every effort to prevent Active GameServer Pods from being taken down, since this would have the undesirable effect of breaking an existing game. Moreover, as mentioned, GameServer can never transition back to StandingBy state from Active state. The only way to get a new game server in StandingBy state is if the GameServer process exits. You should gracefully exit your game server process when the game session is done and the last connected player has exited the game.
 
-> If the game server process crashes for more than `crashesToMarkUnhealthy` times (specified in the GameServerBuild spec, default value 5), then no more operations will be performed on the GameServerBuild. 
+> _**NOTE**_: If the game server process crashes for more than `crashesToMarkUnhealthy` times (specified in the GameServerBuild spec, default value 5), then no more operations will be performed on the GameServerBuild. 
 
-> User is responsible for collecting logs while the Pod is running. Check [here](howtos/gameserverlogs.md) on how to do this.
+> _**NOTE**_: User is responsible for collecting logs while the Pod is running. Check [here](howtos/gameserverlogs.md) on how to do this.
 
 ## Verifying GSDK integration with your game server
 

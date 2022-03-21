@@ -59,7 +59,7 @@ To run LocalMultiplayerAgent to test your game servers for Thundernetes, you'll 
 }
 ```
 
-> Some notes:
+> _**NOTE**_: Some notes:
 > 1. You must set `RunContainer` to true.
 > 2. Modify `imageDetails` with your game server Docker image details. Image may be built locally (using [docker build](https://docs.docker.com/engine/reference/commandline/build/) command) or be hosted in a remote container registry. If you host it on a remote container registry, you must provide the username and password for the registry.
 > 3. `StartGameCommand` and `AssetDetails` are optional. You don't normally use them when you use a Docker container since all game assets + start game server command can be packaged in the corresponding [Dockerfile](https://docs.docker.com/engine/reference/builder/).
@@ -67,13 +67,15 @@ To run LocalMultiplayerAgent to test your game servers for Thundernetes, you'll 
 
 ## Verifying GSDK integration
 
-- After you perform all the previous steps, you can then run the LocalMultiPlayerAgent with the command `LocalMultiplayerAgent.exe -lcow` (lcow stands for *Linux Containers On Windows*)
-- If the GSDK is integrated correctly, **LocalMultiplayerAgent** prints the following outputs:  
-  - `CurrentGameState - Initializing` (this is optional and may not show up if your game server directly calls `GSDK::ReadyForPlayers` and does not call `GSDK::Start`)
-  - `CurrentGameState - StandingBy`
-  - `CurrentGameState - Active`
-  - `CurrentGameState - Terminating`
-- At this point, LocalMultiplayerAgent will try to execute the GSDK shutdown callback which **is not** required for Thundernetes. You can either implement it (by exiting the game server process manually) or simply cancel LocalMultiplayerAgent execution and then manually delete the game server container (by executing `docker rm -f <containerName>`).
+After you perform all the previous steps, you can then run the LocalMultiPlayerAgent with the command `LocalMultiplayerAgent.exe -lcow` (lcow stands for *Linux Containers On Windows*).
+
+If the GSDK is integrated correctly, **LocalMultiplayerAgent** prints the following outputs:  
+ - `CurrentGameState - Initializing` (this is optional and may not show up if your game server directly calls `GSDK::ReadyForPlayers` and does not call `GSDK::Start`)
+ - `CurrentGameState - StandingBy`
+ - `CurrentGameState - Active`
+ - `CurrentGameState - Terminating`
+
+At this point, LocalMultiplayerAgent will try to execute the GSDK shutdown callback which **is not** required for Thundernetes. You can either implement it (by exiting the game server process manually) or simply cancel LocalMultiplayerAgent execution and then manually delete the game server container (by executing `docker rm -f <containerName>`).
 
 ### Testing connection to your game
 
@@ -81,4 +83,4 @@ When your game server executable is running and **LocalMultiplayerAgent** prints
 
 After `NumHeartBeatsForActivateResponse` heartbeats, **LocalMultiplayerAgent** requests the game server to move from standby to active.
 
-> You can also check the (very similar) MPS instructions [here](https://docs.microsoft.com/en-us/gaming/playfab/features/multiplayer/servers/locally-debugging-game-servers-and-integration-with-playfab#using-localmultiplayeragent-with-linux-containers).
+> _**NOTE**_: You can also check the (very similar) MPS instructions [here](https://docs.microsoft.com/en-us/gaming/playfab/features/multiplayer/servers/locally-debugging-game-servers-and-integration-with-playfab#using-localmultiplayeragent-with-linux-containers).

@@ -111,7 +111,7 @@ if (initialConfig?.ContainsKey(ListeningPortKey) == true)
   // instantiate your game server with the value of the listeningPort
 ```
 
-> Unfortunately, it is still necessary to provide a `containerPort` value in the GameServerBuild YAML, since it is required for GameServerBuild validation. However, as mentioned, this provided value is used nowhere since it's overwritten by the `hostPort` value.
+> _**NOTE**_: Unfortunately, it is still necessary to provide a `containerPort` value in the GameServerBuild YAML, since it is required for GameServerBuild validation. However, as mentioned, this provided value is used nowhere since it's overwritten by the `hostPort` value.
 
 ## Game server image upgrades
 

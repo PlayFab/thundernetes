@@ -8,7 +8,7 @@ nav_order: 7
 
 GameServerBuild defines the specification and auto-scaling configuration of the GameServers that you want to run in the cluster. Each version of your game server should have its own GameServerBuild.
 
-> A GameServerBuild is equivalent to a Build region in MPS. GameServer containers that work in Thundernetes should work in a similar way on PlayFab Multiplayer Servers service.
+> _**NOTE**_: A GameServerBuild is equivalent to a Build region in MPS. GameServer containers that work in Thundernetes should work in a similar way on PlayFab Multiplayer Servers service.
 
 Here you can see the YAML that can be used to create a GameServerBuild in Thundernetes. The only fields that you should change after the GameServerBuild is created are the *standingBy* and the *max* ones. The other fields should be considered immutable.
 
