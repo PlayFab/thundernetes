@@ -8,7 +8,7 @@ nav_order: 2
 
 We've tested Thundernetes on the latest versions of Azure Kubernetes Service (AKS) and [kind](https://kind.sigs.k8s.io/) but it can theoretically be installed on any Kubernetes cluster supporting Public IP per Node (which is something you want if you want to expose your game servers outside the cluster). Read the relevant section depending on where you want to install Thundernetes.
 
-> If you are using Windows, we recommend using [Windows Subsystem for Linux](https://docs.microsoft.com/windows/wsl/install) to run the CLI commands listed below.
+> _**NOTE**_: If you are using Windows, we recommend using [Windows Subsystem for Linux](https://docs.microsoft.com/windows/wsl/install) to run the CLI commands listed below.
 
 ## Create an Azure Kubernetes Service cluster with a Public IP per Node
 
@@ -39,7 +39,7 @@ kubectl cluster-info
 
 Thundernetes requires VMs to have Public IPs (so game servers can be accessible) and be able to accept network traffic at port range 10000-12000 from the Internet.
 
-> This port range is configurable, check [here](howtos/configureportrange.md) for details. 
+> _**NOTE**_: This port range is configurable, check [here](howtos/configureportrange.md) for details. 
 
 To open the ports you need to perform the following steps *after your AKS cluster gets created*:
 
@@ -156,7 +156,7 @@ This sample, located [here](https://github.com/playfab/thundernetes/samples/netc
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/netcore/sample.yaml
 ```
 
-> To read about the fields that you need to specify for a GameServerBuild, you can check [this document](gameserverbuild.md).
+> _**NOTE**_: To read about the fields that you need to specify for a GameServerBuild, you can check [this document](gameserverbuild.md).
 
 Try using `kubectl get gs` to see the running game servers, you should see something similar to this:
 
@@ -175,7 +175,7 @@ NAME                             STANDBY   ACTIVE   CRASHES   HEALTH
 gameserverbuild-sample-netcore   2/2       0        0         Healthy
 ```
 
-> `gs` and `gsb` are just short names for GameServer and GameServerBuild, respectively. You could just type `kubectl get gameserver` or `kubectl get gameserverbuild` instead.
+> _**NOTE**_: `gs` and `gsb` are just short names for GameServer and GameServerBuild, respectively. You could just type `kubectl get gameserver` or `kubectl get gameserverbuild` instead.
 
 To scale your GameServerBuild, you can do `kubectl edit gsb gameserverbuild-sample-netcore` and edit the max/standingBy numbers.
 
@@ -198,7 +198,7 @@ The arguments to the allocation call are two:
 * buildID: this must be the same as the buildID configured in the GameServerBuild
 * sessionID: a GUID that you can use to identify the game server session. Must be unique for each game server you allocate. If you try to allocate using a sessionID that is in use, the call will return the details of the existing game server. 
 
-> The allocation call is equivalent to calling [RequestMultiplayerServer](https://docs.microsoft.com/rest/api/playfab/multiplayer/multiplayer-server/request-multiplayer-server) in PlayFab Multiplayer Servers.
+> _**NOTE**_: The allocation call is equivalent to calling [RequestMultiplayerServer](https://docs.microsoft.com/rest/api/playfab/multiplayer/multiplayer-server/request-multiplayer-server) in PlayFab Multiplayer Servers.
 
 Result of the allocate call is the IP/Port of the server in JSON format.
 

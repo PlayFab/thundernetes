@@ -52,14 +52,14 @@ If you currently have [Prometheus](https://prometheus.io) & [Grafana](https://gr
 
 Thundernetes requires a Kubernetes cluster with Public IP per Node. We've tested it extensively on [Azure Kubernetes Service - AKS](https://docs.microsoft.com/azure/aks/intro-kubernetes) as well as in local clusters using [kind](https://kind.sigs.k8s.io/). You also need to have ports 10000-12000 open in your cluster, since these are the ports that Thundernetes by default will set up on your Kubernetes Nodes so they can receive game network traffic and forward to your game server Pod. 
 
-> You can use a Kubernetes cluster without a Public IP. However, you would need to configure your own network architecture if you want to access your game servers. For example, if you use a cloud provider's Load Balancer, you would need to configure routes from Load Balancer's public endpoints to the internal ones on your Kubernetes cluster. Check [here](https://github.com/dgkanatsios/thundernetescontrib/tree/main/traefikingress) for an example controller with [traefik](https://github.com/traefik/traefik) ingress controller for HTTP-based game servers (e.g. WebGL).
+> _**NOTE**_: You can use a Kubernetes cluster without a Public IP. However, you would need to configure your own network architecture if you want to access your game servers. For example, if you use a cloud provider's Load Balancer, you would need to configure routes from Load Balancer's public endpoints to the internal ones on your Kubernetes cluster. Check [here](https://github.com/dgkanatsios/thundernetescontrib/tree/main/traefikingress) for an example controller with [traefik](https://github.com/traefik/traefik) ingress controller for HTTP-based game servers (e.g. WebGL).
 
 Moreover, Thundernetes requires ports in the range 10000-12000 to be open in the cluster for external connections (i.e. in the case of Azure Kubernetes Service, this port range must allow incoming traffic in the corresponding Network Security Group). This port range is configurable, check [here](howtos/configureportrange.md) for details. 
 
 Each GameServerBuild contains the *portsToExpose* field, which contains information about the port(s) that each GameServer listens to for incoming client connections. When the GameServer Pod is created, each port in the *portsToExpose* field will be assigned a port in the (default) range 10000-12000 (let's call it an external port) via a PortRegistry mechanism in the Thundernetes controller. Game clients can send traffic to this external port and this will be forwarded to the game server container port. Once the GameServer session ends, the port is returned back to the pool of available ports and may be re-used in the future.
 
-> Each port that is allocated by the PortRegistry is assigned to HostPort field of the Pod's definition. The fact that Nodes in the cluster have a Public IP makes this port accessible outside the cluster.
-> Thundernetes supports `hostNetwork` networking for the GameServer Pods, if requested in the GameServerBuild Pod definition.
+> _**NOTE**_: Each port that is allocated by the PortRegistry is assigned to HostPort field of the Pod's definition. The fact that Nodes in the cluster have a Public IP makes this port accessible outside the cluster.
+> _**NOTE**_: Thundernetes supports `hostNetwork` networking for the GameServer Pods, if requested in the GameServerBuild Pod definition.
 
 ## GameServer allocation
 

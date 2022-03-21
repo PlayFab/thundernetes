@@ -59,7 +59,7 @@ spec:
       ...
 ```
 
-> For more information on the NodeAgent process running in the DaemonSet, check the architecture document [here](../architecture.md#gsdk-integration).
+> _**NOTE**_: For more information on the NodeAgent process running in the DaemonSet, check the architecture document [here](../architecture.md#gsdk-integration).
 
 ## Limit the number of available ports
 
