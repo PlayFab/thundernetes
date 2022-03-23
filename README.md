@@ -22,6 +22,12 @@ Thundernetes is a project originating from the [Azure PlayFab Multiplayer Server
 
 Check 🔥[our website](https://playfab.github.io/thundernetes)🔥 for more information.
 
+## 📦 Video presentation
+
+Check out our video presentation for GDC 2022!
+
+[![What is Project Thundernetes? How Kubernetes Helps Games Scale](https://img.youtube.com/vi/zwnUfq1ygic/0.jpg)](https://www.youtube.com/watch?v=zwnUfq1ygic)
+
 ## 💬❓Feedback - Community 
 
 As mentioned, Thundernetes is in preview and a work in progress. If you find a bug or have a feature request, please file an issue [here](https://github.com/PlayFab/thundernetes/issues) and we will try to get back to you as soon as possible. You can also reach us directly on [Game Dev server on Discord](https://aka.ms/msftgamedevdiscord).
