@@ -7,7 +7,7 @@ RUN dotnet restore
 
 # copy and publish app and libraries
 COPY samples/openarena/ .
-RUN dotnet publish -c release -o /app
+RUN dotnet publish -c release -o /app -r linux-x64
 
 # final stage/image
 FROM fgracia/openarena:latest
