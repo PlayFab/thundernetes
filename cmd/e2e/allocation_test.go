@@ -116,15 +116,17 @@ var _ = Describe("test GameServerBuild with allocation tests", Ordered, func() {
 	})
 
 	It("should fail to allocate with wrong TLS certificate", func() {
-		// shouldn't be able to allocate, expecting zero actives
 		sessionID1_8 := uuid.New().String()
-		Expect(allocate(testBuildAllocationID, sessionID1_8, fakeCert)).To(Succeed())
+		err := allocate(testBuildAllocationID, sessionID1_8, fakeCert)
+		// TODO: verify that the error is a tls/authentication error
+		Expect(err).To(HaveOccurred())
 		Eventually(func(g Gomega) {
 			state := buildState{
 				buildName:       testBuildAllocationName,
 				buildID:         testBuildAllocationID,
 				standingByCount: 2,
-				podRunningCount: 2,
+				activeCount:     1,
+				podRunningCount: 3,
 				gsbHealth:       mpsv1alpha1.BuildHealthy,
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())

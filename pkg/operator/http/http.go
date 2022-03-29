@@ -3,8 +3,8 @@ package http
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"time"
@@ -99,11 +99,13 @@ func (s *AllocationApiServer) Start(ctx context.Context) error {
 	log.Info("serving allocation API service", "addr", addr, "port", listeningPort)
 
 	srv := &http.Server{
-		Addr:           addr,
-		Handler:        mux,
-		ReadTimeout:    5 * time.Second,
-		WriteTimeout:   5 * time.Second,
-		MaxHeaderBytes: http.DefaultMaxHeaderBytes,
+		Addr:              addr,
+		Handler:           mux,
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      5 * time.Second,
+		IdleTimeout:       30 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
+		MaxHeaderBytes:    http.DefaultMaxHeaderBytes,
 	}
 
 	done := make(chan struct{})
@@ -121,7 +123,25 @@ func (s *AllocationApiServer) Start(ctx context.Context) error {
 
 	if crtBytes != nil && keyBytes != nil {
 		log.Info("starting TLS enabled allocation API service")
-		if err := customListenAndServeTLS(srv, crtBytes, keyBytes); err != nil && err != http.ErrServerClosed {
+		// Generate a key pair from your pem-encoded cert and key ([]byte).
+		cert, err := tls.X509KeyPair(crtBytes, keyBytes)
+		if err != nil {
+			return nil
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(crtBytes)
+		// Construct a tls.config
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			ClientCAs:    caCertPool,
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			// Other options
+		}
+
+		// Build a server:
+		srv.TLSConfig = tlsConfig
+		// Finally: serve.
+		if err := srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 			return err
 		}
 	} else {
@@ -133,36 +153,4 @@ func (s *AllocationApiServer) Start(ctx context.Context) error {
 
 	<-done
 	return nil
-}
-
-// customListenAndServeTLS creates a new http server with []byte cert and []byte key
-// Golang's ListenAndServerTLS accepts filenames for cert and key whereas we have []byte
-// https://stackoverflow.com/a/30818656
-func customListenAndServeTLS(srv *http.Server, certPEMBlock, keyPEMBlock []byte) error {
-	addr := srv.Addr
-	if addr == "" {
-		addr = ":https"
-	}
-	config := &tls.Config{}
-	if srv.TLSConfig != nil {
-		config = srv.TLSConfig
-	}
-	if config.NextProtos == nil {
-		config.NextProtos = []string{"http/1.1"}
-	}
-
-	var err error
-	config.Certificates = make([]tls.Certificate, 1)
-	config.Certificates[0], err = tls.X509KeyPair(certPEMBlock, keyPEMBlock)
-	if err != nil {
-		return err
-	}
-
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
-
-	tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, config)
-	return srv.Serve(tlsListener)
 }
