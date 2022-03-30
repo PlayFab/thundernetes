@@ -9,9 +9,11 @@ import (
 )
 
 var (
-	img      string
-	certFile string
-	keyFile  string
+	img          string
+	certFile     string
+	keyFile      string
+	fakeCertFile string
+	fakeKeyFile  string
 )
 
 func TestEndToEnd(t *testing.T) {
@@ -28,4 +30,8 @@ var _ = BeforeSuite(func() {
 	Expect(certFile).ToNot(BeEmpty())
 	keyFile = os.Getenv("TLS_PRIVATE")
 	Expect(keyFile).ToNot(BeEmpty())
+	fakeCertFile = os.Getenv("FAKE_TLS_PUBLIC")
+	Expect(fakeCertFile).ToNot(BeEmpty())
+	fakeKeyFile = os.Getenv("FAKE_TLS_PRIVATE")
+	Expect(fakeKeyFile).ToNot(BeEmpty())
 })

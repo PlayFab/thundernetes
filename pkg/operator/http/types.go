@@ -1,9 +1,7 @@
 package http
 
 import (
-	"net"
 	"regexp"
-	"time"
 )
 
 // AllocateArgs contains information necessary to allocate a GameServer
@@ -33,23 +31,4 @@ type RequestMultiplayerServerResponse struct {
 	IPV4Address string
 	Ports       string
 	SessionID   string
-}
-
-// tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
-// connections. It's used by ListenAndServe and ListenAndServeTLS so
-// dead TCP connections (e.g. closing laptop mid-download) eventually
-// go away. We use if for TLS-auth enabled allocation API service
-type tcpKeepAliveListener struct {
-	*net.TCPListener
-}
-
-// Accept accepts the TCP connection and sets the TCP keep-alive for 3 minutes
-func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
-	tc, err := ln.AcceptTCP()
-	if err != nil {
-		return
-	}
-	tc.SetKeepAlive(true)
-	tc.SetKeepAlivePeriod(3 * time.Minute)
-	return tc, nil
 }

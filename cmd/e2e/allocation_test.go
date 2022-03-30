@@ -18,12 +18,15 @@ var _ = Describe("test GameServerBuild with allocation tests", Ordered, func() {
 	testBuildAllocationName := "testbuildallocation"
 	testBuildAllocationID := "85ffe8da-c82f-4035-86c5-9d2b5f42d6aa"
 	var cert tls.Certificate
+	var fakeCert tls.Certificate
 	ctx := context.Background()
 	var kubeClient client.Client
 	var coreClient *kubernetes.Clientset
 	BeforeAll(func() {
 		var err error
 		cert, err = tls.LoadX509KeyPair(certFile, keyFile)
+		Expect(err).ToNot(HaveOccurred())
+		fakeCert, err = tls.LoadX509KeyPair(fakeCertFile, fakeKeyFile)
 		Expect(err).ToNot(HaveOccurred())
 		kubeConfig := ctrl.GetConfigOrDie()
 		kubeClient, err = createKubeClient(kubeConfig)
@@ -111,4 +114,22 @@ var _ = Describe("test GameServerBuild with allocation tests", Ordered, func() {
 		Expect(validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, kubeClient, coreClient, testBuildAllocationID, 1)).To(Succeed())
 
 	})
+
+	It("should fail to allocate with wrong TLS certificate", func() {
+		sessionID1_8 := uuid.New().String()
+		err := allocate(testBuildAllocationID, sessionID1_8, fakeCert)
+		Expect(err.Error()).To(ContainSubstring("tls: bad certificate"))
+		Eventually(func(g Gomega) {
+			state := buildState{
+				buildName:       testBuildAllocationName,
+				buildID:         testBuildAllocationID,
+				standingByCount: 2,
+				activeCount:     1,
+				podRunningCount: 3,
+				gsbHealth:       mpsv1alpha1.BuildHealthy,
+			}
+			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
+		}, timeout, interval).Should(Succeed())
+	})
+
 })

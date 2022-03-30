@@ -30,6 +30,11 @@ openssl req -x509 -newkey rsa:4096 -nodes -keyout ${TLS_PRIVATE} -out ${TLS_PUBL
 kubectl create namespace thundernetes-system
 kubectl create secret tls tls-secret -n thundernetes-system --cert=${TLS_PUBLIC} --key=${TLS_PRIVATE}
 
+# fake certificate for testing the TLS security on the allocation API server
+export FAKE_TLS_PRIVATE=/tmp/${RANDOM}.pem
+export FAKE_TLS_PUBLIC=/tmp/${RANDOM}.pem
+openssl req -x509 -newkey rsa:4096 -nodes -keyout ${FAKE_TLS_PRIVATE} -out ${FAKE_TLS_PUBLIC} -days 365 -subj '/CN=localhost'
+
 echo "-----Compiling, building and deploying the operator to local Kubernetes cluster-----"
 IMG=${IMAGE_NAME_OPERATOR}:${IMAGE_TAG} API_SERVICE_SECURITY=usetls make -C "${DIR}"/../pkg/operator deploy
 
