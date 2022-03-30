@@ -118,8 +118,7 @@ var _ = Describe("test GameServerBuild with allocation tests", Ordered, func() {
 	It("should fail to allocate with wrong TLS certificate", func() {
 		sessionID1_8 := uuid.New().String()
 		err := allocate(testBuildAllocationID, sessionID1_8, fakeCert)
-		// TODO: verify that the error is a tls/authentication error
-		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("tls: bad certificate"))
 		Eventually(func(g Gomega) {
 			state := buildState{
 				buildName:       testBuildAllocationName,
