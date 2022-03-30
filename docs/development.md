@@ -39,7 +39,7 @@ We assume that you have installed Go, then you should install kind with `go inst
 openssl genrsa 2048 > private.pem
 openssl req -x509 -days 1000 -new -key private.pem -out public.pem
 kubectl create namespace thundernetes-system
-kubectl create secret tls tls-secret -n thundernetes-system --cert=/home/dgkanatsios/public.pem --key=/home/dgkanatsios/private.pem
+kubectl create secret tls tls-secret -n thundernetes-system --cert=public.pem --key=private.pem
 ```
 
 ### Allocate a game server
@@ -48,7 +48,7 @@ kubectl create secret tls tls-secret -n thundernetes-system --cert=/home/dgkanat
 
 ```bash
 IP=$(kubectl get svc -n thundernetes-system thundernetes-controller-manager -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-curl --key ~/private.pem --cert ~/public.pem --insecure -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f5","sessionID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f5"}' http://${IP}:5000/api/v1/allocate
+curl --key ~/private.pem --cert ~/public.pem --insecure -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f5","sessionID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f5"}' https://${IP}:5000/api/v1/allocate
 ```
 
 #### Without TLS auth
@@ -113,13 +113,13 @@ Install the cert and key as a Kubernetes Secret in the same namespace as the ope
 
 ```bash
 kubectl create namespace thundernetes-system
-kubectl create secret tls tls-secret -n thundernetes-system --cert=/home/dgkanatsios/public.pem --key=/home/dgkanatsios/private.pem
+kubectl create secret tls tls-secret -n thundernetes-system --cert=public.pem --key=private.pem
 ```
 
 Then, you need to install the operator enabling TLS authentication for the allocation API service.
 
 ```bash
-export TAG=0.0.1.2
+export TAG=0.3.0
 IMG=ghcr.io/playfab/thundernetes-operator:${TAG} \
   IMAGE_NAME_INIT_CONTAINER=docker.io/dgkanatsios/thundernetes-initcontainer \
   IMAGE_NAME_SIDECAR=docker.io/dgkanatsios/thundernetes-sidecar-netcore \
@@ -274,5 +274,5 @@ To test your changes to thundernetes to a Kubernetes cluster, you can use the fo
 - Run `create-install-files-dev` to create the install files for the cluster
 - Checkout the `installfilesdev` folder for the generated install files. This file is included in .gitignore so it will never be committed.
 - Test your changes as required.
-- single command: `NS=docker.io/dgkanatsios/ make clean build push create-install-files-dev`
+- single command: `NS=docker.io/<repo>/ make clean build push create-install-files-dev`
  
