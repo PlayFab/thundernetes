@@ -22,7 +22,7 @@ Thundernetes requires:
 
 - A Kubernetes cluster, either on-premise or on a public cloud provider. Ideally, the cluster should support having a Public IP per Node to allow external incoming connections
 - A game server 
-  - integrated with the open source [Game Server SDK](https://playfab.com/gsdk) (GSDK). GSDK has been battle-tested by multiple AAA titles for years on the [Azure PlayFab Multiplayer Servers service](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/) and supports multiple popular programming languages and game engines like Unity, Unreal, C#, C++, Java, Go.
+  - integrated with the open source [Game Server SDK](https://github.com/playfab/gsdk) (GSDK). GSDK has been battle-tested by multiple AAA titles for years on the [Azure PlayFab Multiplayer Servers service](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/) and supports multiple popular programming languages and game engines like Unity, Unreal, C#, C++, Java, Go.
   - built as a Linux container image. This image should be deployed to a container registry that your Kubernetes cluster can access.
 
 > **_NOTE_**: You can avoid having to integrate with GSDK by using the [wrapper sample](usingwrapper.md). This sample is great if you want to experiment with Thundernetes, however proper GSDK integration is highly recommended.
