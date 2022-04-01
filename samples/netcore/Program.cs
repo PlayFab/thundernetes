@@ -27,8 +27,7 @@ namespace netcore
             var portInfo = gameServerConnectionInfo.GamePortsConfiguration.Where(x=>x.Name == httpPortKey);
             if(portInfo.Count() == 0)
             {
-                Console.WriteLine("No port info found for " + httpPortKey);
-                return;
+                throw new Exception("No port info found for " + httpPortKey);
             }
             httpPort = portInfo.Single().ServerListeningPort;
 

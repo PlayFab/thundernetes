@@ -43,23 +43,12 @@ var _ = Describe("Utilities tests", func() {
 			Expect(containsString([]string{"foo"}, "bar")).To(BeFalse())
 		})
 		It("should find if containerName/portName tuple is contained in the PortToExpose slice", func() {
-			p := []mpsv1alpha1.PortToExpose{
-				{
-					ContainerName: "container1",
-					PortName:      "port1",
-				},
-				{
-					ContainerName: "container1",
-					PortName:      "port2",
-				},
-				{
-					ContainerName: "container2",
-					PortName:      "port1",
-				},
+			p := []int32{
+				5, 10, 15,
 			}
-			Expect(sliceContainsPortToExpose(p, "container1", "port1")).To(BeTrue())
-			Expect(sliceContainsPortToExpose(p, "container1", "port2")).To(BeTrue())
-			Expect(sliceContainsPortToExpose(p, "container2", "port2")).To(BeFalse())
+			Expect(sliceContainsPortToExpose(p, 5)).To(BeTrue())
+			Expect(sliceContainsPortToExpose(p, 10)).To(BeTrue())
+			Expect(sliceContainsPortToExpose(p, 16)).To(BeFalse())
 		})
 		It("should return env variables for GameServer", func() {
 			gs := &mpsv1alpha1.GameServer{
@@ -86,15 +75,8 @@ var _ = Describe("Utilities tests", func() {
 				Spec: mpsv1alpha1.GameServerSpec{
 					TitleID: "test-title",
 					BuildID: "test-build",
-					PortsToExpose: []mpsv1alpha1.PortToExpose{
-						{
-							ContainerName: "container1",
-							PortName:      "port1",
-						},
-						{
-							ContainerName: "container1",
-							PortName:      "port2",
-						},
+					PortsToExpose: []int32{
+						80, 443,
 					},
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{

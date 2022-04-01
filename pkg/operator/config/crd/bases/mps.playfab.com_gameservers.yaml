@@ -72,20 +72,11 @@ spec:
                   type: object
                 type: array
               portsToExpose:
-                description: PortsToExpose is an array of tuples of container/port
-                  names that correspond to the ports that will be exposed on the VM
+                description: PortsToExpose is an array of ports that will be exposed
+                  on the VM
                 items:
-                  description: PortToExpose is a tuple of container/port names that
-                    correspond to the ports that will be exposed on the VM
-                  properties:
-                    containerName:
-                      type: string
-                    portName:
-                      type: string
-                  required:
-                  - containerName
-                  - portName
-                  type: object
+                  format: int32
+                  type: integer
                 type: array
               template:
                 description: Template describes the pod template specification of
