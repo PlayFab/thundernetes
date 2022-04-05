@@ -35,7 +35,7 @@ const (
 var (
 	GameServerStates = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "thundernetes",
-		Name: "game_server_states",
+		Name: "gameserver_states",
 		Help: "Game server states",
 	}, []string{"name", "state"})
 
