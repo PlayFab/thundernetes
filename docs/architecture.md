@@ -8,7 +8,7 @@ nav_order: 8
 
 This document describes the architecture of Thundernetes as well as various design notes that are relevant to its implementation.
 
-![Architecture diagram](assets/images/diagram.png)
+[![Architecture diagram](assets/images/diagram.png)](assets/images/diagram.png)
 
 ## Goal
 
