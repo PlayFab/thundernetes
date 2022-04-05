@@ -1,7 +1,7 @@
 # Monitoring
 
-Thundernetes is able to export game server related metrics to a Prometheus server, and these can also be imported
-to a Grafana server for easy and intuitive visualizations. Prometheus uses a pull model to retrieve data, and needs
+Thundernetes is able to export game server related metrics to a [Prometheus](https://prometheus.io/docs/introduction/overview/) server, and these can also be imported
+to a [Grafana](https://grafana.com/docs/grafana/latest/introduction/) server for easy and intuitive visualizations. Prometheus uses a pull model to retrieve data, and needs
 apps to implement an endpoint that responds to its HTTP requests. For this, Thundernetes exposes the following endpoints:
 
 * **{controller manager service IP}:8080/metrics**
@@ -9,7 +9,7 @@ apps to implement an endpoint that responds to its HTTP requests. For this, Thun
 
 ## Install Thundernetes with Prometheus and Grafana
 
-While it's possible to create and manage your own Prometheus and Grafana instances to consume the endpoints described above, it is also possible to install both into your K8s cluster using very few steps thanks to the kube-prometheus project. This will install the prometheus-operator and Grafana, and will connect them automatically. For this, follow these steps:
+While it's possible to create and manage your own Prometheus and Grafana instances to consume the endpoints described above, it is also possible to install both into your K8s cluster using very few steps thanks to the [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus) project. This will install the prometheus-operator and Grafana, and will connect them automatically. For this, follow these steps:
 
 ```bash
 # clone the kube-prometheus repository
@@ -64,7 +64,7 @@ You can check the same data in Grafana and create a custom dashboard, to access 
 ```bash
 kubectl --namespace monitoring port-forward svc/grafana 3000
 ```
-There is a custom Grafana dashboard example that visualizes some of this data in the samples/grafana directory.
+There is a custom Grafana dashboard example that visualizes some of this data in the [samples/grafana](https://github.com/PlayFab/thundernetes/tree/main/samples/grafana) directory.
 
 ## List of exported Prometheus metrics
 | Metric name | Metric type | Source |
