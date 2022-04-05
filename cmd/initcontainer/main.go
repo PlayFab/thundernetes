@@ -58,6 +58,8 @@ func main() {
 	getGameServerNameNamespaceFromEnv()
 	logger = log.WithFields(log.Fields{"GameServerName": sessionHostId, "GameServerNamespace": crdNamespace})
 
+	setLogLevel()
+
 	getRestEnvVariables()
 
 	gamePorts, gamePortConfiguration, err := parsePorts()
@@ -208,4 +210,17 @@ func getRestEnvVariables() {
 
 	nodeInternalIP = os.Getenv("PF_NODE_INTERNAL_IP")
 	checkEnvOrFatal("PF_NODE_INTERNAL_IP", nodeInternalIP)
+}
+
+// setLogLevel sets the log level based on the LOG_LEVEL environment variable
+func setLogLevel() {
+	log.SetOutput(os.Stdout)
+	log.SetFormatter(&log.TextFormatter{})
+
+	logLevel, err := log.ParseLevel(os.Getenv("LOG_LEVEL"))
+	if err != nil {
+		logLevel = log.InfoLevel
+	}
+
+	log.SetLevel(logLevel)
 }
