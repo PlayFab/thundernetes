@@ -34,11 +34,13 @@ const (
 
 var (
 	GameServerStates = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "game_server_states",
+		Namespace: "thundernetes",
+		Name: "gameserver_states",
 		Help: "Game server states",
 	}, []string{"name", "state"})
 
 	ConnectedPlayersGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "thundernetes",
 		Name: "connected_players",
 		Help: "Number of connected players per GameServer",
 	}, []string{"namespace", "name"})

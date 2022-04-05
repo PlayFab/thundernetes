@@ -51,8 +51,8 @@ var (
 	CurrentGameServerGauge = registry.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "thundernetes",
-			Name:      "gameservers_current_state",
-			Help:      "Gameserver gauges by state",
+			Name:      "gameservers_current_state_per_build",
+			Help:      "Gameserver gauges by state per build",
 		},
 		[]string{"BuildName", "state"},
 	)

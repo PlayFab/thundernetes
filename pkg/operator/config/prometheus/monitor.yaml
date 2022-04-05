@@ -17,3 +17,22 @@ spec:
   selector:
     matchLabels:
       control-plane: controller-manager
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    name: nodeagent
+  name: nodeagent-metrics-monitor
+  namespace: system
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    path: /metrics
+    port: nodeagentport
+    scheme: http
+    tlsConfig:
+      insecureSkipVerify: true
+  selector:
+    matchLabels:
+      name: nodeagent

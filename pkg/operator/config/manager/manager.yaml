@@ -148,3 +148,18 @@ spec:
               fieldPath: status.hostIP
         - name: LOG_LEVEL
           value: ${LOG_LEVEL}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: nodeagent
+  name: nodeagent-metrics-service
+  namespace: system
+spec:
+  ports:
+    - name: nodeagentport
+      port: 56001
+      targetPort: 56001
+  selector:
+    name: nodeagent
