@@ -77,6 +77,7 @@ kubectl --namespace monitoring port-forward svc/grafana 3000
 There is a custom Grafana dashboard example that visualizes some of this data in the [samples/grafana](https://github.com/PlayFab/thundernetes/tree/main/samples/grafana) directory.
 
 ## List of exported Prometheus metrics
+
 | Metric name | Metric type | Source |
 | --- | --- | --- |
 | gameserver_states | Gauge | nodeagent |
