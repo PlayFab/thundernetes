@@ -24,7 +24,7 @@ metadata:
   labels:
     name: nodeagent
   name: nodeagent-metrics-monitor
-  namespace: thundernetes-system
+  namespace: system
 spec:
   endpoints:
   - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
