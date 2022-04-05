@@ -1,8 +1,18 @@
+---
+layout: default
+title: Monitoring
+parent: How to's
+nav_order: 5
+---
+
 # Monitoring
 
 Thundernetes is able to export game server related metrics to a [Prometheus](https://prometheus.io/docs/introduction/overview/) server, and these can also be imported
-to a [Grafana](https://grafana.com/docs/grafana/latest/introduction/) server for easy and intuitive visualizations. Prometheus uses a pull model to retrieve data, and needs
-apps to implement an endpoint that responds to its HTTP requests. For this, Thundernetes exposes the following endpoints:
+to a [Grafana](https://grafana.com/docs/grafana/latest/introduction/) server for easy and intuitive visualizations.
+
+[![Grafana Dasboard Example](assets/images/grafana_dashboard.png)](../assets/images/grafana_dashboard.png)
+
+Prometheus uses a pull model to retrieve data, and needs apps to implement an endpoint that responds to its HTTP requests. For this, Thundernetes exposes the following endpoints:
 
 * **{controller manager service IP}:8080/metrics**
 * **{nodeagent service IP}:56001/metrics**
