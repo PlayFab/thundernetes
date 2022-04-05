@@ -79,9 +79,9 @@ There is a custom Grafana dashboard example that visualizes some of this data in
 ## List of exported Prometheus metrics
 | Metric name | Metric type | Source |
 | --- | --- | --- |
-| game_server_states | Gauge | nodeagent |
+| gameserver_states | Gauge | nodeagent |
 | connected_players | Gauge | nodeagent |
-| gameservers_current_state | Gauge | controller-manager |
+| gameservers_current_state_per_build | Gauge | controller-manager |
 | gameservers_created_total | Counter | controller-manager |
 | gameservers_sessionended_total | Counter | controller-manager |
 | gameservers_crashed_total | Counter | controller-manager |
