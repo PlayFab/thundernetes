@@ -357,7 +357,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(increase(thundernetes_allocations_total[24h]))",
+          "expr": "sum(thundernetes_allocations_total)",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
