@@ -297,7 +297,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(connected_players)",
+          "expr": "sum(thundernetes_connected_players)",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
