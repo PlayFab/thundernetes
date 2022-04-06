@@ -299,7 +299,7 @@ func createE2eBuild(buildname, buildID, img string) *mpsv1alpha1.GameServerBuild
 		Spec: mpsv1alpha1.GameServerBuildSpec{
 			BuildID:       buildID,
 			TitleID:       "1E03",
-			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: containerName, PortName: portKey}},
+			PortsToExpose: []int32{80},
 			BuildMetadata: []mpsv1alpha1.BuildMetadataItem{
 				{Key: "metadatakey1", Value: "metadatavalue1"},
 				{Key: "metadatakey2", Value: "metadatavalue2"},

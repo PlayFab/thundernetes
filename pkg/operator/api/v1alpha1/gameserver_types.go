@@ -59,8 +59,8 @@ type GameServerSpec struct {
 	// Build is the BuildID for this GameServer
 	BuildID string `json:"buildID,omitempty"`
 	//+kubebuilder:validation:Required
-	// PortsToExpose is an array of tuples of container/port names that correspond to the ports that will be exposed on the VM
-	PortsToExpose []PortToExpose `json:"portsToExpose,omitempty"`
+	// PortsToExpose is an array of ports that will be exposed on the VM
+	PortsToExpose []int32 `json:"portsToExpose,omitempty"`
 	// BuildMetadata is the metadata for the GameServerBuild this GameServer belongs to
 	BuildMetadata []BuildMetadataItem `json:"buildMetadata,omitempty"`
 }

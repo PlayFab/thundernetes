@@ -232,7 +232,8 @@ func (r *GameServerReconciler) unassignPorts(gs *mpsv1alpha1.GameServer) error {
 	for i := 0; i < len(gs.Spec.Template.Spec.Containers); i++ {
 		container := gs.Spec.Template.Spec.Containers[i]
 		for j := 0; j < len(container.Ports); j++ {
-			if sliceContainsPortToExpose(gs.Spec.PortsToExpose, container.Name, container.Ports[j].Name) {
+			// if the hostPort is > 0, this means that it has been assigned by the controller
+			if container.Ports[j].HostPort > 0 {
 				hostPorts = append(hostPorts, container.Ports[j].HostPort)
 			}
 		}

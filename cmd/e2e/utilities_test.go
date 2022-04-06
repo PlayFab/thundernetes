@@ -334,17 +334,15 @@ func verifyPodsInHostNetwork(ctx context.Context, kubeClient client.Client, gsb 
 		for _, container := range pod.Spec.Containers {
 			containerName := container.Name
 			for _, portToExpose := range gsb.Spec.PortsToExpose {
-				// get the ports that this container needs exposed, from the GameServerBuild definition
-				if containerName == portToExpose.ContainerName {
-					for _, containerPortMapping := range container.Ports {
-						// found a port
-						if containerPortMapping.Name == portToExpose.PortName {
-							// let's make sure that hostPort is the same as containerPort (work done by the controller)
-							if containerPortMapping.HostPort != containerPortMapping.ContainerPort {
-								return fmt.Errorf("hostPort != containerPort for hostNetwork pod %s container %s, port %s", pod.Name, containerName, portToExpose.PortName)
-							}
+				for _, containerPortMapping := range container.Ports {
+					// found a port
+					if containerPortMapping.ContainerPort == portToExpose {
+						// let's make sure that hostPort is the same as containerPort (work done by the controller)
+						if containerPortMapping.HostPort != containerPortMapping.ContainerPort {
+							return fmt.Errorf("hostPort != containerPort for hostNetwork pod %s container %s, port %d", pod.Name, containerName, portToExpose)
 						}
 					}
+
 				}
 			}
 
@@ -500,7 +498,7 @@ func createTestBuild(buildName, buildID, img string) *mpsv1alpha1.GameServerBuil
 		Spec: mpsv1alpha1.GameServerBuildSpec{
 			BuildID:       buildID,
 			TitleID:       "1E03",
-			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: containerName, PortName: portKey}},
+			PortsToExpose: []int32{80},
 			StandingBy:    2,
 			Max:           4,
 			Template: corev1.PodTemplateSpec{

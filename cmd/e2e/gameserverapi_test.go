@@ -202,7 +202,7 @@ func createGameServerBuild(name, namespace, img string) mpsv1alpha1.GameServerBu
 		Spec: mpsv1alpha1.GameServerBuildSpec{
 			BuildID:       uuid.New().String(),
 			TitleID:       "1E03",
-			PortsToExpose: []mpsv1alpha1.PortToExpose{{ContainerName: "netcore-sample", PortName: "gameport"}},
+			PortsToExpose: []int32{80},
 			BuildMetadata: []mpsv1alpha1.BuildMetadataItem{
 				{Key: "metadatakey1", Value: "metadatavalue1"},
 				{Key: "metadatakey2", Value: "metadatavalue2"},

@@ -57,8 +57,8 @@ type GameServerBuildSpec struct {
 	BuildID string `json:"buildID,omitempty"`
 
 	//+kubebuilder:validation:Required
-	// PortsToExpose is an array of tuples of container/port names that correspond to the ports that will be exposed on the VM
-	PortsToExpose []PortToExpose `json:"portsToExpose,omitempty"`
+	// PortsToExpose is an array of ports that will be exposed on the VM
+	PortsToExpose []int32 `json:"portsToExpose,omitempty"`
 
 	//+kubebuilder:default=5
 	//+kubebuilder:validation:Minimum=0
@@ -106,12 +106,6 @@ type GameServerBuildList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []GameServerBuild `json:"items"`
-}
-
-// PortToExpose is a tuple of container/port names that correspond to the ports that will be exposed on the VM
-type PortToExpose struct {
-	ContainerName string `json:"containerName"`
-	PortName      string `json:"portName"`
 }
 
 func init() {

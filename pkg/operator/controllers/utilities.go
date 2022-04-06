@@ -113,7 +113,8 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 			Labels: map[string]string{LabelBuildID: gsb.Spec.BuildID, LabelBuildName: gsb.Name},
 		},
 		Spec: mpsv1alpha1.GameServerSpec{
-			Template:      gsb.Spec.Template,
+			// we're doing a DeepCopy since we modify the hostPort
+			Template:      *gsb.Spec.Template.DeepCopy(),
 			BuildID:       gsb.Spec.BuildID,
 			TitleID:       gsb.Spec.TitleID,
 			PortsToExpose: gsb.Spec.PortsToExpose,
@@ -122,10 +123,10 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 		// we don't create any status since we have the .Status subresource enabled
 	}
 	// assigning host ports for all the containers in the Template.Spec
-	for i := 0; i < len(gsb.Spec.Template.Spec.Containers); i++ {
-		container := gsb.Spec.Template.Spec.Containers[i]
+	for i := 0; i < len(gs.Spec.Template.Spec.Containers); i++ {
+		container := gs.Spec.Template.Spec.Containers[i]
 		for i := 0; i < len(container.Ports); i++ {
-			if sliceContainsPortToExpose(gsb.Spec.PortsToExpose, container.Name, container.Ports[i].Name) {
+			if sliceContainsPortToExpose(gsb.Spec.PortsToExpose, container.Ports[i].ContainerPort) {
 				port, err := portRegistry.GetNewPort()
 				if err != nil {
 					return nil, err
@@ -133,7 +134,7 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 				container.Ports[i].HostPort = port
 
 				// if the user has specified that they want to use the host's network, we override the container port
-				if gsb.Spec.Template.Spec.HostNetwork {
+				if gs.Spec.Template.Spec.HostNetwork {
 					container.Ports[i].ContainerPort = port
 				}
 			}
@@ -284,9 +285,9 @@ func getInitContainerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 	// get game ports
 	for _, container := range gs.Spec.Template.Spec.Containers {
 		for _, port := range container.Ports {
-			containerPort := strconv.Itoa(int(port.ContainerPort))
-			hostPort := strconv.Itoa(int(port.HostPort))
-			if sliceContainsPortToExpose(gs.Spec.PortsToExpose, container.Name, port.Name) {
+			if port.HostPort > 0 { // hostPort has been set, this means that this port is in the portsToExpose array
+				containerPort := strconv.Itoa(int(port.ContainerPort))
+				hostPort := strconv.Itoa(int(port.HostPort))
 				b.WriteString(port.Name + "," + containerPort + "," + hostPort + "?")
 			}
 		}
@@ -337,10 +338,10 @@ func getGameServerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 	return envList
 }
 
-// sliceContainsPortToExpose returns true if the specific containerName/tuple value is contained in the slice
-func sliceContainsPortToExpose(slice []mpsv1alpha1.PortToExpose, containerName, portName string) bool {
-	for _, item := range slice {
-		if item.ContainerName == containerName && item.PortName == portName {
+// sliceContainsPortToExpose returns true if the port is contained in the portsToExpose slice
+func sliceContainsPortToExpose(portsToExpose []int32, port int32) bool {
+	for _, item := range portsToExpose {
+		if item == port {
 			return true
 		}
 	}

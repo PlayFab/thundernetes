@@ -58,14 +58,18 @@ func main() {
 	getGameServerNameNamespaceFromEnv()
 	logger = log.WithFields(log.Fields{"GameServerName": sessionHostId, "GameServerNamespace": crdNamespace})
 
+	setLogLevel()
+
 	getRestEnvVariables()
 
 	gamePorts, gamePortConfiguration, err := parsePorts()
 	if err != nil {
 		logger.Fatalf("Could not parse game ports %s", err)
 	}
+	logger.Debugf("Parsed ports %v", gamePorts)
 
 	buildMetadata := parseBuildMetadata()
+	logger.Debugf("Parsed build metadata %v", buildMetadata)
 
 	config := &GsdkConfig{
 		HeartbeatEndpoint:   fmt.Sprintf("%s:%s", nodeInternalIP, heartbeatEndpointPort),
@@ -86,6 +90,7 @@ func main() {
 
 	logger.Info("Marshalling to JSON")
 	configJson, err := json.Marshal(config)
+	logger.Debugf("Marshalled JSON: %s", configJson)
 	handleError(err)
 
 	logger.Info("Getting and creating folder(s)")
@@ -96,12 +101,15 @@ func main() {
 	logger.Infof("Creating empty GSDK JSON file %s", gsdkConfigFilePath)
 	f, err := os.Create(gsdkConfigFilePath)
 	handleError(err)
+	logger.Debugf("Created empty GSDK JSON file %s", gsdkConfigFilePath)
 
 	logger.Infof("Saving GSDK JSON to file %s", gsdkConfigFilePath)
 	_, err = f.Write(configJson)
 	handleError(err)
+	logger.Debugf("Saved GSDK JSON to file %s", gsdkConfigFilePath)
 }
 
+// parseBuildMetadata parses the build metadata from the corresponding environment variable
 func parseBuildMetadata() map[string]string {
 	buildMetadata := make(map[string]string)
 	if os.Getenv("PF_GAMESERVER_BUILD_METADATA") != "" {
@@ -118,6 +126,7 @@ func parseBuildMetadata() map[string]string {
 	return buildMetadata
 }
 
+// parsePorts parses the portName/containerPort/hostPort from the gamePortsString
 func parsePorts() (map[string]string, []GamePort, error) {
 	// format is port.Name + "," + containerPort + "," + hostPort + "?" + ...
 	// similar to how docker run -p works https://docs.docker.com/config/containers/container-networking/
@@ -148,6 +157,7 @@ func parsePorts() (map[string]string, []GamePort, error) {
 	return gamePorts, gamePortConfiguration, nil
 }
 
+// handleError panics if error != nil
 func handleError(e error) {
 	if e != nil {
 		logger.Fatalf("panic because error: %s", e)
@@ -200,4 +210,17 @@ func getRestEnvVariables() {
 
 	nodeInternalIP = os.Getenv("PF_NODE_INTERNAL_IP")
 	checkEnvOrFatal("PF_NODE_INTERNAL_IP", nodeInternalIP)
+}
+
+// setLogLevel sets the log level based on the LOG_LEVEL environment variable
+func setLogLevel() {
+	log.SetOutput(os.Stdout)
+	log.SetFormatter(&log.TextFormatter{})
+
+	logLevel, err := log.ParseLevel(os.Getenv("LOG_LEVEL"))
+	if err != nil {
+		logLevel = log.InfoLevel
+	}
+
+	log.SetLevel(logLevel)
 }
