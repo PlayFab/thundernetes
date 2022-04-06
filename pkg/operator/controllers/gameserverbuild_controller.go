@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
+	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -186,21 +187,29 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// we are in need of standingBy servers, so we're creating them here
 	// we're also limiting the number of game servers that are created to avoid issues like this https://github.com/kubernetes-sigs/controller-runtime/issues/1782
 	// we attempt to create the missing number of game servers, but we don't want to create more than the max
+
+	// a waitgroup with error handling for async create and deletion calls
+	var eg errgroup.Group
 	for i := 0; i < gsb.Spec.StandingBy-nonActiveGameServersCount &&
 		i+nonActiveGameServersCount+activeCount < gsb.Spec.Max &&
 		i < maxNumberOfGameServersToAdd; i++ {
+		eg.Go(func() error {
+			newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
+			if err != nil {
+				return err
+			}
 
-		newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
-		if err != nil {
+			if err := r.Create(ctx, newgs); err != nil {
+				return err
+			}
+			addGameServerToUnderCreationMap(gsb.Name, newgs.Name)
+			GameServersCreatedCounter.WithLabelValues(gsb.Name).Inc()
+			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Creating", "Creating GameServer %s", newgs.Name)
+			return nil
+		})
+		if err := eg.Wait(); err != nil {
 			return ctrl.Result{}, err
 		}
-
-		if err := r.Create(ctx, newgs); err != nil {
-			return ctrl.Result{}, err
-		}
-		addGameServerToUnderCreationMap(gsb.Name, newgs.Name)
-		GameServersCreatedCounter.WithLabelValues(gsb.Name).Inc()
-		r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Creating", "Creating GameServer %s", newgs.Name)
 	}
 
 	return r.updateStatus(ctx, &gsb, pendingCount, initializingCount, standingByCount, activeCount, crashesCount)
@@ -359,22 +368,34 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 	gsb *mpsv1alpha1.GameServerBuild,
 	gameServers *mpsv1alpha1.GameServerList,
 	totalNumberOfGameServersToDelete int) error {
+	// a waitgroup with error handling for async create and deletion calls
+	var eg errgroup.Group
 	deletedGameServersCount := 0
+	var mtx sync.Mutex
 	for i := 0; i < len(gameServers.Items) && deletedGameServersCount < totalNumberOfGameServersToDelete; i++ {
 		gs := gameServers.Items[i]
-		// we're deleting only initializing/pending/standingBy servers, never touching active
-		if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
-			if err := r.deleteGameServer(ctx, &gs); err != nil {
-				if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
-					continue
+		eg.Go(func() error {
+			// we're deleting only initializing/pending/standingBy servers, never touching active
+			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
+				if err := r.deleteGameServer(ctx, &gs); err != nil {
+					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
+						return nil
+					}
+					return err
 				}
-				return err
+				mtx.Lock()
+				deletedGameServersCount = deletedGameServersCount + 1
+				mtx.Unlock()
+				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
+				addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
+				r.Recorder.Eventf(gsb, corev1.EventTypeNormal, "GameServer deleted", "GameServer %s deleted", gs.Name)
 			}
-			deletedGameServersCount = deletedGameServersCount + 1
-			GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
-			addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
-			r.Recorder.Eventf(gsb, corev1.EventTypeNormal, "GameServer deleted", "GameServer %s deleted", gs.Name)
-		}
+			return nil
+		})
+		
+	}
+	if err := eg.Wait(); err != nil {
+		return err
 	}
 	return nil
 }
