@@ -8,8 +8,7 @@ spec:
   standingBy: 2 # required
   max: 4 # required
   portsToExpose:
-    - containerName: thundernetes-sample-openarena # must be the same as the container name described below
-      portName: gameport # must be the same as the port name described below
+    - 27960
   template:
     spec:
       containers:

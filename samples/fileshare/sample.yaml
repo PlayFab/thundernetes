@@ -9,8 +9,7 @@ spec:
   max: 4 # required
   crashesToMarkUnhealthy: 5 # optional, default is 5. It is the number of crashes needed to mark the build unhealthy
   portsToExpose:
-    - containerName: mpswrapper # must be the same as the container name described below
-      portName: gameport # must be the same as the port name described below
+    - 80
   template:
     spec:
       containers:

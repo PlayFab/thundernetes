@@ -14,8 +14,7 @@ spec:
     - key: "buildMetadataKey1"
       value: "buildMetadataValue1"
   portsToExpose:
-    - containerName: thundernetes-sample-netcore # must be the same as the container name described below
-      portName: gameport # must be the same as the port name described below
+    - 80
   template:
     spec:
       hostNetwork: true # this sample uses host networking
