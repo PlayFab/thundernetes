@@ -333,6 +333,10 @@ func getGameServerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 			Name:  "PF_TITLE_ID",
 			Value: gs.Spec.TitleID,
 		},
+		{
+			Name:  "PF_SERVER_LOG_DIRECTORY",
+			Value: LogDirectory,
+		},
 	}
 
 	return envList
