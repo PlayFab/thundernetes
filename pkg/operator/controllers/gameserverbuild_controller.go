@@ -197,12 +197,12 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	wg.Add(batchSize)
 	for i := 0; i < batchSize; i++ {
 		go func() {
+			defer wg.Done()
 			newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
 			if err != nil {
 				errCh <- err
 				return
 			}
-
 			if err := r.Create(ctx, newgs); err != nil {
 				errCh <- err
 				return
@@ -386,7 +386,9 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 			go func() {
 				defer wg.Done()
 				if err := r.deleteGameServer(ctx, &gs); err != nil {
-					errCh <- err
+					if !apierrors.IsConflict(err) { // this GameServer has been updated, skip it
+						errCh <- err
+					}
 					return
 				}
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
