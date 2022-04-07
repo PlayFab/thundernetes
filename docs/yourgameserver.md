@@ -59,8 +59,7 @@ spec:
   standingBy: 2 # required
   max: 4 # required
   portsToExpose:
-    - containerName: thundernetes-sample # must be the same as the container name described below
-      portName: gameport # must be the same as the port name described below
+    - 80
   template:
     spec:
       containers:

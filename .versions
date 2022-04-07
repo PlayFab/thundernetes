@@ -1,2 +1,2 @@
 #!/bin/bash
-export IMAGE_TAG=0.3.1
+export IMAGE_TAG=0.3.2
