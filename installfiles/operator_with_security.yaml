@@ -79,18 +79,10 @@ spec:
                 minimum: 0
                 type: integer
               portsToExpose:
-                description: PortsToExpose is an array of tuples of container/port names that correspond to the ports that will be exposed on the VM
+                description: PortsToExpose is an array of ports that will be exposed on the VM
                 items:
-                  description: PortToExpose is a tuple of container/port names that correspond to the ports that will be exposed on the VM
-                  properties:
-                    containerName:
-                      type: string
-                    portName:
-                      type: string
-                  required:
-                  - containerName
-                  - portName
-                  type: object
+                  format: int32
+                  type: integer
                 type: array
               standingBy:
                 description: StandingBy is the requested number of standingBy servers
@@ -4353,18 +4345,10 @@ spec:
                   type: object
                 type: array
               portsToExpose:
-                description: PortsToExpose is an array of tuples of container/port names that correspond to the ports that will be exposed on the VM
+                description: PortsToExpose is an array of ports that will be exposed on the VM
                 items:
-                  description: PortToExpose is a tuple of container/port names that correspond to the ports that will be exposed on the VM
-                  properties:
-                    containerName:
-                      type: string
-                    portName:
-                      type: string
-                  required:
-                  - containerName
-                  - portName
-                  type: object
+                  format: int32
+                  type: integer
                 type: array
               template:
                 description: Template describes the pod template specification of the game server
@@ -8813,6 +8797,21 @@ spec:
   selector:
     control-plane: controller-manager
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: nodeagent
+  name: thundernetes-nodeagent-metrics-service
+  namespace: thundernetes-system
+spec:
+  ports:
+  - name: nodeagentport
+    port: 56001
+    targetPort: 56001
+  selector:
+    name: nodeagent
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -8845,12 +8844,12 @@ spec:
         - name: API_SERVICE_SECURITY
           value: usetls
         - name: THUNDERNETES_INIT_CONTAINER_IMAGE
-          value: ghcr.io/playfab/thundernetes-initcontainer:0.3.1
+          value: ghcr.io/playfab/thundernetes-initcontainer:0.3.2
         - name: TLS_SECRET_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: ghcr.io/playfab/thundernetes-operator:0.3.1
+        image: ghcr.io/playfab/thundernetes-operator:0.3.2
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -8909,7 +8908,7 @@ spec:
               fieldPath: status.hostIP
         - name: LOG_LEVEL
           value: info
-        image: ghcr.io/playfab/thundernetes-nodeagent:0.3.1
+        image: ghcr.io/playfab/thundernetes-nodeagent:0.3.2
         livenessProbe:
           httpGet:
             path: /healthz
