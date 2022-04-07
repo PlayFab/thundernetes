@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/integer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -167,7 +166,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// user has decreased standingBy numbers
 	if nonActiveGameServersCount > gsb.Spec.StandingBy {
-		totalNumberOfGameServersToDelete := integer.IntMin(nonActiveGameServersCount-gsb.Spec.StandingBy, maxNumberOfGameServersToDelete)
+		totalNumberOfGameServersToDelete := int(math.Min(float64(nonActiveGameServersCount-gsb.Spec.StandingBy), maxNumberOfGameServersToDelete))
 		err := r.deleteNonActiveGameServers(ctx, &gsb, &gameServers, totalNumberOfGameServersToDelete)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -187,15 +186,14 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// we are in need of standingBy servers, so we're creating them here
 	// we're also limiting the number of game servers that are created to avoid issues like this https://github.com/kubernetes-sigs/controller-runtime/issues/1782
 	// we attempt to create the missing number of game servers, but we don't want to create more than the max
-	batchSize := integer.IntMin(gsb.Spec.StandingBy-nonActiveGameServersCount,
-								gsb.Spec.Max-nonActiveGameServersCount-activeCount)
-	batchSize = integer.IntMin(maxNumberOfGameServersToAdd, batchSize)
 	// an error channel for the go routines to write errors
-	errCh := make(chan error, batchSize)
+	errCh := make(chan error, maxNumberOfGameServersToAdd)
 	// a waitgroup for async create calls
 	var wg sync.WaitGroup
-	wg.Add(batchSize)
-	for i := 0; i < batchSize; i++ {
+	for i := 0; i < gsb.Spec.StandingBy-nonActiveGameServersCount &&
+		i+nonActiveGameServersCount+activeCount < gsb.Spec.Max &&
+		i < maxNumberOfGameServersToAdd; i++ {
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
