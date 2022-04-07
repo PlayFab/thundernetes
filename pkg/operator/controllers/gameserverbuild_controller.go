@@ -23,13 +23,13 @@ import (
 	"sync"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
-	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/integer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -167,7 +167,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// user has decreased standingBy numbers
 	if nonActiveGameServersCount > gsb.Spec.StandingBy {
-		totalNumberOfGameServersToDelete := int(math.Min(float64(nonActiveGameServersCount-gsb.Spec.StandingBy), maxNumberOfGameServersToDelete))
+		totalNumberOfGameServersToDelete := integer.IntMin(nonActiveGameServersCount-gsb.Spec.StandingBy, maxNumberOfGameServersToDelete)
 		err := r.deleteNonActiveGameServers(ctx, &gsb, &gameServers, totalNumberOfGameServersToDelete)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -187,29 +187,34 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// we are in need of standingBy servers, so we're creating them here
 	// we're also limiting the number of game servers that are created to avoid issues like this https://github.com/kubernetes-sigs/controller-runtime/issues/1782
 	// we attempt to create the missing number of game servers, but we don't want to create more than the max
-
-	// a waitgroup with error handling for async create and deletion calls
-	var eg errgroup.Group
-	for i := 0; i < gsb.Spec.StandingBy-nonActiveGameServersCount &&
-		i+nonActiveGameServersCount+activeCount < gsb.Spec.Max &&
-		i < maxNumberOfGameServersToAdd; i++ {
-		eg.Go(func() error {
+	batchSize := integer.IntMin(gsb.Spec.StandingBy-nonActiveGameServersCount,
+								gsb.Spec.Max-nonActiveGameServersCount-activeCount)
+	batchSize = integer.IntMin(maxNumberOfGameServersToAdd, batchSize)
+	// an error channel for the go routines to write errors
+	errCh := make(chan error, batchSize)
+	// a waitgroup for async create calls
+	var wg sync.WaitGroup
+	wg.Add(batchSize)
+	for i := 0; i < batchSize; i++ {
+		go func() {
 			newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
 			if err != nil {
-				return err
+				errCh <- err
+				return
 			}
 
 			if err := r.Create(ctx, newgs); err != nil {
-				return err
+				errCh <- err
+				return
 			}
 			addGameServerToUnderCreationMap(gsb.Name, newgs.Name)
 			GameServersCreatedCounter.WithLabelValues(gsb.Name).Inc()
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Creating", "Creating GameServer %s", newgs.Name)
-			return nil
-		})
-		if err := eg.Wait(); err != nil {
-			return ctrl.Result{}, err
-		}
+		}()
+	}
+	wg.Wait()
+	if len(errCh) > 0 {
+		return ctrl.Result{}, <- errCh
 	}
 
 	return r.updateStatus(ctx, &gsb, pendingCount, initializingCount, standingByCount, activeCount, crashesCount)
@@ -368,34 +373,31 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 	gsb *mpsv1alpha1.GameServerBuild,
 	gameServers *mpsv1alpha1.GameServerList,
 	totalNumberOfGameServersToDelete int) error {
-	// a waitgroup with error handling for async create and deletion calls
-	var eg errgroup.Group
-	deletedGameServersCount := 0
-	var mtx sync.Mutex
-	for i := 0; i < len(gameServers.Items) && deletedGameServersCount < totalNumberOfGameServersToDelete; i++ {
+	// an error channel for the go routines to write errors
+	errCh := make(chan error, totalNumberOfGameServersToDelete)
+	// a waitgroup for async deletion calls
+	var wg sync.WaitGroup
+	deletionCalls := 0
+	for i := 0; i < len(gameServers.Items) && deletionCalls < totalNumberOfGameServersToDelete; i++ {
 		gs := gameServers.Items[i]
-		eg.Go(func() error {
-			// we're deleting only initializing/pending/standingBy servers, never touching active
-			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
+		if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
+			deletionCalls++
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
 				if err := r.deleteGameServer(ctx, &gs); err != nil {
-					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
-						return nil
-					}
-					return err
+					errCh <- err
+					return
 				}
-				mtx.Lock()
-				deletedGameServersCount = deletedGameServersCount + 1
-				mtx.Unlock()
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
 				addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 				r.Recorder.Eventf(gsb, corev1.EventTypeNormal, "GameServer deleted", "GameServer %s deleted", gs.Name)
-			}
-			return nil
-		})
-		
+			}()
+		}
 	}
-	if err := eg.Wait(); err != nil {
-		return err
+	wg.Wait()
+	if (len(errCh) > 0) {
+		return <- errCh
 	}
 	return nil
 }
