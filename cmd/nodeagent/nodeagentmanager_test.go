@@ -287,10 +287,7 @@ func createUnstructuredTestGameServer(name, namespace string) *unstructured.Unst
 			"titleID": "testTitleID",
 			"buildID": "testBuildID",
 			"portsToExpose": []interface{}{
-				map[string]interface{}{
-					"containerName": "containerName",
-					"portName":      "portName",
-				},
+				"80",
 			},
 		},
 		"status": map[string]interface{}{

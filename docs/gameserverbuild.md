@@ -28,9 +28,8 @@ spec:
       value: "buildMetadataValue1"
     - key: "buildMetadataKey2"
       value: "buildMetadataValue2"
-  portsToExpose: # port names that you need to expose for your game server, read more below
-    - containerName: gameserver-sample # name of the container that you want its port exposed. Must be the same as containers.containerName
-      portName: gameport # name of the port that you want to expose. Must be the same as containers.ports.name
+  portsToExpose: 
+    - 7777
   template:
     spec:
       containers:
@@ -45,11 +44,13 @@ The template.spec contains the definition for a [Kubernetes Pod](https://kuberne
 
 ## PortsToExpose
 
-This is a list of containerName/portName tuples: These are the ports that you want to be exposed in the [Worker Node/VM](https://kubernetes.io/docs/concepts/architecture/nodes/) when the Pod is created. The way this works is that each Pod you create will have >=1 number of containers. There, each container will have its own *Ports* definition. If a port in this definition is included in the *portsToExpose* array, this port will be publicly exposed in the Node/VM. This is accomplished by the setting of a **hostPort** value for each of the container ports you want to expose.
+This is a list of ports that you want to be exposed in the [Worker Node/VM](https://kubernetes.io/docs/concepts/architecture/nodes/) when the Pod is created. The way this works is that each Pod you create will have >=1 number of containers. There, each container will have its own *Ports* definition. If a port number in this definition is included in the *portsToExpose* array, this port will be publicly exposed in the Node/VM. This is accomplished by the setting of a **hostPort** value for each of the container ports you want to expose.
 
-The reasons we need this functionality are:
-i) you may want to use some ports on your Pod containers for other purposes rather than players connecting to it
-ii) a portName must be unique within a container. Ports assigned are in the port range 10000-12000 by default. This port range is configurable, check [here](howtos/configureportrange.md) for details. 
+The reason we need this functionality is that you may want to use some ports on your Pod containers for other purposes rather than players connecting to it.
+
+Ports that are to be exposed are assigned a number in the port range 10000-12000 by default. This port range is configurable, check [here](howtos/configureportrange.md) for details. 
+
+**IMPORTANT**: Port names must be specified for all the ports that are in the *portsToExpose* array. Reason is that these ports are accessible via the GSDK, using their name. This way, the game server can discover them on runtime.
 
 ## CrashesToMarkUnhealthy
 
