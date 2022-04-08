@@ -63,6 +63,11 @@ const (
 	maxNumberOfGameServersToDelete = 20
 )
 
+type MutexMap struct {
+	data map[string]interface{}
+	mu   sync.Mutex
+}
+
 // GameServerBuildReconciler reconciles a GameServerBuild object
 type GameServerBuildReconciler struct {
 	client.Client
@@ -287,16 +292,20 @@ func (r *GameServerBuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // addGameServerToUnderDeletionMap adds the GameServer to the map of GameServers to be deleted for this GameServerBuild
 func addGameServerToUnderDeletionMap(gameServerBuildName, gameServerName string) {
-	val, _ := gameServersUnderDeletion.LoadOrStore(gameServerBuildName, make(map[string]interface{}))
-	v := val.(map[string]interface{})
-	v[gameServerName] = struct{}{}
+	val, _ := gameServersUnderDeletion.LoadOrStore(gameServerBuildName, &MutexMap{make(map[string]interface{}), sync.Mutex{}})
+	v := val.(*MutexMap)
+	v.mu.Lock()
+	v.data[gameServerName] = struct{}{}
+	v.mu.Unlock()
 }
 
 // addGameServerToUnderCreationMap adds a GameServer to the map of GameServers that are under creation for this GameServerBuild
 func addGameServerToUnderCreationMap(gameServerBuildName, gameServerName string) {
-	val, _ := gameServersUnderCreation.LoadOrStore(gameServerBuildName, make(map[string]interface{}))
-	v := val.(map[string]interface{})
-	v[gameServerName] = struct{}{}
+	val, _ := gameServersUnderCreation.LoadOrStore(gameServerBuildName, &MutexMap{make(map[string]interface{}), sync.Mutex{}})
+	v := val.(*MutexMap)
+	v.mu.Lock()
+	v.data[gameServerName] = struct{}{}
+	v.mu.Unlock()
 }
 
 // gameServersUnderDeletionWereDeleted is a helper function that checks if all the GameServers in the map have been deleted from cache
@@ -304,15 +313,17 @@ func addGameServerToUnderCreationMap(gameServerBuildName, gameServerName string)
 func (r *GameServerBuildReconciler) gameServersUnderDeletionWereDeleted(ctx context.Context, gsb *mpsv1alpha1.GameServerBuild) (bool, error) {
 	// if this gameServerBuild has GameServers under deletion
 	if val, exists := gameServersUnderDeletion.Load(gsb.Name); exists {
-		gameServersUnderDeletionForBuild := val.(map[string]interface{})
+		gameServersUnderDeletionForBuild := val.(*MutexMap)
 		// check all GameServers under deletion, if they exist in cache
-		for k := range gameServersUnderDeletionForBuild {
+		gameServersUnderDeletionForBuild.mu.Lock()
+		defer gameServersUnderDeletionForBuild.mu.Unlock()
+		for k := range gameServersUnderDeletionForBuild.data {
 			var g mpsv1alpha1.GameServer
 			if err := r.Get(ctx, types.NamespacedName{Name: k, Namespace: gsb.Namespace}, &g); err != nil {
 				// if one does not exist in cache, this means that cache has been updated (with its deletion)
 				// so remove it from the map
 				if apierrors.IsNotFound(err) {
-					delete(gameServersUnderDeletionForBuild, k)
+					delete(gameServersUnderDeletionForBuild.data, k)
 					continue
 				}
 				return false, err
@@ -320,7 +331,7 @@ func (r *GameServerBuildReconciler) gameServersUnderDeletionWereDeleted(ctx cont
 		}
 
 		// all GameServers under deletion do not exist in cache
-		if len(gameServersUnderDeletionForBuild) == 0 {
+		if len(gameServersUnderDeletionForBuild.data) == 0 {
 			// so it's safe to remove the GameServerBuild entry from the map
 			gameServersUnderDeletion.Delete(gsb.Name)
 			return true, nil
@@ -336,8 +347,10 @@ func (r *GameServerBuildReconciler) gameServersUnderDeletionWereDeleted(ctx cont
 func (r *GameServerBuildReconciler) gameServersUnderCreationWereCreated(ctx context.Context, gsb *mpsv1alpha1.GameServerBuild) (bool, error) {
 	// if this GameServerBuild has GameServers under creation
 	if val, exists := gameServersUnderCreation.Load(gsb.Name); exists {
-		gameServersUnderCreationForBuild := val.(map[string]interface{})
-		for k := range gameServersUnderCreationForBuild {
+		gameServersUnderCreationForBuild := val.(*MutexMap)
+		gameServersUnderCreationForBuild.mu.Lock()
+		defer gameServersUnderCreationForBuild.mu.Unlock()
+		for k := range gameServersUnderCreationForBuild.data {
 			var g mpsv1alpha1.GameServer
 			if err := r.Get(ctx, types.NamespacedName{Name: k, Namespace: gsb.Namespace}, &g); err != nil {
 				// this GameServer doesn't exist in cache, so return false
@@ -347,10 +360,10 @@ func (r *GameServerBuildReconciler) gameServersUnderCreationWereCreated(ctx cont
 				return false, err
 			}
 			// GameServer exists in cache, so remove it from the map
-			delete(gameServersUnderCreationForBuild, k)
+			delete(gameServersUnderCreationForBuild.data, k)
 		}
 		// all GameServers under creation do not exist in cache
-		if len(gameServersUnderCreationForBuild) == 0 {
+		if len(gameServersUnderCreationForBuild.data) == 0 {
 			// so it's safe to remove the GameServerBuild entry from the map
 			gameServersUnderCreation.Delete(gsb.Name)
 			return true, nil
@@ -396,7 +409,7 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 		}
 	}
 	wg.Wait()
-	if (len(errCh) > 0) {
+	if len(errCh) > 0 {
 		return <- errCh
 	}
 	return nil
