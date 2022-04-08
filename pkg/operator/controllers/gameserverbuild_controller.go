@@ -63,6 +63,8 @@ const (
 	maxNumberOfGameServersToDelete = 20
 )
 
+// Simple async map implementation using a mutex
+// used to manage the expected GameServer creations and deletions
 type MutexMap struct {
 	data map[string]interface{}
 	mu   sync.Mutex
@@ -391,15 +393,17 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 	deletionCalls := 0
 	for i := 0; i < len(gameServers.Items) && deletionCalls < totalNumberOfGameServersToDelete; i++ {
 		gs := gameServers.Items[i]
+		// we're deleting only initializing/pending/standingBy servers, never touching active
 		if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 			deletionCalls++
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				if err := r.deleteGameServer(ctx, &gs); err != nil {
-					if !apierrors.IsConflict(err) { // this GameServer has been updated, skip it
-						errCh <- err
+					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
+						return
 					}
+					errCh <- err
 					return
 				}
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
