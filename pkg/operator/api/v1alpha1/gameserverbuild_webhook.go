@@ -17,7 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -42,23 +45,38 @@ var _ webhook.Validator = &GameServerBuild{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *GameServerBuild) ValidateCreate() error {
 	gameserverbuildlog.Info("validate create", "name", r.Name)
-
-	// TODO(user): fill in your validation logic upon object creation.
-	return nil
+	return r.ValidateGameServerBuild()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *GameServerBuild) ValidateUpdate(old runtime.Object) error {
 	gameserverbuildlog.Info("validate update", "name", r.Name)
-
-	// TODO(user): fill in your validation logic upon object update.
-	return nil
+	return r.ValidateGameServerBuild()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *GameServerBuild) ValidateDelete() error {
 	gameserverbuildlog.Info("validate delete", "name", r.Name)
+	return nil
+}
 
-	// TODO(user): fill in your validation logic upon object deletion.
+func (r *GameServerBuild) ValidateGameServerBuild() error {
+	var allErrs field.ErrorList
+	if err := r.ValidateStandingBy(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(
+		schema.GroupKind{Group: "mps.playfab.com", Kind: "GameServerBuild"},
+		r.Name, allErrs)
+}
+
+func (r *GameServerBuild) ValidateStandingBy() *field.Error {
+	if r.Spec.StandingBy > r.Spec.Max {
+		return field.Invalid(field.NewPath("spec").Child("standingby"),
+							 r.Name, "standingby must be less or equal than max")
+	}
 	return nil
 }
