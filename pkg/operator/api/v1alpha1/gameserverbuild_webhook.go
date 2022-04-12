@@ -30,11 +30,13 @@ import (
 )
 
 // log is for logging in this package.
-var gameserverbuildlog = logf.Log.WithName("gameserverbuild-resource")
-
-var c client.Client
+var(
+	gameserverbuildlog = logf.Log.WithName("gameserverbuild-resource")
+	C client.Client
+) 
 
 func (r *GameServerBuild) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	C = mgr.GetClient()
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -90,16 +92,16 @@ func (r *GameServerBuild) ValidateStandingBy() *field.Error {
 }
 
 func (r *GameServerBuild) ValidateBuildId() *field.Error {
-	var ctx context.Context
 	var gsbList GameServerBuildList
-	if err := c.List(ctx, &gsbList, client.InNamespace(r.Namespace), client.MatchingFields{".spec.buildId": r.Spec.BuildID}); err != nil {
-		return nil
+	if err := C.List(context.Background(), &gsbList, client.InNamespace(r.Namespace), client.MatchingFields{"spec.buildID": r.Spec.BuildID}); err != nil {
+		return field.Invalid(field.NewPath("spec").Child("buildID"),
+						     r.Name, err.Error())
 	}
 	for i := 0; i < len(gsbList.Items); i++ {
 		gsb := gsbList.Items[i]
 		if r.Name != gsb.Name {
-			return field.Invalid(field.NewPath("spec").Child("buildId"),
-							     r.Name, "there is another GameServerBuild with the same buildId but with another name")
+			return field.Invalid(field.NewPath("spec").Child("buildID"),
+							     r.Name, "there is another GameServerBuild with the same buildId but with a different name")
 		}
 	}
 	return nil
