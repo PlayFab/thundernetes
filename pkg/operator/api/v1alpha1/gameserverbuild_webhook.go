@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -69,10 +70,13 @@ func (r *GameServerBuild) ValidateDelete() error {
 
 func (r *GameServerBuild) ValidateGameServerBuild() error {
 	var allErrs field.ErrorList
-	if err := r.ValidateStandingBy(); err != nil {
+	if err := r.ValidateBuildID(); err != nil {
 		allErrs = append(allErrs, err)
 	}
-	if err := r.ValidateBuildId(); err != nil {
+	if err := r.ValidatePortsToExpose(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if err := r.ValidateStandingBy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
 	if len(allErrs) == 0 {
@@ -83,15 +87,7 @@ func (r *GameServerBuild) ValidateGameServerBuild() error {
 		r.Name, allErrs)
 }
 
-func (r *GameServerBuild) ValidateStandingBy() *field.Error {
-	if r.Spec.StandingBy > r.Spec.Max {
-		return field.Invalid(field.NewPath("spec").Child("standingby"),
-							 r.Name, "standingby must be less or equal than max")
-	}
-	return nil
-}
-
-func (r *GameServerBuild) ValidateBuildId() *field.Error {
+func (r *GameServerBuild) ValidateBuildID() *field.Error {
 	var gsbList GameServerBuildList
 	if err := C.List(context.Background(), &gsbList, client.InNamespace(r.Namespace), client.MatchingFields{"spec.buildID": r.Spec.BuildID}); err != nil {
 		return field.Invalid(field.NewPath("spec").Child("buildID"),
@@ -103,6 +99,46 @@ func (r *GameServerBuild) ValidateBuildId() *field.Error {
 			return field.Invalid(field.NewPath("spec").Child("buildID"),
 							     r.Name, "there is another GameServerBuild with the same buildId but with a different name")
 		}
+	}
+	return nil
+}
+
+func (r *GameServerBuild) ValidatePortsToExpose() *field.Error {
+	var portsGroupedByNumber = make(map[int32][]corev1.ContainerPort)
+	for i :=  0; i < len(r.Spec.Template.Spec.Containers); i++ {
+		container := r.Spec.Template.Spec.Containers[i]
+		for j := 0; j < len(container.Ports); j++ {
+			port := container.Ports[j]
+			if port.ContainerPort != 0 {
+				portsGroupedByNumber[port.ContainerPort] = append(portsGroupedByNumber[port.ContainerPort], port)
+			}
+		}
+	}
+	for i := 0; i < len(r.Spec.PortsToExpose); i++ {
+		ports := portsGroupedByNumber[r.Spec.PortsToExpose[i]]
+		if len(ports) < 1 {
+			return field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
+				                 "there must be at least one port that matches each value in portsToExpose")
+		}
+		for j := 0; j < len(ports); j++ {
+			port := ports[j]
+			if port.Name == "" {
+				return field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
+				                     "ports to expose must have a name")
+			}
+			if port.HostPort != 0 {
+				return field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
+				                     "ports to expose must not have a hostPort value")
+			}
+		}
+	}
+	return nil
+}
+
+func (r *GameServerBuild) ValidateStandingBy() *field.Error {
+	if r.Spec.StandingBy > r.Spec.Max {
+		return field.Invalid(field.NewPath("spec").Child("standingby"),
+							 r.Name, "standingby must be less or equal than max")
 	}
 	return nil
 }
