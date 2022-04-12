@@ -17,17 +17,22 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 // log is for logging in this package.
 var gameserverbuildlog = logf.Log.WithName("gameserverbuild-resource")
+
+var c client.Client
 
 func (r *GameServerBuild) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -65,6 +70,9 @@ func (r *GameServerBuild) ValidateGameServerBuild() error {
 	if err := r.ValidateStandingBy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
+	if err := r.ValidateBuildId(); err != nil {
+		allErrs = append(allErrs, err)
+	}
 	if len(allErrs) == 0 {
 		return nil
 	}
@@ -77,6 +85,22 @@ func (r *GameServerBuild) ValidateStandingBy() *field.Error {
 	if r.Spec.StandingBy > r.Spec.Max {
 		return field.Invalid(field.NewPath("spec").Child("standingby"),
 							 r.Name, "standingby must be less or equal than max")
+	}
+	return nil
+}
+
+func (r *GameServerBuild) ValidateBuildId() *field.Error {
+	var ctx context.Context
+	var gsbList GameServerBuildList
+	if err := c.List(ctx, &gsbList, client.InNamespace(r.Namespace), client.MatchingFields{".spec.buildId": r.Spec.BuildID}); err != nil {
+		return nil
+	}
+	for i := 0; i < len(gsbList.Items); i++ {
+		gsb := gsbList.Items[i]
+		if r.Name != gsb.Name {
+			return field.Invalid(field.NewPath("spec").Child("buildId"),
+							     r.Name, "there is another GameServerBuild with the same buildId but with another name")
+		}
 	}
 	return nil
 }
