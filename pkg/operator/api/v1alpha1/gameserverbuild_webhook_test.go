@@ -22,7 +22,7 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 			gsb = createTestGameServerBuild(buildName2, buildID, 2, 4, false)
 			err := k8sClient.Create(ctx, &gsb)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("there is another GameServerBuild with the same buildId but with a different name"))
+			Expect(err.Error()).Should(ContainSubstring("cannot have more than one GameServerBuild with the same BuildID"))
 		})
 
 		It("validates that updating the buildID is not allowed", func() {

@@ -46,7 +46,7 @@ var testEnv *envtest.Environment
 var ctx context.Context
 var cancel context.CancelFunc
 
-func TestAPIs(t *testing.T) {
+func TestWebhooks(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	RunSpecs(t, "Webhook Suite")

@@ -41,7 +41,7 @@ import (
 var k8sClient client.Client
 var testEnv *envtest.Environment
 
-func TestAPIs(t *testing.T) {
+func TestController(t *testing.T) {
 	defer GinkgoRecover()
 	RegisterFailHandler(Fail)
 
