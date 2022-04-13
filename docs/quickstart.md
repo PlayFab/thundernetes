@@ -108,9 +108,17 @@ Kubernetes control plane is running at https://127.0.0.1:34253
 CoreDNS is running at https://127.0.0.1:34253/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
 ```
 
+## Install cert-manager
+
+Once you have a Kubernetes cluster up and running, first you need to install cert-manager. This is needed for the webhooks used to validate your GameServerBuilds.
+
+```bash
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-manager.yaml
+```
+
 ## Install Thundernetes with the installation script
 
-Once you have a Kubernetes cluster up and running, you can run the following command to install Thundernetes. This will install thundernetes *without* TLS authentication for the allocation API service, which should only be used on test environments.
+Then you can run the following command to install Thundernetes. This will install thundernetes *without* TLS authentication for the allocation API service, which should only be used on test environments.
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator.yaml
