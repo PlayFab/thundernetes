@@ -22,6 +22,14 @@ if [ "$BUILD" = "local" ]; then
 	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_GAMESERVER_API}:${IMAGE_TAG} --name kind
 fi
 
+# install cert manager for webhook certificates CRDs
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-manager.yaml
+
+echo "-----Waiting for cert-manager deployments-----"
+kubectl wait --for=condition=Available --timeout=5m -n cert-manager deployment/cert-manager
+kubectl wait --for=condition=Available --timeout=5m -n cert-manager deployment/cert-manager-cainjector
+kubectl wait --for=condition=Available --timeout=5m -n cert-manager deployment/cert-manager-webhook
+
 # certificate generation for the TLS security on the allocation API server
 echo "-----Creating temp certificates for TLS security on the operator's allocation API service-----"
 export TLS_PRIVATE=/tmp/${RANDOM}.pem

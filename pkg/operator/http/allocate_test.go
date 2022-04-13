@@ -153,7 +153,7 @@ var _ = Describe("allocation API service tests", func() {
 	// })
 })
 
-func TestAPIs(t *testing.T) {
+func TestApiService(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	RunSpecs(t, "Allocation API Service Suite")
