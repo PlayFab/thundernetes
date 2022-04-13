@@ -65,11 +65,11 @@ func (r *GameServerBuild) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *GameServerBuild) ValidateDelete() error {
-	gameserverbuildlog.Info("validate delete", "name", r.Name)
+	gameserverbuildlog.V(1).Info("validate delete", "name", r.Name)
 	return nil
 }
 
-// Contains all validations for GameServerBuild
+// ValidateGameServerBuild contains all validations for GameServerBuild
 func (r *GameServerBuild) ValidateGameServerBuild() error {
 	var allErrs field.ErrorList
 	if err := r.ValidateBuildID(); err != nil {
@@ -89,7 +89,7 @@ func (r *GameServerBuild) ValidateGameServerBuild() error {
 		r.Name, allErrs)
 }
 
-// Checks that there is not another GameServerBuild with different name
+// ValidateBuildID checks that there is not another GameServerBuild with different name
 // but with the same buildID
 func (r *GameServerBuild) ValidateBuildID() *field.Error {
 	var gsbList GameServerBuildList
@@ -107,7 +107,7 @@ func (r *GameServerBuild) ValidateBuildID() *field.Error {
 	return nil
 }
 
-// Makes the following validations for ports in portsToExpose:
+// ValidatePortsToExpose makes the following validations for ports in portsToExpose:
 // 1. if a port number is in portToExpose there must be at least one
 //    matching port in the pod containers spec
 // 2. if a port number is in portToExpose, the matching ports in the
@@ -147,7 +147,7 @@ func (r *GameServerBuild) ValidatePortsToExpose() field.ErrorList {
 	return errs
 }
 
-// Validates the standingBy value is less or equal than max
+// ValidateStandingBy checks that the standingBy value is less or equal than max
 func (r *GameServerBuild) ValidateStandingBy() *field.Error {
 	if r.Spec.StandingBy > r.Spec.Max {
 		return field.Invalid(field.NewPath("spec").Child("standingby"),
