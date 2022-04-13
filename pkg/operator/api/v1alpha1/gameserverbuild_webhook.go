@@ -111,7 +111,7 @@ func (r *GameServerBuild) validateCreateBuildID() *field.Error {
 		gsb := gsbList.Items[i]
 		if r.Name != gsb.Name {
 			return field.Invalid(field.NewPath("spec").Child("buildID"),
-				r.Name, "there is another GameServerBuild with the same buildId but with a different name")
+				r.Name, "cannot have more than one GameServerBuild with the same BuildID")
 		}
 	}
 	return nil
