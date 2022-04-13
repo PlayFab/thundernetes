@@ -25,6 +25,17 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 			Expect(err.Error()).Should(ContainSubstring("there is another GameServerBuild with the same buildId but with a different name"))
 		})
 
+		It("validates that updating the buildID is not allowed", func() {
+			buildName, buildID := getNewBuildNameAndID()
+			_, buildID2 := getNewBuildNameAndID()
+			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)
+			Expect(k8sClient.Create(ctx, &gsb)).Should(Succeed())
+			gsb.Spec.BuildID = buildID2
+			err := k8sClient.Update(ctx, &gsb)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).Should(ContainSubstring("changing buildID on an existing GameServerBuild is not allowed"))
+		})
+
 		It("validates that the port to expose exists", func() {
 			buildName, buildID := getNewBuildNameAndID()
 			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)

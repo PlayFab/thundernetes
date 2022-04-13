@@ -54,25 +54,8 @@ var _ webhook.Validator = &GameServerBuild{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *GameServerBuild) ValidateCreate() error {
 	gameserverbuildlog.Info("validate create", "name", r.Name)
-	return r.validateGameServerBuild()
-}
-
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *GameServerBuild) ValidateUpdate(old runtime.Object) error {
-	gameserverbuildlog.Info("validate update", "name", r.Name)
-	return r.validateGameServerBuild()
-}
-
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *GameServerBuild) ValidateDelete() error {
-	gameserverbuildlog.V(1).Info("validate delete", "name", r.Name)
-	return nil
-}
-
-// ValidateGameServerBuild contains all validations for GameServerBuild
-func (r *GameServerBuild) validateGameServerBuild() error {
 	var allErrs field.ErrorList
-	if err := r.validateBuildID(); err != nil {
+	if err := r.validateCreateBuildID(); err != nil {
 		allErrs = append(allErrs, err)
 	}
 	if errs := r.validatePortsToExpose(); errs != nil {
@@ -89,9 +72,36 @@ func (r *GameServerBuild) validateGameServerBuild() error {
 		r.Name, allErrs)
 }
 
-// ValidateBuildID checks that there is not another GameServerBuild with different name
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+func (r *GameServerBuild) ValidateUpdate(old runtime.Object) error {
+	gameserverbuildlog.Info("validate update", "name", r.Name)
+	var allErrs field.ErrorList
+	if err := r.validateUpdateBuildID(old); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if errs := r.validatePortsToExpose(); errs != nil {
+		allErrs = append(allErrs, errs...)
+	}
+	if err := r.validateStandingBy(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(
+		schema.GroupKind{Group: "mps.playfab.com", Kind: "GameServerBuild"},
+		r.Name, allErrs)
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+func (r *GameServerBuild) ValidateDelete() error {
+	gameserverbuildlog.V(1).Info("validate delete", "name", r.Name)
+	return nil
+}
+
+// validateCreateBuildID checks that there is not another GameServerBuild with different name
 // but with the same buildID
-func (r *GameServerBuild) validateBuildID() *field.Error {
+func (r *GameServerBuild) validateCreateBuildID() *field.Error {
 	var gsbList GameServerBuildList
 	if err := c.List(context.Background(), &gsbList, client.InNamespace(r.Namespace), client.MatchingFields{"spec.buildID": r.Spec.BuildID}); err != nil {
 		return field.Invalid(field.NewPath("spec").Child("buildID"),
@@ -107,7 +117,16 @@ func (r *GameServerBuild) validateBuildID() *field.Error {
 	return nil
 }
 
-// ValidatePortsToExpose makes the following validations for ports in portsToExpose:
+// validateUpdateBuildID validates that the buildID is not changed
+func (r *GameServerBuild) validateUpdateBuildID(old runtime.Object) *field.Error {
+	if r.Spec.BuildID != old.(*GameServerBuild).Spec.BuildID {
+		return field.Invalid(field.NewPath("spec").Child("buildID"),
+			r.Name, "changing buildID on an existing GameServerBuild is not allowed")
+	}
+	return nil
+}
+
+// validatePortsToExpose makes the following validations for ports in portsToExpose:
 // 1. if a port number is in portsToExpose, there must be at least one
 //    matching port in the pod containers spec
 // 2. if a port number is in portsToExpose, the matching ports in the
@@ -147,7 +166,7 @@ func (r *GameServerBuild) validatePortsToExpose() field.ErrorList {
 	return errs
 }
 
-// ValidateStandingBy checks that the standingBy value is less or equal than max
+// validateStandingBy checks that the standingBy value is less or equal than max
 func (r *GameServerBuild) validateStandingBy() *field.Error {
 	if r.Spec.StandingBy > r.Spec.Max {
 		return field.Invalid(field.NewPath("spec").Child("standingby"),
