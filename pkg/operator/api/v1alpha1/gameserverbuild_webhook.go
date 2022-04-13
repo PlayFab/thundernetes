@@ -34,11 +34,11 @@ import (
 // log is for logging in this package.
 var(
 	gameserverbuildlog = logf.Log.WithName("gameserverbuild-resource")
-	C client.Client
+	c client.Client
 ) 
 
 func (r *GameServerBuild) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	C = mgr.GetClient()
+	c = mgr.GetClient()
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -54,13 +54,13 @@ var _ webhook.Validator = &GameServerBuild{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *GameServerBuild) ValidateCreate() error {
 	gameserverbuildlog.Info("validate create", "name", r.Name)
-	return r.ValidateGameServerBuild()
+	return r.validateGameServerBuild()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *GameServerBuild) ValidateUpdate(old runtime.Object) error {
 	gameserverbuildlog.Info("validate update", "name", r.Name)
-	return r.ValidateGameServerBuild()
+	return r.validateGameServerBuild()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -70,15 +70,15 @@ func (r *GameServerBuild) ValidateDelete() error {
 }
 
 // ValidateGameServerBuild contains all validations for GameServerBuild
-func (r *GameServerBuild) ValidateGameServerBuild() error {
+func (r *GameServerBuild) validateGameServerBuild() error {
 	var allErrs field.ErrorList
-	if err := r.ValidateBuildID(); err != nil {
+	if err := r.validateBuildID(); err != nil {
 		allErrs = append(allErrs, err)
 	}
-	if errs := r.ValidatePortsToExpose(); errs != nil {
+	if errs := r.validatePortsToExpose(); errs != nil {
 		allErrs = append(allErrs, errs...)
 	}
-	if err := r.ValidateStandingBy(); err != nil {
+	if err := r.validateStandingBy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
 	if len(allErrs) == 0 {
@@ -91,9 +91,9 @@ func (r *GameServerBuild) ValidateGameServerBuild() error {
 
 // ValidateBuildID checks that there is not another GameServerBuild with different name
 // but with the same buildID
-func (r *GameServerBuild) ValidateBuildID() *field.Error {
+func (r *GameServerBuild) validateBuildID() *field.Error {
 	var gsbList GameServerBuildList
-	if err := C.List(context.Background(), &gsbList, client.InNamespace(r.Namespace), client.MatchingFields{"spec.buildID": r.Spec.BuildID}); err != nil {
+	if err := c.List(context.Background(), &gsbList, client.InNamespace(r.Namespace), client.MatchingFields{"spec.buildID": r.Spec.BuildID}); err != nil {
 		return field.Invalid(field.NewPath("spec").Child("buildID"),
 						     r.Name, err.Error())
 	}
@@ -108,13 +108,13 @@ func (r *GameServerBuild) ValidateBuildID() *field.Error {
 }
 
 // ValidatePortsToExpose makes the following validations for ports in portsToExpose:
-// 1. if a port number is in portToExpose there must be at least one
+// 1. if a port number is in portsToExpose, there must be at least one
 //    matching port in the pod containers spec
-// 2. if a port number is in portToExpose, the matching ports in the
+// 2. if a port number is in portsToExpose, the matching ports in the
 //    pod containers spec must have a name
-// 3. if a port number is in portToExpose, the matching ports in the
+// 3. if a port number is in portsToExpose, the matching ports in the
 //    pod containers spec must not have a hostPort
-func (r *GameServerBuild) ValidatePortsToExpose() field.ErrorList {
+func (r *GameServerBuild) validatePortsToExpose() field.ErrorList {
 	var portsGroupedByNumber = make(map[int32][]corev1.ContainerPort)
 	for i :=  0; i < len(r.Spec.Template.Spec.Containers); i++ {
 		container := r.Spec.Template.Spec.Containers[i]
@@ -148,7 +148,7 @@ func (r *GameServerBuild) ValidatePortsToExpose() field.ErrorList {
 }
 
 // ValidateStandingBy checks that the standingBy value is less or equal than max
-func (r *GameServerBuild) ValidateStandingBy() *field.Error {
+func (r *GameServerBuild) validateStandingBy() *field.Error {
 	if r.Spec.StandingBy > r.Spec.Max {
 		return field.Invalid(field.NewPath("spec").Child("standingby"),
 							 r.Name, "standingby must be less or equal than max")
