@@ -69,6 +69,7 @@ func (r *GameServerBuild) ValidateDelete() error {
 	return nil
 }
 
+// Contains all validations for GameServerBuild
 func (r *GameServerBuild) ValidateGameServerBuild() error {
 	var allErrs field.ErrorList
 	if err := r.ValidateBuildID(); err != nil {
@@ -88,6 +89,8 @@ func (r *GameServerBuild) ValidateGameServerBuild() error {
 		r.Name, allErrs)
 }
 
+// Checks that there is not another GameServerBuild with different name
+// but with the same buildID
 func (r *GameServerBuild) ValidateBuildID() *field.Error {
 	var gsbList GameServerBuildList
 	if err := C.List(context.Background(), &gsbList, client.InNamespace(r.Namespace), client.MatchingFields{"spec.buildID": r.Spec.BuildID}); err != nil {
@@ -104,6 +107,13 @@ func (r *GameServerBuild) ValidateBuildID() *field.Error {
 	return nil
 }
 
+// Makes the following validations for ports in portsToExpose:
+// 1. if a port number is in portToExpose there must be at least one
+//    matching port in the pod containers spec
+// 2. if a port number is in portToExpose, the matching ports in the
+//    pod containers spec must not have a hostPort
+// 3. if a port number is in portToExpose, the matching ports in the
+//    pod containers spec must have a name
 func (r *GameServerBuild) ValidatePortsToExpose() field.ErrorList {
 	var portsGroupedByNumber = make(map[int32][]corev1.ContainerPort)
 	for i :=  0; i < len(r.Spec.Template.Spec.Containers); i++ {
@@ -137,6 +147,7 @@ func (r *GameServerBuild) ValidatePortsToExpose() field.ErrorList {
 	return errs
 }
 
+// Validates the standingBy value is less or equal than max
 func (r *GameServerBuild) ValidateStandingBy() *field.Error {
 	if r.Spec.StandingBy > r.Spec.Max {
 		return field.Invalid(field.NewPath("spec").Child("standingby"),
