@@ -32,10 +32,10 @@ import (
 )
 
 // log is for logging in this package.
-var(
+var (
 	gameserverbuildlog = logf.Log.WithName("gameserverbuild-resource")
-	c client.Client
-) 
+	c                  client.Client
+)
 
 func (r *GameServerBuild) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	c = mgr.GetClient()
@@ -95,13 +95,13 @@ func (r *GameServerBuild) validateBuildID() *field.Error {
 	var gsbList GameServerBuildList
 	if err := c.List(context.Background(), &gsbList, client.InNamespace(r.Namespace), client.MatchingFields{"spec.buildID": r.Spec.BuildID}); err != nil {
 		return field.Invalid(field.NewPath("spec").Child("buildID"),
-						     r.Name, err.Error())
+			r.Name, err.Error())
 	}
 	for i := 0; i < len(gsbList.Items); i++ {
 		gsb := gsbList.Items[i]
 		if r.Name != gsb.Name {
 			return field.Invalid(field.NewPath("spec").Child("buildID"),
-							     r.Name, "there is another GameServerBuild with the same buildId but with a different name")
+				r.Name, "there is another GameServerBuild with the same buildId but with a different name")
 		}
 	}
 	return nil
@@ -116,7 +116,7 @@ func (r *GameServerBuild) validateBuildID() *field.Error {
 //    pod containers spec must not have a hostPort
 func (r *GameServerBuild) validatePortsToExpose() field.ErrorList {
 	var portsGroupedByNumber = make(map[int32][]corev1.ContainerPort)
-	for i :=  0; i < len(r.Spec.Template.Spec.Containers); i++ {
+	for i := 0; i < len(r.Spec.Template.Spec.Containers); i++ {
 		container := r.Spec.Template.Spec.Containers[i]
 		for j := 0; j < len(container.Ports); j++ {
 			port := container.Ports[j]
@@ -130,17 +130,17 @@ func (r *GameServerBuild) validatePortsToExpose() field.ErrorList {
 		ports := portsGroupedByNumber[r.Spec.PortsToExpose[i]]
 		if len(ports) < 1 {
 			errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
-				                fmt.Sprintf("there must be at least one port that matches each value in portsToExpose, error in port %d", r.Spec.PortsToExpose[i])))
+				fmt.Sprintf("there must be at least one port that matches each value in portsToExpose, error in port %d", r.Spec.PortsToExpose[i])))
 		}
 		for j := 0; j < len(ports); j++ {
 			port := ports[j]
 			if port.Name == "" {
 				errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
-				                    fmt.Sprintf("ports to expose must have a name, error in port %d", port.ContainerPort)))
+					fmt.Sprintf("ports to expose must have a name, error in port %d", port.ContainerPort)))
 			}
 			if port.HostPort != 0 {
-				errs = append(errs,  field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
-				                     fmt.Sprintf("ports to expose must not have a hostPort value, error in port %d", port.ContainerPort)))
+				errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
+					fmt.Sprintf("ports to expose must not have a hostPort value, error in port %d", port.ContainerPort)))
 			}
 		}
 	}
@@ -151,7 +151,7 @@ func (r *GameServerBuild) validatePortsToExpose() field.ErrorList {
 func (r *GameServerBuild) validateStandingBy() *field.Error {
 	if r.Spec.StandingBy > r.Spec.Max {
 		return field.Invalid(field.NewPath("spec").Child("standingby"),
-							 r.Name, "standingby must be less or equal than max")
+			r.Name, "standingby must be less or equal than max")
 	}
 	return nil
 }
