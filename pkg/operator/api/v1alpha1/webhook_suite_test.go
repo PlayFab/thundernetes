@@ -95,6 +95,12 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
+	err = mgr.GetFieldIndexer().IndexField(context.Background(), &GameServerBuild{}, "spec.buildID", func(rawObj client.Object) []string {
+		gsb := rawObj.(*GameServerBuild)
+		return []string{gsb.Spec.BuildID}
+	})
+	Expect(err).NotTo(HaveOccurred())
+
 	err = (&GameServerBuild{}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
