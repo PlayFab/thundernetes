@@ -111,9 +111,9 @@ func (r *GameServerBuild) ValidateBuildID() *field.Error {
 // 1. if a port number is in portToExpose there must be at least one
 //    matching port in the pod containers spec
 // 2. if a port number is in portToExpose, the matching ports in the
-//    pod containers spec must not have a hostPort
-// 3. if a port number is in portToExpose, the matching ports in the
 //    pod containers spec must have a name
+// 3. if a port number is in portToExpose, the matching ports in the
+//    pod containers spec must not have a hostPort
 func (r *GameServerBuild) ValidatePortsToExpose() field.ErrorList {
 	var portsGroupedByNumber = make(map[int32][]corev1.ContainerPort)
 	for i :=  0; i < len(r.Spec.Template.Spec.Containers); i++ {
