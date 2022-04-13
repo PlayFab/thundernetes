@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"context"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -73,8 +74,8 @@ func (r *GameServerBuild) ValidateGameServerBuild() error {
 	if err := r.ValidateBuildID(); err != nil {
 		allErrs = append(allErrs, err)
 	}
-	if err := r.ValidatePortsToExpose(); err != nil {
-		allErrs = append(allErrs, err)
+	if errs := r.ValidatePortsToExpose(); errs != nil {
+		allErrs = append(allErrs, errs...)
 	}
 	if err := r.ValidateStandingBy(); err != nil {
 		allErrs = append(allErrs, err)
@@ -103,7 +104,7 @@ func (r *GameServerBuild) ValidateBuildID() *field.Error {
 	return nil
 }
 
-func (r *GameServerBuild) ValidatePortsToExpose() *field.Error {
+func (r *GameServerBuild) ValidatePortsToExpose() field.ErrorList {
 	var portsGroupedByNumber = make(map[int32][]corev1.ContainerPort)
 	for i :=  0; i < len(r.Spec.Template.Spec.Containers); i++ {
 		container := r.Spec.Template.Spec.Containers[i]
@@ -114,25 +115,26 @@ func (r *GameServerBuild) ValidatePortsToExpose() *field.Error {
 			}
 		}
 	}
+	var errs field.ErrorList
 	for i := 0; i < len(r.Spec.PortsToExpose); i++ {
 		ports := portsGroupedByNumber[r.Spec.PortsToExpose[i]]
 		if len(ports) < 1 {
-			return field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
-				                 "there must be at least one port that matches each value in portsToExpose")
+			errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
+				                fmt.Sprintf("there must be at least one port that matches each value in portsToExpose, error in port %d", r.Spec.PortsToExpose[i])))
 		}
 		for j := 0; j < len(ports); j++ {
 			port := ports[j]
 			if port.Name == "" {
-				return field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
-				                     "ports to expose must have a name")
+				errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
+				                    fmt.Sprintf("ports to expose must have a name, error in port %d", port.ContainerPort)))
 			}
 			if port.HostPort != 0 {
-				return field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
-				                     "ports to expose must not have a hostPort value")
+				errs = append(errs,  field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
+				                     fmt.Sprintf("ports to expose must not have a hostPort value, error in port %d", port.ContainerPort)))
 			}
 		}
 	}
-	return nil
+	return errs
 }
 
 func (r *GameServerBuild) ValidateStandingBy() *field.Error {
