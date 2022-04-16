@@ -71,7 +71,7 @@ var _ = Describe("nodeagent tests", func() {
 		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		n.gameServerMap.Store(testGameServerName, &GameServerDetails{
+		n.gameServerMap.Store(testGameServerName, &GameServerInfo{
 			GameServerNamespace: testGameServerNamespace,
 			Mutex:               &sync.RWMutex{},
 		})
@@ -99,16 +99,16 @@ var _ = Describe("nodeagent tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// wait for the create trigger on the watch
-		var gsdetails interface{}
+		var gsinfo interface{}
 		Eventually(func() bool {
 			var ok bool
-			gsdetails, ok = n.gameServerMap.Load(testGameServerName)
+			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
 		}).Should(BeTrue())
 
 		// simulate subsequent updates by GSDK
-		gsdetails.(*GameServerDetails).PreviousGameState = GameStateStandingBy
-		gsdetails.(*GameServerDetails).PreviousGameHealth = "Healthy"
+		gsinfo.(*GameServerInfo).PreviousGameState = GameStateStandingBy
+		gsinfo.(*GameServerInfo).PreviousGameHealth = "Healthy"
 
 		// update GameServer CR to active
 		gs.Object["status"].(map[string]interface{})["state"] = "Active"
@@ -122,9 +122,9 @@ var _ = Describe("nodeagent tests", func() {
 			if !ok {
 				return false
 			}
-			tempgs.(*GameServerDetails).Mutex.RLock()
-			gsd := *tempgs.(*GameServerDetails)
-			tempgs.(*GameServerDetails).Mutex.RUnlock()
+			tempgs.(*GameServerInfo).Mutex.RLock()
+			gsd := *tempgs.(*GameServerInfo)
+			tempgs.(*GameServerInfo).Mutex.RUnlock()
 			return gsd.IsActive && gsd.PreviousGameState == GameStateStandingBy
 		}).Should(BeTrue())
 
@@ -193,13 +193,14 @@ var _ = Describe("nodeagent tests", func() {
 				}).Should(BeTrue())
 
 				// simulate subsequent updates by GSDK
-				gsdetails.(*GameServerDetails).PreviousGameState = GameStateStandingBy
-				gsdetails.(*GameServerDetails).PreviousGameHealth = "Healthy"
+				gsdetails.(*GameServerInfo).PreviousGameState = GameStateStandingBy
+				gsdetails.(*GameServerInfo).PreviousGameHealth = "Healthy"
 
 				// update GameServer CR to active
 				gs.Object["status"].(map[string]interface{})["state"] = "Active"
 				gs.Object["status"].(map[string]interface{})["health"] = "Healthy"
 				gs.Object["status"].(map[string]interface{})["sessionCookie"] = "cookie123"
+				gs.Object["status"].(map[string]interface{})["initialPlayers"] = []interface{}{"player1", "player2"}
 				_, err = dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Update(context.Background(), gs, metav1.UpdateOptions{})
 				Expect(err).ToNot(HaveOccurred())
 
@@ -209,10 +210,10 @@ var _ = Describe("nodeagent tests", func() {
 					if !ok {
 						return false
 					}
-					tempgs.(*GameServerDetails).Mutex.RLock()
-					gsd := *tempgs.(*GameServerDetails)
-					tempgs.(*GameServerDetails).Mutex.RUnlock()
-					return gsd.IsActive && tempgs.(*GameServerDetails).PreviousGameState == GameStateStandingBy
+					tempgs.(*GameServerInfo).Mutex.RLock()
+					gsd := *tempgs.(*GameServerInfo)
+					tempgs.(*GameServerInfo).Mutex.RUnlock()
+					return gsd.IsActive && tempgs.(*GameServerInfo).PreviousGameState == GameStateStandingBy
 				}).Should(BeTrue())
 
 				// heartbeat from the game is still StandingBy

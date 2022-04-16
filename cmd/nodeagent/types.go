@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -73,8 +74,8 @@ type ConnectedPlayer struct {
 	PlayerId string
 }
 
-// GameServerDetails contains data regarding the details for the session that occurs when the GameServer state changes
-type GameServerDetails struct {
+// GameServerInfo contains data regarding the details for the session that occurs when the GameServer state changes
+type GameServerInfo struct {
 	IsActive              bool // the GameState is Active on the Kubernetes API server
 	SessionID             string
 	SessionCookie         string
@@ -84,4 +85,5 @@ type GameServerDetails struct {
 	GameServerNamespace   string
 	ConnectedPlayersCount int
 	Mutex                 *sync.RWMutex
+	GsUid                 types.UID // UID of the GameServer object
 }

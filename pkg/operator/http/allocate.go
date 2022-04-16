@@ -12,16 +12,13 @@ import (
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	"github.com/playfab/thundernetes/pkg/operator/controllers"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type allocateHandler struct {
@@ -36,7 +33,6 @@ func (h *allocateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log := log.FromContext(ctx)
 
 	if r.Method != http.MethodPost && r.Method != http.MethodPatch {
 		badRequestError(ctx, w, errors.New("invalid method"), "Only POST and PATCH are accepted")
@@ -123,33 +119,16 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 	// pick a random GameServer to allocate
 	gs := gameserversStandingBy.Items[rand.Intn(len(gameserversStandingBy.Items))]
 
-	// get a GameServerDetail object for this GameServer
-	gsd := createGameServerDetailForGameServer(&gs, args.InitialPlayers)
-
-	// create it
-	err = h.client.Create(ctx, &gsd)
-	if err != nil {
-		internalServerError(ctx, w, err, "cannot create GameServerDetail")
-		return
-	}
-
 	// set the relevant status fields for the GameServer
 	gs.Status.State = mpsv1alpha1.GameServerStateActive
 	gs.Status.SessionID = args.SessionID
 	gs.Status.SessionCookie = args.SessionCookie
+	gs.Status.InitialPlayers = args.InitialPlayers
 
 	// we use .Update instead of .Patch to avoid simultaneous allocations updating the same GameServer
 	// this is a very unlikely scenario, since the .Create on the GameServerDetail would fail
 	err = h.client.Status().Update(ctx, &gs)
 	if err != nil {
-		// we are in a semi-corrupt state, since a GameServerDetail object has been created but we failed to update the GameServer object
-		// we launch a goroutine to delete the GameServerDetail object
-		go func() {
-			err := h.deleteGameServerDetail(ctx, &gsd)
-			if err != nil {
-				log.Error(err, fmt.Sprintf("Failed to delete GameServerDetail object %s", gsd.Name))
-			}
-		}()
 		internalServerError(ctx, w, err, "cannot update game server")
 		return
 	}
@@ -165,28 +144,6 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	controllers.AllocationsCounter.WithLabelValues(gs.Labels[controllers.LabelBuildName]).Inc()
-}
-
-// createGameServerDetailForGameServer returns a new GameServerDetail object for the given GameServer containing the initialPlayers string slice
-func createGameServerDetailForGameServer(gs *mpsv1alpha1.GameServer, initialPlayers []string) mpsv1alpha1.GameServerDetail {
-	return mpsv1alpha1.GameServerDetail{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      gs.Name,
-			Namespace: gs.Namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(gs, schema.GroupVersionKind{
-					Group:   mpsv1alpha1.GroupVersion.Group,
-					Version: mpsv1alpha1.GroupVersion.Version,
-					Kind:    controllers.GameServerKind,
-				}),
-			},
-			Labels: map[string]string{controllers.LabelBuildID: gs.Spec.BuildID, controllers.LabelOwningGameServer: gs.Name},
-		},
-		Spec: mpsv1alpha1.GameServerDetailSpec{
-			InitialPlayers:        initialPlayers,
-			ConnectedPlayersCount: 0,
-		},
-	}
 }
 
 // deleteFameServerDetail deletes the GameServerDetail object for the given GameServer with backoff retries

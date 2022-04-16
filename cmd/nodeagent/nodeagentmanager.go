@@ -15,8 +15,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -35,14 +38,14 @@ const (
 var (
 	GameServerStates = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "thundernetes",
-		Name: "gameserver_states",
-		Help: "Game server states",
+		Name:      "gameserver_states",
+		Help:      "Game server states",
 	}, []string{"name", "state"})
 
 	ConnectedPlayersGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "thundernetes",
-		Name: "connected_players",
-		Help: "Number of connected players per GameServer",
+		Name:      "connected_players",
+		Help:      "Number of connected players per GameServer",
 	}, []string{"namespace", "name"})
 )
 
@@ -124,10 +127,11 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 		// this means that either the GameServer was just created
 		// or that the NodeAgent crashed and we're having a new instance
 		// in any case, we're adding the details to the map
-		logger.Infof("GameServer %s/%s does not exist in map, we're creating it", gameServerNamespace, gameServerName)
-		gsdi = &GameServerDetails{
+		logger.Infof("GameServer %s/%s does not exist in cache, we're creating it", gameServerNamespace, gameServerName)
+		gsdi = &GameServerInfo{
 			GameServerNamespace: gameServerNamespace,
 			Mutex:               &sync.RWMutex{},
+			GsUid:               obj.GetUID(),
 			// we're not adding details about health/state since the NodeAgent might have crashed
 			// and the health/state might have changed during the crash
 		}
@@ -136,7 +140,7 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 
 	gameServerState, _, err := n.parseStateHealth(obj)
 	if err != nil {
-		logger.Warnf("parsing state/health: %s. This is probably OK if the GameServer was just created", err.Error())
+		logger.Warnf("parsing state/health: %s. This is OK if the GameServer was just created", err.Error())
 	}
 
 	// we only care to continue if the state is Active
@@ -145,13 +149,17 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 	}
 
 	// server is Active, so get session details as well initial players details
-	sessionID, sessionCookie := n.parseSessionDetails(obj, gameServerName, gameServerNamespace)
-	logger.Infof("getting values from allocation - GameServer CR, sessionID:%s, sessionCookie:%s", sessionID, sessionCookie)
-	initialPlayers := n.getInitialPlayers(ctx, gameServerName, gameServerNamespace)
-	logger.Infof("getting values from allocation GameServerDetail CR, initialPlayers:%#v", initialPlayers)
+	sessionID, sessionCookie, initialPlayers := n.parseSessionDetails(obj, gameServerName, gameServerNamespace)
+	logger.Infof("getting values from allocation - GameServer CR, sessionID:%s, sessionCookie:%s, initialPlayers: %v", sessionID, sessionCookie, initialPlayers)
+
+	// create the GameServerDetails CR
+	err = n.createGameServerDetails(ctx, obj.GetUID(), gameServerName, gameServerNamespace, nil)
+	if err != nil {
+		logger.Errorf("error creating GameServerDetails: %s", err.Error())
+	}
 
 	// get a reference to the GameServerDetails instance for this GameServer
-	gsd := gsdi.(*GameServerDetails)
+	gsd := gsdi.(*GameServerInfo)
 
 	// we are setting the current state to 1 and the previous to zero (if exists)
 	// in this way, we can add all the "1"s together to get a total number of GameServers in a specific state
@@ -216,7 +224,7 @@ func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	gsd := gsdi.(*GameServerDetails)
+	gsd := gsdi.(*GameServerInfo)
 	logger := getLogger(gameServerName, gsd.GameServerNamespace)
 
 	if n.logEveryHeartbeat {
@@ -275,7 +283,7 @@ func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Reque
 }
 
 // updateHealthAndStateIfNeeded updates both the health and state of the GameServer if any one of them has changed
-func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb *HeartbeatRequest, gameServerName string, gsd *GameServerDetails) error {
+func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb *HeartbeatRequest, gameServerName string, gsd *GameServerInfo) error {
 	logger := getLogger(gameServerName, gsd.GameServerNamespace)
 
 	// if neither state or health changed, we don't need to do anything
@@ -339,32 +347,8 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 	return nil
 }
 
-// getInitialPlayers returns the initial players from the unstructured GameServerDetail CR
-func (n *NodeAgentManager) getInitialPlayers(ctx context.Context, gameServerName, gameServerNamespace string) []string {
-	logger := getLogger(gameServerName, gameServerNamespace)
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*defaultTimeout)
-	defer cancel()
-	obj, err := n.dynamicClient.Resource(gameserverDetailGVR).Namespace(gameServerNamespace).Get(ctxWithTimeout, gameServerName, metav1.GetOptions{})
-	if err != nil {
-		logger.Warnf("error getting initial players details %s", err.Error())
-		return []string{}
-	}
-
-	initialPlayers, initialPlayersExist, err := unstructured.NestedStringSlice(obj.Object, "spec", "initialPlayers")
-	if err != nil {
-		logger.Warnf("error getting initial players %s", err.Error())
-		return []string{}
-	}
-	if !initialPlayersExist {
-		logger.Warnf("initial players does not exist")
-		return []string{}
-	}
-
-	return initialPlayers
-}
-
 // updateConnectedPlayersIfNeeded updates the connected players of the GameServerDetail CR if it has changed
-func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, hb *HeartbeatRequest, gameServerName string, gsd *GameServerDetails) error {
+func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, hb *HeartbeatRequest, gameServerName string, gsd *GameServerInfo) error {
 	logger := getLogger(gameServerName, gsd.GameServerNamespace)
 	// we're not interested in updating the connected players count if the game is not active or if the player population has not changed
 	if hb.CurrentGameState != GameStateActive || gsd.ConnectedPlayersCount == len(hb.CurrentPlayers) {
@@ -410,6 +394,17 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 
 	_, err = n.dynamicClient.Resource(gameserverDetailGVR).Namespace(gsd.GameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// GameServerDetails CR not found, there was an error when it was created
+			logger.Warnf("GameServerDetail CR not found, will create it")
+			errCreate := n.createGameServerDetails(ctx, gsd.GsUid, gameServerName, gsd.GameServerNamespace, currentPlayerIDs)
+			if errCreate != nil {
+				return errCreate
+			}
+			// at this point, we have successfully recovered and created the missing GameServerDetail CR
+			// we will return the original error so the client knows that the update has failed
+			// however, the code will try to update the connectedPlayers soon, on the next heartbeat
+		}
 		return err
 	}
 
@@ -422,24 +417,29 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 }
 
 // parseSessionDetails returns the sessionID and sessionCookie from the unstructured GameServer CR
-func (n *NodeAgentManager) parseSessionDetails(u *unstructured.Unstructured, gameServerName, gameServerNamespace string) (string, string) {
+func (n *NodeAgentManager) parseSessionDetails(u *unstructured.Unstructured, gameServerName, gameServerNamespace string) (string, string, []string) {
 	logger := getLogger(gameServerName, gameServerNamespace)
 	sessionID, sessionIDExists, sessionIDErr := unstructured.NestedString(u.Object, "status", "sessionID")
-	sessionCookie, sessionCookieExists, SessionCookieErr := unstructured.NestedString(u.Object, "status", "sessionCookie")
+	sessionCookie, sessionCookieExists, sessionCookieErr := unstructured.NestedString(u.Object, "status", "sessionCookie")
+	initialPlayers, initialPlayersExists, initialPlayersErr := unstructured.NestedStringSlice(u.Object, "status", "initialPlayers")
 
-	if !sessionIDExists || !sessionCookieExists {
-		logger.Debugf("sessionID or sessionCookie do not exist, sessionIDExists: %t, sessionCookieExists: %t", sessionIDExists, sessionCookieExists)
+	if !sessionIDExists || !sessionCookieExists || !initialPlayersExists {
+		logger.Debugf("sessionID or sessionCookie or initialPlayers do not exist, sessionIDExists: %t, sessionCookieExists: %t, initialPlayersExists: %t", sessionIDExists, sessionCookieExists, initialPlayersExists)
 	}
 
 	if sessionIDErr != nil {
 		logger.Debugf("error getting sessionID: %s", sessionIDErr.Error())
 	}
 
-	if SessionCookieErr != nil {
-		logger.Debugf("error getting sessionCookie: %s", SessionCookieErr.Error())
+	if sessionCookieErr != nil {
+		logger.Debugf("error getting sessionCookie: %s", sessionCookieErr.Error())
 	}
 
-	return sessionID, sessionCookie
+	if initialPlayersErr != nil {
+		logger.Debugf("error getting initialPlayers: %s", initialPlayersErr.Error())
+	}
+
+	return sessionID, sessionCookie, initialPlayers
 }
 
 // parseState parses the GameServer state from the unstructured GameServer CR
@@ -461,4 +461,57 @@ func (n *NodeAgentManager) parseStateHealth(u *unstructured.Unstructured) (strin
 		return "", "", errors.New(ErrHealthNotExists)
 	}
 	return state, health, nil
+}
+
+// createGameServerDetails creates a GameServerDetails CR with the specified name and namespace
+func (n *NodeAgentManager) createGameServerDetails(ctx context.Context, gsuid types.UID, gsname, gsnamespace string, connectedPlayers []string) error {
+	gs := &mpsv1alpha1.GameServer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gsname,
+			Namespace: gsnamespace,
+			UID:       gsuid,
+		},
+	}
+	gsd := mpsv1alpha1.GameServerDetail{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gsname, // same name and namespace as the GameServer
+			Namespace: gsnamespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(gs, schema.GroupVersionKind{
+					Group:   gameserverGVR.Group,
+					Version: gameserverGVR.Version,
+					Kind:    "GameServer",
+				}),
+			},
+		},
+		Spec: mpsv1alpha1.GameServerDetailSpec{
+			ConnectedPlayers: connectedPlayers,
+		},
+	}
+
+	// connectedPlayers only comes != nil when NodeAgent failed to create the GameServerDetails CR after allocation
+	// and NodeAgent updates the GameServerDetails CR on the next heartbeat
+	if connectedPlayers != nil {
+		gsd.Spec.ConnectedPlayersCount = len(connectedPlayers)
+	}
+
+	metadata, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&gsd.ObjectMeta)
+	if err != nil {
+		return err
+	}
+
+	u := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": gameserverDetailGVR.GroupVersion().String(),
+			"kind":       "GameServerDetail",
+			"metadata":   metadata,
+			"spec":       map[string]interface{}{},
+		},
+	}
+
+	_, err = n.dynamicClient.Resource(gameserverDetailGVR).Namespace(gsnamespace).Create(ctx, u, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
