@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"math/rand"
@@ -17,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -144,16 +142,4 @@ func (h *allocateHandler) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	controllers.AllocationsCounter.WithLabelValues(gs.Labels[controllers.LabelBuildName]).Inc()
-}
-
-// deleteFameServerDetail deletes the GameServerDetail object for the given GameServer with backoff retries
-func (h *allocateHandler) deleteGameServerDetail(ctx context.Context, gsd *mpsv1alpha1.GameServerDetail) error {
-	err := retry.OnError(retry.DefaultBackoff,
-		func(_ error) bool {
-			return true // TODO: check if we can do something better here, like check for timeouts?
-		}, func() error {
-			err := h.client.Delete(ctx, gsd)
-			return err
-		})
-	return err
 }

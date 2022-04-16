@@ -15,6 +15,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -167,6 +168,188 @@ var _ = Describe("nodeagent tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hbr.Operation).To(Equal(GameOperationContinue))
 	})
+	It("should not create a GameServerDetail if the server is not Active", func() {
+		dynamicClient := newDynamicInterface()
+
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false)
+		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
+
+		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the create trigger on the watch
+		Eventually(func() bool {
+			var ok bool
+			_, ok = n.gameServerMap.Load(testGameServerName)
+			return ok
+		}).Should(BeTrue())
+
+		// simulate 5 standingBy heartbeats
+		for i := 0; i < 5; i++ {
+			hb := &HeartbeatRequest{
+				CurrentGameState:  GameStateStandingBy,
+				CurrentGameHealth: "Healthy",
+			}
+			b, _ := json.Marshal(hb)
+			req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/sessionHosts/%s", testGameServerName), bytes.NewReader(b))
+			w := httptest.NewRecorder()
+
+			n.heartbeatHandler(w, req)
+			res := w.Result()
+			defer res.Body.Close()
+			Expect(res.StatusCode).To(Equal(http.StatusOK))
+			resBody, err := ioutil.ReadAll(res.Body)
+			Expect(err).ToNot(HaveOccurred())
+			hbr := HeartbeatResponse{}
+			_ = json.Unmarshal(resBody, &hbr)
+			Expect(hbr.Operation).To(Equal(GameOperationContinue))
+		}
+
+		_, err = dynamicClient.Resource(gameserverDetailGVR).Namespace(testGameServerNamespace).Get(context.Background(), gs.GetName(), metav1.GetOptions{})
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsNotFound(err)).To(BeTrue())
+
+	})
+	It("should delete the GameServer from the cache when it's delete on K8s", func() {
+		dynamicClient := newDynamicInterface()
+
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false)
+		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
+
+		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the create trigger on the watch
+		Eventually(func() bool {
+			var ok bool
+			_, ok = n.gameServerMap.Load(testGameServerName)
+			return ok
+		}).Should(BeTrue())
+
+		err = dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Delete(context.Background(), gs.GetName(), metav1.DeleteOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		Eventually(func() bool {
+			var ok bool
+			_, ok = n.gameServerMap.Load(testGameServerName)
+			return ok
+		}).Should(BeTrue())
+	})
+	It("should create a GameServerDetail on subsequent heartbeats, if it fails on the first time", func() {
+		dynamicClient := newDynamicInterface()
+
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false)
+		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
+
+		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the create trigger on the watch
+		var gsinfo interface{}
+		Eventually(func() bool {
+			var ok bool
+			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
+			return ok
+		}).Should(BeTrue())
+
+		// simulate subsequent updates by GSDK
+		gsinfo.(*GameServerInfo).PreviousGameState = GameStateStandingBy
+		gsinfo.(*GameServerInfo).PreviousGameHealth = "Healthy"
+
+		// update GameServer CR to active
+		gs.Object["status"].(map[string]interface{})["state"] = "Active"
+		gs.Object["status"].(map[string]interface{})["health"] = "Healthy"
+		_, err = dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Update(context.Background(), gs, metav1.UpdateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the update trigger on the watch
+		Eventually(func() bool {
+			tempgs, ok := n.gameServerMap.Load(testGameServerName)
+			if !ok {
+				return false
+			}
+			tempgs.(*GameServerInfo).Mutex.RLock()
+			gsd := *tempgs.(*GameServerInfo)
+			tempgs.(*GameServerInfo).Mutex.RUnlock()
+			return gsd.IsActive && gsd.PreviousGameState == GameStateStandingBy
+		}).Should(BeTrue())
+
+		// wait till the GameServerDetail CR has been created
+		Eventually(func(g Gomega) {
+			u, err := dynamicClient.Resource(gameserverDetailGVR).Namespace(testGameServerNamespace).Get(context.Background(), gs.GetName(), metav1.GetOptions{})
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(u.GetName()).To(Equal(gs.GetName()))
+		}).Should(Succeed())
+
+		// delete the GameServerDetail CR to simulate failure in creating
+		Eventually(func(g Gomega) {
+			err := dynamicClient.Resource(gameserverDetailGVR).Namespace(testGameServerNamespace).Delete(context.Background(), gs.GetName(), metav1.DeleteOptions{})
+			g.Expect(err).ToNot(HaveOccurred())
+		}).Should(Succeed())
+
+		// heartbeat from the game is still StandingBy
+		hb := &HeartbeatRequest{
+			CurrentGameState:  GameStateStandingBy,
+			CurrentGameHealth: "Healthy",
+		}
+		b, _ := json.Marshal(hb)
+		req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/sessionHosts/%s", testGameServerName), bytes.NewReader(b))
+		w := httptest.NewRecorder()
+
+		// but the response from NodeAgent should be active
+		n.heartbeatHandler(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusOK))
+		resBody, err := ioutil.ReadAll(res.Body)
+		Expect(err).ToNot(HaveOccurred())
+		hbr := HeartbeatResponse{}
+		_ = json.Unmarshal(resBody, &hbr)
+		Expect(hbr.Operation).To(Equal(GameOperationActive))
+
+		// next heartbeat response should be continue
+		// at the same time, game is adding some connected players
+		hb = &HeartbeatRequest{
+			CurrentGameState:  GameStateActive, // heartbeat is now active
+			CurrentGameHealth: "Healthy",
+			CurrentPlayers:    getTestConnectedPlayers(), // adding connected players
+		}
+		b, _ = json.Marshal(hb)
+		req = httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/sessionHosts/%s", testGameServerName), bytes.NewReader(b))
+		w = httptest.NewRecorder()
+		n.heartbeatHandler(w, req)
+		res = w.Result()
+		defer res.Body.Close()
+		// first heartbeat after Active should fail since the GameServerDetail is missing
+		Expect(res.StatusCode).To(Equal(http.StatusInternalServerError))
+
+		// next heartbeat should succeed
+		hb = &HeartbeatRequest{
+			CurrentGameState:  GameStateActive, // heartbeat is now active
+			CurrentGameHealth: "Healthy",
+			CurrentPlayers:    getTestConnectedPlayers(),
+		}
+		b, _ = json.Marshal(hb)
+		req = httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/sessionHosts/%s", testGameServerName), bytes.NewReader(b))
+		w = httptest.NewRecorder()
+		n.heartbeatHandler(w, req)
+		res = w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusOK))
+		resBody, err = ioutil.ReadAll(res.Body)
+		Expect(err).ToNot(HaveOccurred())
+		hbr = HeartbeatResponse{}
+		err = json.Unmarshal(resBody, &hbr)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(hbr.Operation).To(Equal(GameOperationContinue))
+
+		// make sure the GameServerDetail CR has been created
+		Eventually(func(g Gomega) {
+			u, err := dynamicClient.Resource(gameserverDetailGVR).Namespace(testGameServerNamespace).Get(context.Background(), gs.GetName(), metav1.GetOptions{})
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(u.GetName()).To(Equal(gs.GetName()))
+		}).Should(Succeed())
+	})
 	It("should handle a lot of simultaneous heartbeats from different game servers", func() {
 		rand.Seed(time.Now().UnixNano())
 
@@ -215,6 +398,13 @@ var _ = Describe("nodeagent tests", func() {
 					tempgs.(*GameServerInfo).Mutex.RUnlock()
 					return gsd.IsActive && tempgs.(*GameServerInfo).PreviousGameState == GameStateStandingBy
 				}).Should(BeTrue())
+
+				// wait till the GameServerDetail CR has been created
+				Eventually(func(g Gomega) {
+					u, err := dynamicClient.Resource(gameserverDetailGVR).Namespace(testGameServerNamespace).Get(context.Background(), gs.GetName(), metav1.GetOptions{})
+					g.Expect(err).ToNot(HaveOccurred())
+					g.Expect(u.GetName()).To(Equal(gs.GetName()))
+				}).Should(Succeed())
 
 				// heartbeat from the game is still StandingBy
 				hb := &HeartbeatRequest{
@@ -297,6 +487,17 @@ func createUnstructuredTestGameServer(name, namespace string) *unstructured.Unst
 		},
 	}
 	return &unstructured.Unstructured{Object: g}
+}
+
+func getTestConnectedPlayers() []ConnectedPlayer {
+	return []ConnectedPlayer{
+		{
+			PlayerId: "player1",
+		},
+		{
+			PlayerId: "player2",
+		},
+	}
 }
 
 func TestNodeAgent(t *testing.T) {

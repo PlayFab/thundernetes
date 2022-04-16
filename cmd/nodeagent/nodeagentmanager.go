@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -11,8 +10,6 @@ import (
 	"time"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,20 +30,6 @@ const (
 	LabelNodeName       = "NodeName"
 	ErrStateNotExists   = "state does not exist"
 	ErrHealthNotExists  = "health does not exist"
-)
-
-var (
-	GameServerStates = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "thundernetes",
-		Name:      "gameserver_states",
-		Help:      "Game server states",
-	}, []string{"name", "state"})
-
-	ConnectedPlayersGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "thundernetes",
-		Name:      "connected_players",
-		Help:      "Number of connected players per GameServer",
-	}, []string{"namespace", "name"})
 )
 
 // NodeAgentManager manages the GameServer CRs that reside on this Node
@@ -138,7 +121,7 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 		n.gameServerMap.Store(gameServerName, gsdi)
 	}
 
-	gameServerState, _, err := n.parseStateHealth(obj)
+	gameServerState, _, err := parseStateHealth(obj)
 	if err != nil {
 		logger.Warnf("parsing state/health: %s. This is OK if the GameServer was just created", err.Error())
 	}
@@ -149,7 +132,7 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 	}
 
 	// server is Active, so get session details as well initial players details
-	sessionID, sessionCookie, initialPlayers := n.parseSessionDetails(obj, gameServerName, gameServerNamespace)
+	sessionID, sessionCookie, initialPlayers := parseSessionDetails(obj, gameServerName, gameServerNamespace)
 	logger.Infof("getting values from allocation - GameServer CR, sessionID:%s, sessionCookie:%s, initialPlayers: %v", sessionID, sessionCookie, initialPlayers)
 
 	// create the GameServerDetails CR
@@ -414,53 +397,6 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 	gsd.ConnectedPlayersCount = connectedPlayersCount
 
 	return nil
-}
-
-// parseSessionDetails returns the sessionID and sessionCookie from the unstructured GameServer CR
-func (n *NodeAgentManager) parseSessionDetails(u *unstructured.Unstructured, gameServerName, gameServerNamespace string) (string, string, []string) {
-	logger := getLogger(gameServerName, gameServerNamespace)
-	sessionID, sessionIDExists, sessionIDErr := unstructured.NestedString(u.Object, "status", "sessionID")
-	sessionCookie, sessionCookieExists, sessionCookieErr := unstructured.NestedString(u.Object, "status", "sessionCookie")
-	initialPlayers, initialPlayersExists, initialPlayersErr := unstructured.NestedStringSlice(u.Object, "status", "initialPlayers")
-
-	if !sessionIDExists || !sessionCookieExists || !initialPlayersExists {
-		logger.Debugf("sessionID or sessionCookie or initialPlayers do not exist, sessionIDExists: %t, sessionCookieExists: %t, initialPlayersExists: %t", sessionIDExists, sessionCookieExists, initialPlayersExists)
-	}
-
-	if sessionIDErr != nil {
-		logger.Debugf("error getting sessionID: %s", sessionIDErr.Error())
-	}
-
-	if sessionCookieErr != nil {
-		logger.Debugf("error getting sessionCookie: %s", sessionCookieErr.Error())
-	}
-
-	if initialPlayersErr != nil {
-		logger.Debugf("error getting initialPlayers: %s", initialPlayersErr.Error())
-	}
-
-	return sessionID, sessionCookie, initialPlayers
-}
-
-// parseState parses the GameServer state from the unstructured GameServer CR
-func (n *NodeAgentManager) parseStateHealth(u *unstructured.Unstructured) (string, string, error) {
-	state, stateExists, stateErr := unstructured.NestedString(u.Object, "status", "state")
-	health, healthExists, healthErr := unstructured.NestedString(u.Object, "status", "health")
-
-	if stateErr != nil {
-		return "", "", stateErr
-	}
-	if !stateExists {
-		return "", "", errors.New(ErrStateNotExists)
-	}
-
-	if healthErr != nil {
-		return "", "", stateErr
-	}
-	if !healthExists {
-		return "", "", errors.New(ErrHealthNotExists)
-	}
-	return state, health, nil
 }
 
 // createGameServerDetails creates a GameServerDetails CR with the specified name and namespace
