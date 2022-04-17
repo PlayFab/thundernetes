@@ -32,7 +32,7 @@ var _ = Describe("allocation API service tests", func() {
 	It("empty body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", nil)
 		w := httptest.NewRecorder()
-		h := &allocateHandler{}
+		h := &AllocationApiServer{}
 		h.handle(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -43,7 +43,7 @@ var _ = Describe("allocation API service tests", func() {
 	It("GET method should return error", func() {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/allocate", nil)
 		w := httptest.NewRecorder()
-		h := &allocateHandler{}
+		h := &AllocationApiServer{}
 		h.handle(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -54,7 +54,7 @@ var _ = Describe("allocation API service tests", func() {
 	It("bad body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString("{\"foo\":\"bar\"}"))
 		w := httptest.NewRecorder()
-		h := &allocateHandler{}
+		h := &AllocationApiServer{}
 		h.handle(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -65,7 +65,7 @@ var _ = Describe("allocation API service tests", func() {
 	It("buildID should be a GUID", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString("{\"buildID\":\"NOT_A_GUID\",\"sessionID\":\"9bb3bbb2-5031-42fd-8982-5a3f76ef2c8a\"}"))
 		w := httptest.NewRecorder()
-		h := &allocateHandler{}
+		h := &AllocationApiServer{}
 		h.handle(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -76,8 +76,8 @@ var _ = Describe("allocation API service tests", func() {
 	It("should return NotFound on an empty list", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString("{\"sessionID\":\"9bb3bbb2-5031-42fd-8982-5a3f76ef2c8a\",\"buildID\":\"9bb3bbb2-5031-42fd-8982-5a3f76ef2c8a\"}"))
 		w := httptest.NewRecorder()
-		h := &allocateHandler{
-			client: newTestSimpleK8s(),
+		h := &AllocationApiServer{
+			Client: newTestSimpleK8s(),
 		}
 		h.handle(w, req)
 		res := w.Result()
@@ -92,8 +92,8 @@ var _ = Describe("allocation API service tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", sessionID1, buildID1)))
 		w := httptest.NewRecorder()
-		h := &allocateHandler{
-			client: client,
+		h := &AllocationApiServer{
+			Client: client,
 		}
 		h.handle(w, req)
 		res := w.Result()
@@ -114,8 +114,8 @@ var _ = Describe("allocation API service tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", sessionID1, buildID1)))
 		w := httptest.NewRecorder()
-		h := &allocateHandler{
-			client: client,
+		h := &AllocationApiServer{
+			Client: client,
 		}
 		h.handle(w, req)
 		res := w.Result()

@@ -76,6 +76,7 @@ type GameServerStatus struct {
 	SessionID      string           `json:"sessionID,omitempty"`
 	SessionCookie  string           `json:"sessionCookie,omitempty"`
 	InitialPlayers []string         `json:"initialPlayers,omitempty"`
+	NodeAge        int              `json:"nodeAge,omitempty"`
 }
 
 //+kubebuilder:object:root=true

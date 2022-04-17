@@ -10,5 +10,5 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: ghcr.io/playfab/thundernetes-operator
-  newTag: 0.3.2
+  newName: thundernetes-operator
+  newTag: 90da987

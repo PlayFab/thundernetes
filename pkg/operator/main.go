@@ -22,9 +22,11 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -76,6 +78,8 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	opts := zap.Options{
 		Development: true,
+		// https://github.com/uber-go/zap/issues/661#issuecomment-520686037 and https://github.com/uber-go/zap/issues/485#issuecomment-834021392
+		TimeEncoder: zapcore.TimeEncoderOfLayout(time.RFC3339),
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -130,11 +134,11 @@ func main() {
 	}
 
 	if err = (&controllers.GameServerReconciler{
-		Client:                     mgr.GetClient(),
-		Scheme:                     mgr.GetScheme(),
-		PortRegistry:               portRegistry,
-		Recorder:                   mgr.GetEventRecorderFor("GameServer"),
-		GetPublicIpForNodeProvider: controllers.GetPublicIPForNode,
+		Client:                 mgr.GetClient(),
+		Scheme:                 mgr.GetScheme(),
+		PortRegistry:           portRegistry,
+		Recorder:               mgr.GetEventRecorderFor("GameServer"),
+		GetNodeDetailsProvider: controllers.GetNodeDetails,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GameServer")
 		os.Exit(1)
@@ -159,9 +163,16 @@ func main() {
 	}
 	//+kubebuilder:scaffold:builder
 
+	aas := &http.AllocationApiServer{
+		CrtBytes: crt,
+		KeyBytes: key,
+		Client:   mgr.GetClient(),
+		Config:   mgr.GetConfig(),
+		Scheme:   mgr.GetScheme(),
+	}
+
 	// initialize the allocation API service
-	err = http.NewAllocationApiServer(mgr, crt, key)
-	if err != nil {
+	if err = aas.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create HTTP allocation API Server", "Allocation API Server", "HTTP Allocation API Server")
 		os.Exit(1)
 	}

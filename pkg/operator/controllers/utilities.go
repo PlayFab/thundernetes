@@ -81,29 +81,31 @@ func randString(n int) string {
 	return string(b)
 }
 
-// GetPublicIPForNode returns the Public IP of the node
+// GetNodeDetails returns the Public IP of the node and the node age in days
 // if the Node does not have a Public IP, method returns the internal one
-func GetPublicIPForNode(ctx context.Context, r client.Reader, nodeName string) (string, error) {
+func GetNodeDetails(ctx context.Context, r client.Reader, nodeName string) (string, int, error) {
 	log := log.FromContext(ctx)
 	var node corev1.Node
 	if err := r.Get(ctx, client.ObjectKey{Name: nodeName}, &node); err != nil {
-		return "", err
+		return "", 0, err
 	}
+
+	nodeAgeInDays := int(time.Since(node.CreationTimestamp.Time).Hours() / 24)
 
 	for _, x := range node.Status.Addresses {
 		if x.Type == corev1.NodeExternalIP {
-			return x.Address, nil
+			return x.Address, nodeAgeInDays, nil
 		}
 	}
 	log.Info(fmt.Sprintf("Node with name %s does not have a Public IP, will try to return the internal IP", nodeName))
 	// externalIP not found, try InternalIP
 	for _, x := range node.Status.Addresses {
 		if x.Type == corev1.NodeInternalIP {
-			return x.Address, nil
+			return x.Address, nodeAgeInDays, nil
 		}
 	}
 
-	return "", fmt.Errorf("node %s does not have a Public or Internal IP", nodeName)
+	return "", 0, fmt.Errorf("node %s does not have a Public or Internal IP", nodeName)
 }
 
 // NewGameServerForGameServerBuild creates a GameServer for a GameServerBuild

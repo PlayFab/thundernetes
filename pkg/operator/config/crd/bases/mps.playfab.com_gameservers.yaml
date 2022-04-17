@@ -7171,6 +7171,8 @@ spec:
                 items:
                   type: string
                 type: array
+              nodeAge:
+                type: integer
               ports:
                 type: string
               publicIP:
