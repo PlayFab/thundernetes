@@ -20,6 +20,7 @@ if [ "$BUILD" = "local" ]; then
 	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} --name kind
 	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_NODE_AGENT}:${IMAGE_TAG} --name kind
 	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_GAMESERVER_API}:${IMAGE_TAG} --name kind
+	./pkg/operator/testbin/bin/kind load docker-image ${IMAGE_NAME_QOS_SERVER}:${IMAGE_TAG} --name kind
 fi
 
 # install cert manager for webhook certificates CRDs
@@ -49,11 +50,17 @@ IMG=${IMAGE_NAME_OPERATOR}:${IMAGE_TAG} API_SERVICE_SECURITY=usetls make -C "${D
 echo "-----Deploying GameServer API-----"
 IMAGE_TAG=${IMAGE_TAG} envsubst < cmd/gameserverapi/deploy.yaml | kubectl apply -f -
 
+echo "-----Deploying QoS Service-----"
+IMAGE_TAG=${IMAGE_TAG} envsubst < cmd/qosserver/deploy.yaml | kubectl apply -f -
+
 echo "-----Waiting for Controller deployment-----"
 kubectl wait --for=condition=available --timeout=300s deployment/thundernetes-controller-manager -n thundernetes-system
 
 echo "-----Waiting for GameServer API deployment-----"
 kubectl wait --for=condition=ready --timeout=300s pod -n thundernetes-system -l app=thundernetes-gameserverapi
+
+echo "-----Waiting for QoS Service deployment-----"
+kubectl wait --for=condition=ready --timeout=300s pod -n thundernetes-system -l app=thundernetes-qosserver
 
 echo "-----Running end to end tests-----"
 cd cmd/e2e
