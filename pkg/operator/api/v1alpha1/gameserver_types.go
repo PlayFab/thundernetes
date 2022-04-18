@@ -69,12 +69,13 @@ type GameServerSpec struct {
 type GameServerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Health        GameServerHealth `json:"health,omitempty"`
-	State         GameServerState  `json:"state,omitempty"`
-	PublicIP      string           `json:"publicIP,omitempty"`
-	Ports         string           `json:"ports,omitempty"`
-	SessionID     string           `json:"sessionID,omitempty"`
-	SessionCookie string           `json:"sessionCookie,omitempty"`
+	Health         GameServerHealth `json:"health,omitempty"`
+	State          GameServerState  `json:"state,omitempty"`
+	PublicIP       string           `json:"publicIP,omitempty"`
+	Ports          string           `json:"ports,omitempty"`
+	SessionID      string           `json:"sessionID,omitempty"`
+	SessionCookie  string           `json:"sessionCookie,omitempty"`
+	InitialPlayers []string         `json:"initialPlayers,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -28,7 +28,6 @@ type GameServerDetailSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	InitialPlayers        []string `json:"initialPlayers,omitempty"`
 	ConnectedPlayersCount int      `json:"connectedPlayersCount,omitempty"`
 	ConnectedPlayers      []string `json:"connectedPlayers,omitempty"`
 }

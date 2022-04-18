@@ -47,10 +47,6 @@ spec:
                 type: array
               connectedPlayersCount:
                 type: integer
-              initialPlayers:
-                items:
-                  type: string
-                type: array
             type: object
           status:
             description: GameServerDetailStatus defines the observed state of GameServerDetail

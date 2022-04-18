@@ -7167,6 +7167,10 @@ spec:
                 - Healthy
                 - Unhealthy
                 type: string
+              initialPlayers:
+                items:
+                  type: string
+                type: array
               ports:
                 type: string
               publicIP:

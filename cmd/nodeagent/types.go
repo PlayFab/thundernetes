@@ -3,7 +3,10 @@ package main
 import (
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -43,6 +46,20 @@ const (
 	GameOperationTerminate GameOperation = "Terminate"
 )
 
+var (
+	GameServerStates = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "thundernetes",
+		Name:      "gameserver_states",
+		Help:      "Game server states",
+	}, []string{"name", "state"})
+
+	ConnectedPlayersGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "thundernetes",
+		Name:      "connected_players",
+		Help:      "Number of connected players per GameServer",
+	}, []string{"namespace", "name"})
+)
+
 // HeartbeatRequest contains data for the heartbeat request coming from the GSDK running alongside GameServer
 type HeartbeatRequest struct {
 	// CurrentGameState is the current state of the game server
@@ -73,8 +90,8 @@ type ConnectedPlayer struct {
 	PlayerId string
 }
 
-// GameServerDetails contains data regarding the details for the session that occurs when the GameServer state changes
-type GameServerDetails struct {
+// GameServerInfo contains data regarding the details for the session that occurs when the GameServer state changes
+type GameServerInfo struct {
 	IsActive              bool // the GameState is Active on the Kubernetes API server
 	SessionID             string
 	SessionCookie         string
@@ -84,4 +101,5 @@ type GameServerDetails struct {
 	GameServerNamespace   string
 	ConnectedPlayersCount int
 	Mutex                 *sync.RWMutex
+	GsUid                 types.UID // UID of the GameServer object
 }
