@@ -30,6 +30,9 @@ spec:
             - containerPort: 3075
               hostPort: 3075
               protocol: UDP
+            - containerPort: 3075
+              hostPort: 3075
+              protocol: TCP
       terminationGracePeriodSeconds: 10
 ---
 apiVersion: v1
@@ -44,4 +47,18 @@ spec:
     - port: 3075
       targetPort: 3075
       protocol: UDP
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thundernetes-qosserver-metrics
+  namespace: thundernetes-system
+spec:
+  selector:
+    app: thundernetes-qosserver
+  ports:
+    - port: 3075
+      targetPort: 3075
+      protocol: TCP
   type: LoadBalancer

@@ -11,5 +11,6 @@ FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/thundernetes-qosserver .
 USER 65532:65532
-EXPOSE 3075
+EXPOSE 3075/udp
+EXPOSE 3075/tcp
 ENTRYPOINT ["/thundernetes-qosserver"]
