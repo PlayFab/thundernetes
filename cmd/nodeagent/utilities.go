@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
@@ -89,4 +90,52 @@ func getLogger(gameServerName, gameServerNamespace string) *log.Entry {
 func sanitize(s string) string {
 	s2 := strings.Replace(s, "\n", "", -1)
 	return strings.Replace(s2, "\r", "", -1)
+}
+
+// parseSessionDetails returns the sessionID and sessionCookie from the unstructured GameServer CR
+func parseSessionDetails(u *unstructured.Unstructured, gameServerName, gameServerNamespace string) (string, string, []string) {
+	logger := getLogger(gameServerName, gameServerNamespace)
+	sessionID, sessionIDExists, sessionIDErr := unstructured.NestedString(u.Object, "status", "sessionID")
+	sessionCookie, sessionCookieExists, sessionCookieErr := unstructured.NestedString(u.Object, "status", "sessionCookie")
+	initialPlayers, initialPlayersExists, initialPlayersErr := unstructured.NestedStringSlice(u.Object, "status", "initialPlayers")
+
+	if !sessionIDExists || !sessionCookieExists || !initialPlayersExists {
+		logger.Debugf("sessionID or sessionCookie or initialPlayers do not exist, sessionIDExists: %t, sessionCookieExists: %t, initialPlayersExists: %t", sessionIDExists, sessionCookieExists, initialPlayersExists)
+	}
+
+	if sessionIDErr != nil {
+		logger.Debugf("error getting sessionID: %s", sessionIDErr.Error())
+	}
+
+	if sessionCookieErr != nil {
+		logger.Debugf("error getting sessionCookie: %s", sessionCookieErr.Error())
+	}
+
+	if initialPlayersErr != nil {
+		logger.Debugf("error getting initialPlayers: %s", initialPlayersErr.Error())
+	}
+
+	return sessionID, sessionCookie, initialPlayers
+}
+
+// parseState parses the GameServer state from the unstructured GameServer CR.
+// Returns state, health and error
+func parseStateHealth(u *unstructured.Unstructured) (string, string, error) {
+	state, stateExists, stateErr := unstructured.NestedString(u.Object, "status", "state")
+	health, healthExists, healthErr := unstructured.NestedString(u.Object, "status", "health")
+
+	if stateErr != nil {
+		return "", "", stateErr
+	}
+	if !stateExists {
+		return "", "", errors.New(ErrStateNotExists)
+	}
+
+	if healthErr != nil {
+		return "", "", stateErr
+	}
+	if !healthExists {
+		return "", "", errors.New(ErrHealthNotExists)
+	}
+	return state, health, nil
 }

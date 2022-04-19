@@ -219,7 +219,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	wg.Wait()
 	if len(errCh) > 0 {
-		return ctrl.Result{}, <- errCh
+		return ctrl.Result{}, <-errCh
 	}
 
 	return r.updateStatus(ctx, &gsb, pendingCount, initializingCount, standingByCount, activeCount, crashesCount)
@@ -414,7 +414,7 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 	}
 	wg.Wait()
 	if len(errCh) > 0 {
-		return <- errCh
+		return <-errCh
 	}
 	return nil
 }
