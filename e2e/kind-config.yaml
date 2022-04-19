@@ -19,11 +19,3 @@ nodes:
     hostPort: 10001
     listenAddress: "0.0.0.0"
     protocol: tcp
-  - containerPort: 3075
-    hostPort: 3075
-    listenAddress: "0.0.0.0"
-    protocol: udp
-  - containerPort: 3075
-    hostPort: 3075
-    listenAddress: "0.0.0.0"
-    protocol: tcp
