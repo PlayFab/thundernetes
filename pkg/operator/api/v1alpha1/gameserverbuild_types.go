@@ -89,6 +89,7 @@ type GameServerBuildStatus struct {
 //+kubebuilder:printcolumn:name="Active",type=string,JSONPath=`.status.currentActive`
 //+kubebuilder:printcolumn:name="Crashes",type=string,JSONPath=`.status.crashesCount`
 //+kubebuilder:printcolumn:name="Health",type=string,JSONPath=`.status.health`
+//+kubebuilder:subresource:scale:specpath=.spec.standingBy,statuspath=.status.currentStandingBy
 
 // GameServerBuild is the Schema for the gameserverbuilds API
 type GameServerBuild struct {
