@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var QoSServerRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+var QoSSuccessfulServerRequests = promauto.NewCounterVec(prometheus.CounterOpts{
 	Namespace: "thundernetes",
 	Name:      "qos_successful_server_requests",
 	Help:      "Number of requests made to the QoS server",
@@ -54,8 +54,8 @@ func qosServer(port int) {
 		remote, err := serverLoop(conn)
 		if err != nil {
 			log.Error(err)
-		} else {
-			QoSServerRequests.WithLabelValues(remote.IP.String()).Inc()
+		} else if remote != nil {
+			QoSSuccessfulServerRequests.WithLabelValues(remote.IP.String()).Inc()
 		}
 	}
 }
@@ -90,8 +90,9 @@ func serverLoop(conn *net.UDPConn) (*net.UDPAddr, error) {
 			return nil, err
 		}
 		log.Infof("Valid input, sent %d bytes response to remote address %v", count, remote)
+		return remote, nil
 	}
-	return remote, nil
+	return nil, nil
 }
 
 // getResponse validates the bytes received, expecting the first two
