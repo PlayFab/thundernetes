@@ -55,9 +55,6 @@ kubectl wait --for=condition=available --timeout=300s deployment/thundernetes-co
 echo "-----Waiting for GameServer API deployment-----"
 kubectl wait --for=condition=ready --timeout=300s pod -n thundernetes-system -l app=thundernetes-gameserverapi
 
-echo "-----Waiting for QoS Service deployment-----"
-kubectl wait --for=condition=ready --timeout=300s pod -n thundernetes-system -l app=thundernetes-qosserver
-
 echo "-----Running end to end tests-----"
 cd cmd/e2e
 # create the test namespaces
