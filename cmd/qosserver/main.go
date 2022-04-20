@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,8 +21,16 @@ var QoSSuccessfulServerRequests = promauto.NewCounterVec(prometheus.CounterOpts{
 }, []string{"remote_ip"})
 
 func main() {
-	go metricsServer(3075)
-	qosServer(3075)
+	metrics_server_port, err := strconv.Atoi(os.Getenv("METRICS_SERVER_PORT"))
+	if err != nil {
+		log.Fatal("Failed parsing METRICS_SERVER_PORT env variable, ", err)
+	}
+	udp_server_port, err := strconv.Atoi(os.Getenv("UDP_SERVER_PORT"))
+	if err != nil {
+		log.Fatal("Failed parsing UDP_SERVER_PORT env variable, ", err)
+	}
+	go metricsServer(metrics_server_port)
+	qosServer(udp_server_port)
 }
 
 // metricsServer starts an http server, on a given port,
