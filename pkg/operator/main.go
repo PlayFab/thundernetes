@@ -153,6 +153,10 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "GameServerBuild")
 		os.Exit(1)
 	}
+	if err = (&mpsv1alpha1.GameServer{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "GameServer")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	// initialize the allocation API service
