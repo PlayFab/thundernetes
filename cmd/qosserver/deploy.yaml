@@ -59,4 +59,4 @@ spec:
     - port: 3075
       targetPort: 3075
       protocol: TCP
-  type: LoadBalancer
+  type: ClusterIP
