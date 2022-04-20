@@ -1,6 +1,6 @@
 # Quality of Service server
 
-If you have multiple thundernetes clusters on different regions, it might be useful to have a way
+If you have multiple Thundernetes clusters on different regions, it might be useful to have a way
 to measure latency to these clusters. For this, we implemented this basic UDP server that follows these
 simple rules:
 

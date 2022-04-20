@@ -28,10 +28,8 @@ spec:
               memory: 1000Mi
           ports:
             - containerPort: 3075
-              hostPort: 3075
               protocol: UDP
             - containerPort: 3075
-              hostPort: 3075
               protocol: TCP
       terminationGracePeriodSeconds: 10
 ---

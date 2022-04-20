@@ -10,22 +10,9 @@ import (
 )
 
 var server, client *net.UDPConn
-var err error
 
 var _ = Describe("QoS Server tests", func() {
-	BeforeEach(func() {
-		server, err = createServer(3070)
-		Expect(err).To(Succeed())
-		client, err = createServer(3071)
-		Expect(err).To(Succeed())
-	})
-	AfterEach(func(){
-		err = server.Close()
-		Expect(err).To(Succeed())
-		err = client.Close()
-		Expect(err).To(Succeed())
-	})
-	It("testing the udp server sends the response to the sender", func() {
+	It("should send response to the sender", func() {
 		addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", 3070))
 		Expect(err).To(Succeed())
 		msg := []byte("\xFF\xFFhello")
@@ -37,7 +24,7 @@ var _ = Describe("QoS Server tests", func() {
 		Expect(count).To(Equal(len(msg)))
 		Expect(buffer[:count]).To(Equal([]byte("\x00\x00hello")))
 	})
-	It("testing the udp server doesn't send a response to invalid requests", func() {
+	It("should ignore the first request and send a response for the second", func() {
 		addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", 3070))
 		Expect(err).To(Succeed())
 		msg1 := []byte("goodbye")
@@ -62,8 +49,17 @@ func TestQoSServer(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	By("bootstrapping test environment")
+	var err error
+	server, err = createServer(3070)
+	Expect(err).To(Succeed())
+	client, err = createServer(3071)
+	Expect(err).To(Succeed())
 })
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
+	err := server.Close()
+	Expect(err).To(Succeed())
+	err = client.Close()
+	Expect(err).To(Succeed())
 })
