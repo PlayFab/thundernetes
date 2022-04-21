@@ -11,6 +11,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-mps-playfab-com-v1alpha1-gameserver
+  failurePolicy: Fail
+  name: vgameserver.kb.io
+  rules:
+  - apiGroups:
+    - mps.playfab.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - gameservers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-mps-playfab-com-v1alpha1-gameserverbuild
   failurePolicy: Fail
   name: vgameserverbuild.kb.io
