@@ -20,9 +20,9 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	//apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	//"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -48,39 +48,37 @@ var _ webhook.Validator = &GameServer{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *GameServer) ValidateCreate() error {
 	gameserverlog.Info("validate create", "name", r.Name)
-	// var allErrs field.ErrorList
-	// if err := r.validateOwnerReferences(); err != nil {
-	// 	allErrs = append(allErrs, err)
-	// }
-	// if errs := r.validatePortsToExpose(); errs != nil {
-	// 	allErrs = append(allErrs, errs...)
-	// }
-	// if len(allErrs) == 0 {
-	// 	return nil
-	// }
-	// return apierrors.NewInvalid(
-	// 	schema.GroupKind{Group: "mps.playfab.com", Kind: "GameServer"},
-	// 	r.Name, allErrs)
-	return nil
+	var allErrs field.ErrorList
+	if err := r.validateOwnerReferences(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if errs := r.validatePortsToExpose(); errs != nil {
+		allErrs = append(allErrs, errs...)
+	}
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(
+		schema.GroupKind{Group: "mps.playfab.com", Kind: "GameServer"},
+		r.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *GameServer) ValidateUpdate(old runtime.Object) error {
 	gameserverlog.Info("validate update", "name", r.Name)
-	// var allErrs field.ErrorList
-	// if err := r.validateOwnerReferences(); err != nil {
-	// 	allErrs = append(allErrs, err)
-	// }
-	// if errs := r.validatePortsToExpose(); errs != nil {
-	// 	allErrs = append(allErrs, errs...)
-	// }
-	// if len(allErrs) == 0 {
-	// 	return nil
-	// }
-	// return apierrors.NewInvalid(
-	// 	schema.GroupKind{Group: "mps.playfab.com", Kind: "GameServer"},
-	// 	r.Name, allErrs)
-	return nil
+	var allErrs field.ErrorList
+	if err := r.validateOwnerReferences(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if errs := r.validatePortsToExpose(); errs != nil {
+		allErrs = append(allErrs, errs...)
+	}
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(
+		schema.GroupKind{Group: "mps.playfab.com", Kind: "GameServer"},
+		r.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -107,8 +105,6 @@ func (r *GameServer) validateOwnerReferences() *field.Error {
 //    matching port in the pod containers spec
 // 2. if a port number is in portsToExpose, the matching ports in the
 //    pod containers spec must have a name
-// 3. if a port number is in portsToExpose, the matching ports in the
-//    pod containers spec must not have a hostPort
 func (r *GameServer) validatePortsToExpose() field.ErrorList {
 	var portsGroupedByNumber = make(map[int32][]corev1.ContainerPort)
 	for i := 0; i < len(r.Spec.Template.Spec.Containers); i++ {
@@ -123,7 +119,7 @@ func (r *GameServer) validatePortsToExpose() field.ErrorList {
 	var errs field.ErrorList
 	for i := 0; i < len(r.Spec.PortsToExpose); i++ {
 		ports := portsGroupedByNumber[r.Spec.PortsToExpose[i]]
-		if len(ports) < 1 {
+		if len(ports) < 1 && !r.Spec.Template.Spec.HostNetwork {
 			errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
 				fmt.Sprintf("there must be at least one port that matches each value in portsToExpose, error in port %d", r.Spec.PortsToExpose[i])))
 		}
@@ -132,10 +128,6 @@ func (r *GameServer) validatePortsToExpose() field.ErrorList {
 			if port.Name == "" {
 				errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
 					fmt.Sprintf("ports to expose must have a name, error in port %d", port.ContainerPort)))
-			}
-			if port.HostPort != 0 {
-				errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
-					fmt.Sprintf("ports to expose must not have a hostPort value, error in port %d", port.ContainerPort)))
 			}
 		}
 	}
