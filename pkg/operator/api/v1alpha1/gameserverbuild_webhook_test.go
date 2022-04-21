@@ -65,7 +65,7 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 	})
 })
 
-// getNewBuildNameAndID returns a new build name and ID
+// getNewNameAndID returns a new build name and ID
 func getNewNameAndID() (string, string) {
 	name := randString(5)
 	buildID := string(uuid.NewUUID())
