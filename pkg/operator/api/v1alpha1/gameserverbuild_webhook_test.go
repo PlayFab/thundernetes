@@ -15,8 +15,8 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 	Context("testing validation webhooks for gameserverbuild", func() {
 
 		It("validates unique buildID", func() {
-			buildName, buildID := getNewBuildNameAndID()
-			buildName2, _ := getNewBuildNameAndID()
+			buildName, buildID := getNewNameAndID()
+			buildName2, _ := getNewNameAndID()
 			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)
 			Expect(k8sClient.Create(ctx, &gsb)).Should(Succeed())
 			gsb = createTestGameServerBuild(buildName2, buildID, 2, 4, false)
@@ -26,8 +26,8 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 		})
 
 		It("validates that updating the buildID is not allowed", func() {
-			buildName, buildID := getNewBuildNameAndID()
-			_, buildID2 := getNewBuildNameAndID()
+			buildName, buildID := getNewNameAndID()
+			_, buildID2 := getNewNameAndID()
 			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)
 			Expect(k8sClient.Create(ctx, &gsb)).Should(Succeed())
 			gsb.Spec.BuildID = buildID2
@@ -37,7 +37,7 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 		})
 
 		It("validates that the port to expose exists", func() {
-			buildName, buildID := getNewBuildNameAndID()
+			buildName, buildID := getNewNameAndID()
 			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)
 			gsb.Spec.PortsToExpose = append(gsb.Spec.PortsToExpose, 70)
 			err := k8sClient.Create(ctx, &gsb)
@@ -46,7 +46,7 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 		})
 
 		It("validates that the port to expose has a name", func() {
-			buildName, buildID := getNewBuildNameAndID()
+			buildName, buildID := getNewNameAndID()
 			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)
 			gsb.Spec.Template.Spec.Containers[0].Ports[0].Name = ""
 			err := k8sClient.Create(ctx, &gsb)
@@ -55,7 +55,7 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 		})
 
 		It("validates that the port to expose doesn't have a hostPort", func() {
-			buildName, buildID := getNewBuildNameAndID()
+			buildName, buildID := getNewNameAndID()
 			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)
 			gsb.Spec.Template.Spec.Containers[0].Ports[0].HostPort = 1000
 			err := k8sClient.Create(ctx, &gsb)
@@ -66,10 +66,10 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 })
 
 // getNewBuildNameAndID returns a new build name and ID
-func getNewBuildNameAndID() (string, string) {
-	buildName := randString(5)
+func getNewNameAndID() (string, string) {
+	name := randString(5)
 	buildID := string(uuid.NewUUID())
-	return buildName, buildID
+	return name, buildID
 }
 
 // randString creates a random string with lowercase characters
