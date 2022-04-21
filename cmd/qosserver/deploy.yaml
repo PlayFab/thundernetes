@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thundernetes-qosserver
+  namespace: thundernetes-system
+  labels:
+    app: thundernetes-qosserver
+spec:
+  selector:
+    matchLabels:
+      app: thundernetes-qosserver
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: thundernetes-qosserver
+    spec:
+      containers:
+        - image: thundernetes-qosserver:${IMAGE_TAG}
+          name: qosserver
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 500Mi
+            limits:
+              cpu: 1000m
+              memory: 1000Mi
+          ports:
+            - containerPort: 3075
+              protocol: UDP
+            - containerPort: 8080
+              protocol: TCP
+      terminationGracePeriodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thundernetes-qosserver
+  namespace: thundernetes-system
+spec:
+  selector:
+    app: thundernetes-qosserver
+  ports:
+    - port: 3075
+      targetPort: 3075
+      protocol: UDP
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thundernetes-qosserver-metrics
+  namespace: thundernetes-system
+spec:
+  selector:
+    app: thundernetes-qosserver
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP

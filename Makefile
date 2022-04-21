@@ -7,6 +7,7 @@ export IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer
 export IMAGE_NAME_NETCORE_SAMPLE=thundernetes-netcore
 export IMAGE_NAME_OPENARENA_SAMPLE=thundernetes-openarena
 export IMAGE_NAME_GAMESERVER_API=thundernetes-gameserverapi
+export IMAGE_NAME_QOS_SERVER=thundernetes-qosserver
 
 export IMAGE_TAG?=$(shell git rev-list HEAD --max-count=1 --abbrev-commit)
 
