@@ -102,7 +102,8 @@ func (r *GameServer) validateOwnerReferences() *field.Error {
 
 // validatePortsToExpose makes the following validations for ports in portsToExpose:
 // 1. if a port number is in portsToExpose, there must be at least one
-//    matching port in the pod containers spec
+//    matching port in the pod containers spec, this validation is skipped
+//    if the GameServer has HostNetwork enabled
 // 2. if a port number is in portsToExpose, the matching ports in the
 //    pod containers spec must have a name
 func (r *GameServer) validatePortsToExpose() field.ErrorList {
