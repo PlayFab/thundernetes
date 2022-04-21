@@ -27,9 +27,9 @@ spec:
               cpu: 1000m
               memory: 1000Mi
           ports:
-            - containerPort: ${UDP_SERVER_PORT}
+            - containerPort: 3075
               protocol: UDP
-            - containerPort: ${METRICS_SERVER_PORT}
+            - containerPort: 8080
               protocol: TCP
       terminationGracePeriodSeconds: 10
 ---
@@ -42,8 +42,8 @@ spec:
   selector:
     app: thundernetes-qosserver
   ports:
-    - port: ${UDP_SERVER_PORT}
-      targetPort: ${UDP_SERVER_PORT}
+    - port: 3075
+      targetPort: 3075
       protocol: UDP
   type: LoadBalancer
 ---
@@ -56,7 +56,7 @@ spec:
   selector:
     app: thundernetes-qosserver
   ports:
-    - port: ${METRICS_SERVER_PORT}
-      targetPort: ${METRICS_SERVER_PORT}
+    - port: 8080
+      targetPort: 8080
       protocol: TCP
   type: ClusterIP
