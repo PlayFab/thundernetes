@@ -26,8 +26,6 @@ var (
 // GameState represents the current state of the game.
 type GameState string
 
-type GameServerHealth string
-
 // GameOperation represents the type of operation that the GSDK shoud do next
 type GameOperation string
 
@@ -46,11 +44,6 @@ const (
 	GameOperationContinue  GameOperation = "Continue"
 	GameOperationActive    GameOperation = "Active"
 	GameOperationTerminate GameOperation = "Terminate"
-)
-
-const (
-	GameServerHealthy   GameServerHealth = "Healthy"
-	GameServerUnhealthy GameServerHealth = "Unhealthy"
 )
 
 var (
@@ -72,7 +65,7 @@ type HeartbeatRequest struct {
 	// CurrentGameState is the current state of the game server
 	CurrentGameState GameState `json:"CurrentGameState"`
 	// CurrentGameHealth is the current health of the game server
-	CurrentGameHealth GameServerHealth `json:"CurrentGameHealth"`
+	CurrentGameHealth string `json:"CurrentGameHealth"`
 	// CurrentPlayers is a slice containing details about the players currently connected to the game
 	CurrentPlayers []ConnectedPlayer `json:"CurrentPlayers"`
 }
@@ -104,7 +97,7 @@ type GameServerInfo struct {
 	SessionCookie         string
 	InitialPlayers        []string
 	PreviousGameState     GameState // the GameState on the previous heartbeat
-	PreviousGameHealth    GameServerHealth    // the GameHealth on the previous heartbeat
+	PreviousGameHealth    string    // the GameHealth on the previous heartbeat
 	GameServerNamespace   string
 	ConnectedPlayersCount int
 	Mutex                 *sync.RWMutex

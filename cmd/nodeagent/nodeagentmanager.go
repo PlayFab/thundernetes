@@ -95,14 +95,14 @@ func (n *NodeAgentManager) heartbeatTimeChecker() {
 			gameServerName := key.(string)
 			gameServerNamespace := gsd.GameServerNamespace
 			logger := getLogger(gameServerName, gameServerNamespace)
-			if gsd.LastHeartbeatTime == 0 && (currentTime - gsd.CreationTime) > FirstHeartbeatTimeout && gsd.PreviousGameHealth != GameServerUnhealthy {
+			if gsd.LastHeartbeatTime == 0 && (currentTime - gsd.CreationTime) > FirstHeartbeatTimeout && gsd.PreviousGameHealth == "Healthy" {
 				markUnhealthy = true
-			} else if (currentTime - gsd.LastHeartbeatTime) > HeartbeatTimeout && gsd.PreviousGameHealth != GameServerUnhealthy {
+			} else if (currentTime - gsd.LastHeartbeatTime) > HeartbeatTimeout && gsd.PreviousGameHealth == "Healthy" {
 				markUnhealthy = true
 			}
 			gsd.Mutex.RUnlock()
 			if markUnhealthy {
-				logger.Infof("gameserver %s has not sent heartbeats, marking unhealthy", gameServerName)
+				logger.Infof("GameServer has not sent any heartbeats, marking Unhealthy")
 				u := &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"status": mpsv1alpha1.GameServerStatus{
