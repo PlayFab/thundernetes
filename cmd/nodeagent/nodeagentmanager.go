@@ -56,7 +56,7 @@ func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEv
 		logEveryHeartbeat: logEveryHeartbeat,
 	}
 	n.startWatch()
-	go n.heartbeatTimeChecker()
+	n.startHeartbeatTimeCheckerLoop()
 	return n
 }
 
@@ -78,59 +78,67 @@ func (n *NodeAgentManager) startWatch() {
 	go informer.Run(n.watchStopper)
 }
 
-// heartbeatTimeChecker is a loop that checks that heartbeats are still being sent
-// if not it marks those GameServers as unhealthy, it follows these two rules:
+
+// startHeartbeatTimeCheckerLoop runs HeartbeatTimeChecker on an infinite loop
+func (n *NodeAgentManager) startHeartbeatTimeCheckerLoop() {
+	go func() {
+			for {
+			n.HeartbeatTimeChecker()
+			time.Sleep(HeartbeatTimeout * time.Millisecond)
+		}
+	}()
+}
+
+// HeartbeatTimeChecker checks that heartbeats are still being sent for each GameServerInfo
+// in the local gameServerMap, if not it send a patch to mark those GameServers as unhealthy,
+// it follows these two rules:
 // 1. if the server hasn't sent its first heartbeat, it has FirstHeartbeatTimeout
 //    milliseconds since its creation before being marked as unhealthy
 // 2. if the server has sent its first heartbeat, it has HeartbeatTimeout milliseconds
 //    since its last heartbeat before being marked as unhealthy
-func (n *NodeAgentManager) heartbeatTimeChecker() {
-	ctx := context.Background()
-	for {
-		n.gameServerMap.Range(func(key interface{}, value interface{}) bool{
-			currentTime := time.Now().UnixMilli()
-			gsd := value.(*GameServerInfo)
-			markUnhealthy := false
-			gsd.Mutex.RLock()
-			gameServerName := key.(string)
-			gameServerNamespace := gsd.GameServerNamespace
-			logger := getLogger(gameServerName, gameServerNamespace)
-			if gsd.LastHeartbeatTime == 0 && gsd.CreationTime != 0 &&
-			   (currentTime - gsd.CreationTime) > FirstHeartbeatTimeout &&
-			   gsd.PreviousGameHealth != "Unhealthy" {
-				markUnhealthy = true
-			} else if gsd.LastHeartbeatTime != 0 &&
-			          (currentTime - gsd.LastHeartbeatTime) > HeartbeatTimeout &&
-					  gsd.PreviousGameHealth != "Unhealthy" {
-				markUnhealthy = true
-			}
-			gsd.Mutex.RUnlock()
-			if markUnhealthy {
-				logger.Infof("GameServer has not sent any heartbeats, marking Unhealthy")
-				u := &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"status": mpsv1alpha1.GameServerStatus{
-							Health: mpsv1alpha1.GameServerHealth("Unhealthy"),
-						},
+func (n *NodeAgentManager) HeartbeatTimeChecker() {
+	n.gameServerMap.Range(func(key interface{}, value interface{}) bool{
+		currentTime := time.Now().UnixMilli()
+		gsd := value.(*GameServerInfo)
+		markUnhealthy := false
+		gsd.Mutex.RLock()
+		gameServerName := key.(string)
+		gameServerNamespace := gsd.GameServerNamespace
+		logger := getLogger(gameServerName, gameServerNamespace)
+		if gsd.LastHeartbeatTime == 0 && gsd.CreationTime != 0 &&
+		   (currentTime - gsd.CreationTime) > FirstHeartbeatTimeout &&
+		   gsd.PreviousGameHealth != "Unhealthy" {
+			markUnhealthy = true
+		} else if gsd.LastHeartbeatTime != 0 &&
+				  (currentTime - gsd.LastHeartbeatTime) > HeartbeatTimeout &&
+				  gsd.PreviousGameHealth != "Unhealthy" {
+			markUnhealthy = true
+		}
+		gsd.Mutex.RUnlock()
+		if markUnhealthy {
+			logger.Infof("GameServer has not sent any heartbeats, marking Unhealthy")
+			u := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"status": mpsv1alpha1.GameServerStatus{
+						Health: mpsv1alpha1.GameServerHealth("Unhealthy"),
 					},
-				}
-				// this will be marshaled as payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\"}}", "Unhealthy")
-				payloadBytes, err := json.Marshal(u)
-				if err != nil {
-					logger.Errorf("updating health %s", err.Error())
-				}
-				ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*defaultTimeout)
-				defer cancel()
-				_, err = n.dynamicClient.Resource(gameserverGVR).Namespace(gameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
-				if err != nil {
-					logger.Errorf("updating health %s", err.Error())
-				}
+				},
 			}
-			
-			return true
-		})
-		time.Sleep(HeartbeatTimeout * time.Millisecond)
-	}
+			// this will be marshaled as payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\"}}", "Unhealthy")
+			payloadBytes, err := json.Marshal(u)
+			if err != nil {
+				logger.Errorf("updating health %s", err.Error())
+			}
+			ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Second*defaultTimeout)
+			defer cancel()
+			_, err = n.dynamicClient.Resource(gameserverGVR).Namespace(gameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
+			if err != nil {
+				logger.Errorf("updating health %s", err.Error())
+			}
+		}
+		
+		return true
+	})
 }
 
 // gameServerCreated is called when a GameServer CR is created
