@@ -449,6 +449,135 @@ var _ = Describe("nodeagent tests", func() {
 			wg.Wait()
 		}
 	})
+	It("should set CreationTime value when registering a new game server", func() {
+		dynamicClient := newDynamicInterface()
+
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false)
+		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
+
+		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the create trigger on the watch
+		var gsinfo interface{}
+		Eventually(func() bool {
+			var ok bool
+			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
+			return ok
+		}).Should(BeTrue())
+
+		// the CreationTime value should be initialized
+		Expect(gsinfo.(*GameServerInfo).CreationTime).ToNot(Equal(int64(0)))
+	})
+	It("should set LastHeartbeatTime value when receiving a geartbeat from a game server", func() {
+		dynamicClient := newDynamicInterface()
+
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false)
+		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
+
+		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the create trigger on the watch
+		var gsinfo interface{}
+		Eventually(func() bool {
+			var ok bool
+			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
+			return ok
+		}).Should(BeTrue())
+
+		// the LastHeartbeatTime value is uninitialized
+		Expect(gsinfo.(*GameServerInfo).LastHeartbeatTime).To(Equal(int64(0)))
+
+		// we send a heartbeat
+		hb := &HeartbeatRequest{
+			CurrentGameState:  GameStateStandingBy,
+			CurrentGameHealth: "Healthy",
+		}
+		b, _ := json.Marshal(hb)
+		req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/sessionHosts/%s", testGameServerName), bytes.NewReader(b))
+		w := httptest.NewRecorder()
+
+		n.heartbeatHandler(w, req)
+
+		// now the LastHeartbeatTime value should be eventually initialized
+		Eventually(func() int64 {
+			var ok bool
+			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
+			if !ok {
+				return 0
+			}
+			return gsinfo.(*GameServerInfo).LastHeartbeatTime
+		}).ShouldNot(Equal(int64(0)))
+	})
+	It("should mark the game server as unhealthy due to CreationTime", func() {
+		dynamicClient := newDynamicInterface()
+
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false)
+		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
+
+		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the create trigger on the watch
+		var gsinfo interface{}
+		Eventually(func() bool {
+			var ok bool
+			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
+			return ok
+		}).Should(BeTrue())
+
+		// we change the CreationTime so it's 70 seconds in the past, so it triggers the condition
+		gsinfo.(*GameServerInfo).Mutex.Lock()
+		gsinfo.(*GameServerInfo).CreationTime = time.Now().UnixMilli() - 70000
+		gsinfo.(*GameServerInfo).Mutex.Unlock()
+		// we run the check
+		n.HeartbeatTimeChecker()
+		// the game server health status should eventually be Unhealthy
+		Eventually(func(g Gomega) {
+			u, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Get(context.Background(), gs.GetName(), metav1.GetOptions{})
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(u.GetName()).To(Equal(gs.GetName()))
+			_, gameServerHealth, err := parseStateHealth(u)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gameServerHealth).To(Equal("Unhealthy"))
+		}).Should(Succeed())
+	})
+	It("should mark the game server as unhealthy due to LastHeartbeatTime", func() {
+		dynamicClient := newDynamicInterface()
+
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false)
+		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
+
+		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the create trigger on the watch
+		var gsinfo interface{}
+		Eventually(func() bool {
+			var ok bool
+			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
+			return ok
+		}).Should(BeTrue())
+
+		gsinfo.(*GameServerInfo).Mutex.Lock()
+		// we change the CreationTime to ensure it is not triggered by the wrong condition
+		gsinfo.(*GameServerInfo).CreationTime = time.Now().UnixMilli() + 100000
+		// we change the LastHeartbeatTime so it's 6 seconds in the past, so it triggers the condition
+		gsinfo.(*GameServerInfo).LastHeartbeatTime = time.Now().UnixMilli() - 6000
+		gsinfo.(*GameServerInfo).Mutex.Unlock()
+		// we run the check
+		n.HeartbeatTimeChecker()
+		// the game server health status should eventually be Unhealthy
+		Eventually(func(g Gomega) {
+			u, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Get(context.Background(), gs.GetName(), metav1.GetOptions{})
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(u.GetName()).To(Equal(gs.GetName()))
+			_, gameServerHealth, err := parseStateHealth(u)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gameServerHealth).To(Equal("Unhealthy"))
+		}).Should(Succeed())
+	})
 })
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
