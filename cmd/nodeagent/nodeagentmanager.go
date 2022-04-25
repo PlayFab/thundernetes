@@ -95,9 +95,13 @@ func (n *NodeAgentManager) heartbeatTimeChecker() {
 			gameServerName := key.(string)
 			gameServerNamespace := gsd.GameServerNamespace
 			logger := getLogger(gameServerName, gameServerNamespace)
-			if gsd.LastHeartbeatTime == 0 && (currentTime - gsd.CreationTime) > FirstHeartbeatTimeout && gsd.PreviousGameHealth == "Healthy" {
+			if gsd.LastHeartbeatTime == 0 && gsd.CreationTime != 0 &&
+			   (currentTime - gsd.CreationTime) > FirstHeartbeatTimeout &&
+			   gsd.PreviousGameHealth != "Unhealthy" {
 				markUnhealthy = true
-			} else if (currentTime - gsd.LastHeartbeatTime) > HeartbeatTimeout && gsd.PreviousGameHealth == "Healthy" {
+			} else if gsd.LastHeartbeatTime != 0 &&
+			          (currentTime - gsd.LastHeartbeatTime) > HeartbeatTimeout &&
+					  gsd.PreviousGameHealth != "Unhealthy" {
 				markUnhealthy = true
 			}
 			gsd.Mutex.RUnlock()
@@ -383,7 +387,11 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 
 	gsd.Mutex.Lock()
 	defer gsd.Mutex.Unlock()
-	gsd.PreviousGameHealth = hb.CurrentGameHealth
+	if gsd.PreviousGameHealth == "Unhealthy" && hb.CurrentGameHealth == "Healthy" {
+		logger.Info("Received Healthy heartbeat from server currently marked as Unhealthy, ignoring health update.")
+	} else {
+		gsd.PreviousGameHealth = hb.CurrentGameHealth
+	}
 	gsd.PreviousGameState = hb.CurrentGameState
 
 	return nil
