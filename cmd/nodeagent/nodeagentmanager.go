@@ -45,15 +45,17 @@ type NodeAgentManager struct {
 	watchStopper      chan struct{}
 	nodeName          string
 	logEveryHeartbeat bool
+	nowFunc           func() time.Time
 }
 
-func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEveryHeartbeat bool) *NodeAgentManager {
+func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEveryHeartbeat bool, now func() time.Time) *NodeAgentManager {
 	n := &NodeAgentManager{
 		dynamicClient:     dynamicClient,
 		watchStopper:      make(chan struct{}),
 		gameServerMap:     &sync.Map{},
 		nodeName:          nodeName,
 		logEveryHeartbeat: logEveryHeartbeat,
+		nowFunc:           now,
 	}
 	n.startWatch()
 	n.startHeartbeatTimeCheckerLoop()
@@ -98,7 +100,7 @@ func (n *NodeAgentManager) startHeartbeatTimeCheckerLoop() {
 //    since its last heartbeat before being marked as unhealthy
 func (n *NodeAgentManager) HeartbeatTimeChecker() {
 	n.gameServerMap.Range(func(key interface{}, value interface{}) bool{
-		currentTime := time.Now().UnixMilli()
+		currentTime := n.nowFunc().UnixMilli()
 		gsd := value.(*GameServerInfo)
 		markUnhealthy := false
 		gsd.Mutex.RLock()
@@ -181,7 +183,7 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 			GameServerNamespace: gameServerNamespace,
 			Mutex:               &sync.RWMutex{},
 			GsUid:               obj.GetUID(),
-			CreationTime:        time.Now().UnixMilli(),
+			CreationTime:        n.nowFunc().UnixMilli(),
 			// we're not adding details about health/state since the NodeAgent might have crashed
 			// and the health/state might have changed during the crash
 		}
@@ -278,7 +280,7 @@ func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Reque
 	logger := getLogger(gameServerName, gsd.GameServerNamespace)
 
 	gsd.Mutex.Lock()
-	gsd.LastHeartbeatTime = time.Now().UnixMilli()
+	gsd.LastHeartbeatTime = n.nowFunc().UnixMilli()
 	gsd.Mutex.Unlock()
 
 	if n.logEveryHeartbeat {
