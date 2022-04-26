@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"regexp"
-	"strconv"
 	"sync"
 	"time"
 
@@ -32,14 +30,16 @@ const (
 	LabelNodeName       = "NodeName"
 	ErrStateNotExists   = "state does not exist"
 	ErrHealthNotExists  = "health does not exist"
+	unhealthyStatus     = "Unhealthy"
+	healthyStatus       = "Healthy"
 )
 
 // timeouts for not receiving a heartbeat in milliseconds
 // the first heartbeat gets a longer window considering
 // initialization time
 var (
-	firstHeartbeatTimeout int64 = 60000
-	heartbeatTimeout      int64 = 5000
+	firstHeartbeatTimeout int64
+	heartbeatTimeout      int64
 )
 
 // NodeAgentManager manages the GameServer CRs that reside on this Node
@@ -91,28 +91,8 @@ func (n *NodeAgentManager) runWatch() {
 
 // runHeartbeatTimeCheckerLoop runs HeartbeatTimeChecker on an infinite loop
 func (n *NodeAgentManager) runHeartbeatTimeCheckerLoop() {
-	envVar := os.Getenv("FIRST_HEARTBEAT_TIMEOUT")
-	if envVar != "" {
-		parsedEnvVar, err := strconv.ParseInt(envVar, 10, 64)
-		if err != nil {
-			log.Info("Failed parsing FIRST_HEARTBEAT_TIMEOUT env variable, ", err, ", using default value of 60s")
-		} else {
-			firstHeartbeatTimeout = parsedEnvVar
-		}
-	} else {
-		log.Info("Failed reading FIRST_HEARTBEAT_TIMEOUT env variable, using default value of 60s")
-	}
-	envVar = os.Getenv("HEARTBEAT_TIMEOUT")
-	if envVar != "" {
-		parsedEnvVar, err := strconv.ParseInt(envVar, 10, 64)
-		if err != nil {
-			log.Info("Failed parsing HEARTBEAT_TIMEOUT env variable, ", err, ", using default value of 5s")
-		} else {
-			heartbeatTimeout = parsedEnvVar
-		}
-	} else {
-		log.Info("Failed reading HEARTBEAT_TIMEOUT env variable, using default value of 5s")
-	}
+	firstHeartbeatTimeout = ParseInt64FromEnv("FIRST_HEARTBEAT_TIMEOUT", 60000)
+	heartbeatTimeout = ParseInt64FromEnv("HEARTBEAT_TIMEOUT", 5000)
 	go func() {
 			for {
 			n.HeartbeatTimeChecker()
@@ -136,41 +116,46 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 		gsd.Mutex.RLock()
 		gameServerName := key.(string)
 		gameServerNamespace := gsd.GameServerNamespace
-		logger := getLogger(gameServerName, gameServerNamespace)
 		if gsd.LastHeartbeatTime == 0 && gsd.CreationTime != 0 &&
 		   (currentTime - gsd.CreationTime) > firstHeartbeatTimeout &&
-		   gsd.PreviousGameHealth != "Unhealthy" {
+		   gsd.PreviousGameHealth != unhealthyStatus {
 			markUnhealthy = true
 		} else if gsd.LastHeartbeatTime != 0 &&
 				  (currentTime - gsd.LastHeartbeatTime) > heartbeatTimeout &&
-				  gsd.PreviousGameHealth != "Unhealthy" {
+				  gsd.PreviousGameHealth != unhealthyStatus {
 			markUnhealthy = true
 		}
 		gsd.Mutex.RUnlock()
 		if markUnhealthy {
-			logger.Infof("GameServer has not sent any heartbeats, marking Unhealthy")
-			u := &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"status": mpsv1alpha1.GameServerStatus{
-						Health: mpsv1alpha1.GameServerHealth("Unhealthy"),
-					},
-				},
-			}
-			// this will be marshaled as payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\"}}", "Unhealthy")
-			payloadBytes, err := json.Marshal(u)
-			if err != nil {
-				logger.Errorf("updating health %s", err.Error())
-			}
-			ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Second*defaultTimeout)
-			defer cancel()
-			_, err = n.dynamicClient.Resource(gameserverGVR).Namespace(gameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
-			if err != nil {
-				logger.Errorf("updating health %s", err.Error())
-			}
+			n.markGameServerUnhealthy(gameServerName, gameServerNamespace)
 		}
-		
 		return true
 	})
+}
+
+// markGameServerUnhealthy sends a patch to mark the GameServer, described by its name
+// and namespace, as Unhealthy
+func (n *NodeAgentManager) markGameServerUnhealthy(gameServerName, gameServerNamespace string) {
+	logger := getLogger(gameServerName, gameServerNamespace)
+			logger.Infof("GameServer has not sent any heartbeats, marking Unhealthy")
+	u := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"status": mpsv1alpha1.GameServerStatus{
+				Health: mpsv1alpha1.GameServerHealth("Unhealthy"),
+			},
+		},
+	}
+	// this will be marshaled as payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\"}}", "Unhealthy")
+	payloadBytes, err := json.Marshal(u)
+	if err != nil {
+		logger.Errorf("updating health %s", err.Error())
+	}
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Second*defaultTimeout)
+	defer cancel()
+	_, err = n.dynamicClient.Resource(gameserverGVR).Namespace(gameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
+	if err != nil {
+		logger.Errorf("updating health %s", err.Error())
+	}
 }
 
 // gameServerCreated is called when a GameServer CR is created
@@ -427,11 +412,7 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 
 	gsd.Mutex.Lock()
 	defer gsd.Mutex.Unlock()
-	if gsd.PreviousGameHealth == "Unhealthy" && hb.CurrentGameHealth == "Healthy" {
-		logger.Info("Received Healthy heartbeat from server currently marked as Unhealthy, ignoring health update.")
-	} else {
-		gsd.PreviousGameHealth = hb.CurrentGameHealth
-	}
+	gsd.PreviousGameHealth = hb.CurrentGameHealth
 	gsd.PreviousGameState = hb.CurrentGameState
 
 	return nil
