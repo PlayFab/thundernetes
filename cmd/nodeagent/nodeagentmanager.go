@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
+	"strconv"
 	"sync"
 	"time"
 
@@ -24,14 +26,17 @@ import (
 )
 
 const (
-	GameServerName        = "GameServerName"
-	GameServerNamespace   = "GameServerNamespace"
-	defaultTimeout        = 4
-	LabelNodeName         = "NodeName"
-	ErrStateNotExists     = "state does not exist"
-	ErrHealthNotExists    = "health does not exist"
-	FirstHeartbeatTimeout = 60000
-	HeartbeatTimeout      = 5000
+	GameServerName      = "GameServerName"
+	GameServerNamespace = "GameServerNamespace"
+	defaultTimeout      = 4
+	LabelNodeName       = "NodeName"
+	ErrStateNotExists   = "state does not exist"
+	ErrHealthNotExists  = "health does not exist"
+)
+
+var (
+	firstHeartbeatTimeout int64 = 60000
+	heartbeatTimeout      int64 = 5000
 )
 
 // NodeAgentManager manages the GameServer CRs that reside on this Node
@@ -83,10 +88,32 @@ func (n *NodeAgentManager) startWatch() {
 
 // startHeartbeatTimeCheckerLoop runs HeartbeatTimeChecker on an infinite loop
 func (n *NodeAgentManager) startHeartbeatTimeCheckerLoop() {
+	envVar := os.Getenv("FIRST_HEARTBEAT_TIMEOUT")
+	if envVar != "" {
+		parsedEnvVar, err := strconv.ParseInt(envVar, 10, 64)
+		if err != nil {
+			log.Info("Failed parsing FIRST_HEARTBEAT_TIMEOUT env variable, ", err, ", using default value of 60000ms")
+		} else {
+			firstHeartbeatTimeout = parsedEnvVar
+		}
+	} else {
+		log.Info("Failed reading FIRST_HEARTBEAT_TIMEOUT env variable, using default value of 60000ms")
+	}
+	envVar = os.Getenv("HEARTBEAT_TIMEOUT")
+	if envVar != "" {
+		parsedEnvVar, err := strconv.ParseInt(envVar, 10, 64)
+		if err != nil {
+			log.Info("Failed parsing HEARTBEAT_TIMEOUT env variable, ", err, ", using default value of 5000ms")
+		} else {
+			heartbeatTimeout = parsedEnvVar
+		}
+	} else {
+		log.Info("Failed reading HEARTBEAT_TIMEOUT env variable, using default value of 5000ms")
+	}
 	go func() {
 			for {
 			n.HeartbeatTimeChecker()
-			time.Sleep(HeartbeatTimeout * time.Millisecond)
+			time.Sleep(time.Duration(heartbeatTimeout) * time.Millisecond)
 		}
 	}()
 }
@@ -108,11 +135,11 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 		gameServerNamespace := gsd.GameServerNamespace
 		logger := getLogger(gameServerName, gameServerNamespace)
 		if gsd.LastHeartbeatTime == 0 && gsd.CreationTime != 0 &&
-		   (currentTime - gsd.CreationTime) > FirstHeartbeatTimeout &&
+		   (currentTime - gsd.CreationTime) > firstHeartbeatTimeout &&
 		   gsd.PreviousGameHealth != "Unhealthy" {
 			markUnhealthy = true
 		} else if gsd.LastHeartbeatTime != 0 &&
-				  (currentTime - gsd.LastHeartbeatTime) > HeartbeatTimeout &&
+				  (currentTime - gsd.LastHeartbeatTime) > heartbeatTimeout &&
 				  gsd.PreviousGameHealth != "Unhealthy" {
 			markUnhealthy = true
 		}
