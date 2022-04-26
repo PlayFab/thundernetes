@@ -469,7 +469,7 @@ var _ = Describe("nodeagent tests", func() {
 		// the CreationTime value should be initialized
 		Expect(gsinfo.(*GameServerInfo).CreationTime).ToNot(Equal(int64(0)))
 	})
-	It("should set LastHeartbeatTime value when receiving a geartbeat from a game server", func() {
+	It("should set LastHeartbeatTime value when receiving a heartbeat from a game server", func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -541,7 +541,7 @@ var _ = Describe("nodeagent tests", func() {
 
 		// we run the check
 		n.HeartbeatTimeChecker()
-		
+
 		// the game server health status should eventually be Unhealthy
 		Eventually(func(g Gomega) {
 			u, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Get(context.Background(), gs.GetName(), metav1.GetOptions{})

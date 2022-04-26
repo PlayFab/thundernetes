@@ -34,6 +34,9 @@ const (
 	ErrHealthNotExists  = "health does not exist"
 )
 
+// timeouts for not receiving a heartbeat in milliseconds
+// the first heatbeat gets a longer window considering
+// initialization time
 var (
 	firstHeartbeatTimeout int64 = 60000
 	heartbeatTimeout      int64 = 5000
@@ -92,23 +95,23 @@ func (n *NodeAgentManager) runHeartbeatTimeCheckerLoop() {
 	if envVar != "" {
 		parsedEnvVar, err := strconv.ParseInt(envVar, 10, 64)
 		if err != nil {
-			log.Info("Failed parsing FIRST_HEARTBEAT_TIMEOUT env variable, ", err, ", using default value of 60000ms")
+			log.Info("Failed parsing FIRST_HEARTBEAT_TIMEOUT env variable, ", err, ", using default value of 60s")
 		} else {
 			firstHeartbeatTimeout = parsedEnvVar
 		}
 	} else {
-		log.Info("Failed reading FIRST_HEARTBEAT_TIMEOUT env variable, using default value of 60000ms")
+		log.Info("Failed reading FIRST_HEARTBEAT_TIMEOUT env variable, using default value of 60s")
 	}
 	envVar = os.Getenv("HEARTBEAT_TIMEOUT")
 	if envVar != "" {
 		parsedEnvVar, err := strconv.ParseInt(envVar, 10, 64)
 		if err != nil {
-			log.Info("Failed parsing HEARTBEAT_TIMEOUT env variable, ", err, ", using default value of 5000ms")
+			log.Info("Failed parsing HEARTBEAT_TIMEOUT env variable, ", err, ", using default value of 5s")
 		} else {
 			heartbeatTimeout = parsedEnvVar
 		}
 	} else {
-		log.Info("Failed reading HEARTBEAT_TIMEOUT env variable, using default value of 5000ms")
+		log.Info("Failed reading HEARTBEAT_TIMEOUT env variable, using default value of 5s")
 	}
 	go func() {
 			for {
