@@ -40,12 +40,12 @@ const (
 // The game server process tells the NodeAgent about its state (if it's Initializing or StandingBy)
 // and NodeAgent tells the game server if it has been allocated (its state having been converted to Active)
 type NodeAgentManager struct {
-	gameServerMap     *sync.Map // we use a sync map instead of a regular map since this will be updated by multiple goroutines
-	dynamicClient     dynamic.Interface
-	watchStopper      chan struct{}
-	nodeName          string
-	logEveryHeartbeat bool
-	nowFunc           func() time.Time
+	gameServerMap         *sync.Map // we use a sync map instead of a regular map since this will be updated by multiple goroutines
+	dynamicClient         dynamic.Interface
+	watchStopper          chan struct{}
+	nodeName              string
+	logEveryHeartbeat     bool
+	nowFunc               func() time.Time
 	heartbeatTimeout      int64 // timeouts for not receiving a heartbeat in milliseconds
 	firstHeartbeatTimeout int64 // the first heartbeat gets a longer window considering initialization time
 }
