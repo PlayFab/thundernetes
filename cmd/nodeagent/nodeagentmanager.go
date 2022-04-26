@@ -62,13 +62,13 @@ func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEv
 		logEveryHeartbeat: logEveryHeartbeat,
 		nowFunc:           now,
 	}
-	n.startWatch()
-	n.startHeartbeatTimeCheckerLoop()
+	n.runWatch()
+	n.runHeartbeatTimeCheckerLoop()
 	return n
 }
 
-// startWatch starts a watch on the GameServer CRs that reside on this Node
-func (n *NodeAgentManager) startWatch() {
+// runWatch starts a watch on the GameServer CRs that reside on this Node
+func (n *NodeAgentManager) runWatch() {
 	// we watch for GameServers which Pods have been scheduled to the same Node as this NodeAgent DaemonSet Pod
 	listOptions := dynamicinformer.TweakListOptionsFunc(func(options *metav1.ListOptions) {
 		options.LabelSelector = fmt.Sprintf("%s=%s", LabelNodeName, n.nodeName)
@@ -86,8 +86,8 @@ func (n *NodeAgentManager) startWatch() {
 }
 
 
-// startHeartbeatTimeCheckerLoop runs HeartbeatTimeChecker on an infinite loop
-func (n *NodeAgentManager) startHeartbeatTimeCheckerLoop() {
+// runHeartbeatTimeCheckerLoop runs HeartbeatTimeChecker on an infinite loop
+func (n *NodeAgentManager) runHeartbeatTimeCheckerLoop() {
 	envVar := os.Getenv("FIRST_HEARTBEAT_TIMEOUT")
 	if envVar != "" {
 		parsedEnvVar, err := strconv.ParseInt(envVar, 10, 64)
@@ -119,7 +119,7 @@ func (n *NodeAgentManager) startHeartbeatTimeCheckerLoop() {
 }
 
 // HeartbeatTimeChecker checks that heartbeats are still being sent for each GameServerInfo
-// in the local gameServerMap, if not it send a patch to mark those GameServers as unhealthy,
+// in the local gameServerMap, if not it will send a patch to mark those GameServers as unhealthy,
 // it follows these two rules:
 // 1. if the server hasn't sent its first heartbeat, it has FirstHeartbeatTimeout
 //    milliseconds since its creation before being marked as unhealthy
