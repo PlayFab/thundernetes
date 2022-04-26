@@ -34,14 +34,6 @@ const (
 	healthyStatus       = "Healthy"
 )
 
-// timeouts for not receiving a heartbeat in milliseconds
-// the first heartbeat gets a longer window considering
-// initialization time
-var (
-	firstHeartbeatTimeout int64
-	heartbeatTimeout      int64
-)
-
 // NodeAgentManager manages the GameServer CRs that reside on this Node
 // these game server process heartbeat to the NodeAgent process
 // There is a two way communication between the game server and the NodeAgent
@@ -54,6 +46,8 @@ type NodeAgentManager struct {
 	nodeName          string
 	logEveryHeartbeat bool
 	nowFunc           func() time.Time
+	heartbeatTimeout      int64 // timeouts for not receiving a heartbeat in milliseconds
+	firstHeartbeatTimeout int64 // the first heartbeat gets a longer window considering initialization time
 }
 
 func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEveryHeartbeat bool, now func() time.Time) *NodeAgentManager {
@@ -91,12 +85,12 @@ func (n *NodeAgentManager) runWatch() {
 
 // runHeartbeatTimeCheckerLoop runs HeartbeatTimeChecker on an infinite loop
 func (n *NodeAgentManager) runHeartbeatTimeCheckerLoop() {
-	firstHeartbeatTimeout = ParseInt64FromEnv("FIRST_HEARTBEAT_TIMEOUT", 60000)
-	heartbeatTimeout = ParseInt64FromEnv("HEARTBEAT_TIMEOUT", 5000)
+	n.firstHeartbeatTimeout = ParseInt64FromEnv("FIRST_HEARTBEAT_TIMEOUT", 60000)
+	n.heartbeatTimeout = ParseInt64FromEnv("HEARTBEAT_TIMEOUT", 5000)
 	go func() {
-			for {
+		for {
 			n.HeartbeatTimeChecker()
-			time.Sleep(time.Duration(heartbeatTimeout) * time.Millisecond)
+			time.Sleep(time.Duration(n.heartbeatTimeout) * time.Millisecond)
 		}
 	}()
 }
@@ -117,11 +111,11 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 		gameServerName := key.(string)
 		gameServerNamespace := gsd.GameServerNamespace
 		if gsd.LastHeartbeatTime == 0 && gsd.CreationTime != 0 &&
-		   (currentTime - gsd.CreationTime) > firstHeartbeatTimeout &&
+		   (currentTime - gsd.CreationTime) > n.firstHeartbeatTimeout &&
 		   gsd.PreviousGameHealth != unhealthyStatus {
 			markUnhealthy = true
 		} else if gsd.LastHeartbeatTime != 0 &&
-				  (currentTime - gsd.LastHeartbeatTime) > heartbeatTimeout &&
+				  (currentTime - gsd.LastHeartbeatTime) > n.heartbeatTimeout &&
 				  gsd.PreviousGameHealth != unhealthyStatus {
 			markUnhealthy = true
 		}
@@ -137,7 +131,7 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 // and namespace, as Unhealthy
 func (n *NodeAgentManager) markGameServerUnhealthy(gameServerName, gameServerNamespace string) {
 	logger := getLogger(gameServerName, gameServerNamespace)
-			logger.Infof("GameServer has not sent any heartbeats, marking Unhealthy")
+	logger.Infof("GameServer has not sent any heartbeats, marking Unhealthy")
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"status": mpsv1alpha1.GameServerStatus{
@@ -382,7 +376,7 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 	// in this case, there is no need to update the GameServer CR status with the new state
 	// since it's already set to Active, otherwise the game server would not have been allocated
 	if !(gsd.PreviousGameState == GameStateStandingBy && hb.CurrentGameState == GameStateActive && gsd.PreviousGameHealth == hb.CurrentGameHealth) {
-		logger.Debugf("Health or state is different than before, updating. Old health: %s, new health: %s, old state: %s, new state: %s", sanitize(string(gsd.PreviousGameHealth)), sanitize(string(hb.CurrentGameHealth)), sanitize(string(gsd.PreviousGameState)), sanitize(string(hb.CurrentGameState)))
+		logger.Debugf("Health or state is different than before, updating. Old health: %s, new health: %s, old state: %s, new state: %s", sanitize(gsd.PreviousGameHealth), sanitize(hb.CurrentGameHealth), sanitize(string(gsd.PreviousGameState)), sanitize(string(hb.CurrentGameState)))
 
 		// the reason we're using unstructured to serialize the GameServerStatus instead of the entire GameServer object
 		// is that we don't want extra fields (.Spec, .ObjectMeta) to be serialized
