@@ -35,7 +35,7 @@ const (
 )
 
 // timeouts for not receiving a heartbeat in milliseconds
-// the first heatbeat gets a longer window considering
+// the first heartbeat gets a longer window considering
 // initialization time
 var (
 	firstHeartbeatTimeout int64 = 60000
