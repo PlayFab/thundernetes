@@ -106,22 +106,22 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 	n.gameServerMap.Range(func(key interface{}, value interface{}) bool{
 		currentTime := n.nowFunc().UnixMilli()
 		gsd := value.(*GameServerInfo)
-		markUnhealthy := false
+		markUnhealthy := 0
 		gsd.Mutex.RLock()
 		gameServerName := key.(string)
 		gameServerNamespace := gsd.GameServerNamespace
 		if gsd.LastHeartbeatTime == 0 && gsd.CreationTime != 0 &&
 		   (currentTime - gsd.CreationTime) > n.firstHeartbeatTimeout &&
 		   gsd.PreviousGameHealth != unhealthyStatus {
-			markUnhealthy = true
+			markUnhealthy = 1
 		} else if gsd.LastHeartbeatTime != 0 &&
 				  (currentTime - gsd.LastHeartbeatTime) > n.heartbeatTimeout &&
 				  gsd.PreviousGameHealth != unhealthyStatus {
-			markUnhealthy = true
+			markUnhealthy = 2
 		}
 		gsd.Mutex.RUnlock()
-		if markUnhealthy {
-			n.markGameServerUnhealthy(gameServerName, gameServerNamespace)
+		if markUnhealthy != 0 {
+			n.markGameServerUnhealthy(gameServerName, gameServerNamespace, markUnhealthy)
 		}
 		return true
 	})
@@ -129,20 +129,24 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 
 // markGameServerUnhealthy sends a patch to mark the GameServer, described by its name
 // and namespace, as Unhealthy
-func (n *NodeAgentManager) markGameServerUnhealthy(gameServerName, gameServerNamespace string) {
+func (n *NodeAgentManager) markGameServerUnhealthy(gameServerName, gameServerNamespace string, condition int) {
 	logger := getLogger(gameServerName, gameServerNamespace)
-	logger.Infof("GameServer has not sent any heartbeats, marking Unhealthy")
+	if condition == 1 {
+		logger.Infof("GameServer has not sent any heartbeats in %d seconds since creation, marking Unhealthy", n.firstHeartbeatTimeout / 1000)
+	} else if condition == 2{
+		logger.Infof("GameServer has not sent any heartbeats in %d seconds, marking Unhealthy", n.heartbeatTimeout / 1000)
+	}
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"status": mpsv1alpha1.GameServerStatus{
-				Health: mpsv1alpha1.GameServerHealth("Unhealthy"),
+				Health: mpsv1alpha1.GameServerHealth(unhealthyStatus),
 			},
 		},
 	}
 	// this will be marshaled as payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\"}}", "Unhealthy")
 	payloadBytes, err := json.Marshal(u)
 	if err != nil {
-		logger.Errorf("updating health %s", err.Error())
+		logger.Errorf("marshaling %s", err.Error())
 	}
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Second*defaultTimeout)
 	defer cancel()
