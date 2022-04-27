@@ -34,6 +34,13 @@ const (
 	healthyStatus       = "Healthy"
 )
 
+type HeartbeatState int
+const (
+	gotHeartbeat     HeartbeatState = iota
+	noHeartbeatEver
+	noHeartbeatSince
+)
+
 // NodeAgentManager manages the GameServer CRs that reside on this Node
 // these game server process heartbeat to the NodeAgent process
 // There is a two way communication between the game server and the NodeAgent
@@ -106,22 +113,22 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 	n.gameServerMap.Range(func(key interface{}, value interface{}) bool{
 		currentTime := n.nowFunc().UnixMilli()
 		gsd := value.(*GameServerInfo)
-		markUnhealthy := 0
+		state := gotHeartbeat
 		gsd.Mutex.RLock()
 		gameServerName := key.(string)
 		gameServerNamespace := gsd.GameServerNamespace
 		if gsd.LastHeartbeatTime == 0 && gsd.CreationTime != 0 &&
 		   (currentTime - gsd.CreationTime) > n.firstHeartbeatTimeout &&
 		   gsd.PreviousGameHealth != unhealthyStatus {
-			markUnhealthy = 1
+			state = noHeartbeatEver
 		} else if gsd.LastHeartbeatTime != 0 &&
 				  (currentTime - gsd.LastHeartbeatTime) > n.heartbeatTimeout &&
 				  gsd.PreviousGameHealth != unhealthyStatus {
-			markUnhealthy = 2
+			state = noHeartbeatSince
 		}
 		gsd.Mutex.RUnlock()
-		if markUnhealthy != 0 {
-			n.markGameServerUnhealthy(gameServerName, gameServerNamespace, markUnhealthy)
+		if state != gotHeartbeat {
+			n.markGameServerUnhealthy(gameServerName, gameServerNamespace, state)
 		}
 		return true
 	})
@@ -129,12 +136,12 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 
 // markGameServerUnhealthy sends a patch to mark the GameServer, described by its name
 // and namespace, as Unhealthy
-func (n *NodeAgentManager) markGameServerUnhealthy(gameServerName, gameServerNamespace string, condition int) {
+func (n *NodeAgentManager) markGameServerUnhealthy(gameServerName, gameServerNamespace string, state HeartbeatState) {
 	logger := getLogger(gameServerName, gameServerNamespace)
-	if condition == 1 {
+	if state == noHeartbeatEver {
 		logger.Infof("GameServer has not sent any heartbeats in %d seconds since creation, marking Unhealthy", n.firstHeartbeatTimeout / 1000)
-	} else if condition == 2{
-		logger.Infof("GameServer has not sent any heartbeats in %d seconds, marking Unhealthy", n.heartbeatTimeout / 1000)
+	} else if state == noHeartbeatSince {
+		logger.Infof("GameServer has not sent any heartbeats in %d seconds since last, marking Unhealthy", n.heartbeatTimeout / 1000)
 	}
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
