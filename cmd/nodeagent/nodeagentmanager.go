@@ -34,11 +34,12 @@ const (
 	healthyStatus       = "Healthy"
 )
 
+// HeartbeatState is a status of a gameserver, it represents if it has sent heartbeats
 type HeartbeatState int
 const (
-	gotHeartbeat     HeartbeatState = iota
-	noHeartbeatEver
-	noHeartbeatSince
+	gotHeartbeat     HeartbeatState = iota // it has sent a hearbeat in the corresponding time window
+	noHeartbeatEver // it has never sent a heartbeat
+	noHeartbeatSince // it hasn't sent a heartbeat in the corresponding time window
 )
 
 // NodeAgentManager manages the GameServer CRs that reside on this Node
