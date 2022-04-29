@@ -30,6 +30,16 @@ const (
 	LabelNodeName       = "NodeName"
 	ErrStateNotExists   = "state does not exist"
 	ErrHealthNotExists  = "health does not exist"
+	unhealthyStatus     = "Unhealthy"
+	healthyStatus       = "Healthy"
+)
+
+// HeartbeatState is a status of a gameserver, it represents if it has sent heartbeats
+type HeartbeatState int
+const (
+	gotHeartbeat     HeartbeatState = iota // it has sent a hearbeat in the corresponding time window
+	noHeartbeatEver // it has never sent a heartbeat
+	noHeartbeatSince // it hasn't sent a heartbeat in the corresponding time window
 )
 
 // NodeAgentManager manages the GameServer CRs that reside on this Node
@@ -38,27 +48,32 @@ const (
 // The game server process tells the NodeAgent about its state (if it's Initializing or StandingBy)
 // and NodeAgent tells the game server if it has been allocated (its state having been converted to Active)
 type NodeAgentManager struct {
-	gameServerMap     *sync.Map // we use a sync map instead of a regular map since this will be updated by multiple goroutines
-	dynamicClient     dynamic.Interface
-	watchStopper      chan struct{}
-	nodeName          string
-	logEveryHeartbeat bool
+	gameServerMap         *sync.Map // we use a sync map instead of a regular map since this will be updated by multiple goroutines
+	dynamicClient         dynamic.Interface
+	watchStopper          chan struct{}
+	nodeName              string
+	logEveryHeartbeat     bool
+	nowFunc               func() time.Time
+	heartbeatTimeout      int64 // timeouts for not receiving a heartbeat in milliseconds
+	firstHeartbeatTimeout int64 // the first heartbeat gets a longer window considering initialization time
 }
 
-func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEveryHeartbeat bool) *NodeAgentManager {
+func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEveryHeartbeat bool, now func() time.Time) *NodeAgentManager {
 	n := &NodeAgentManager{
 		dynamicClient:     dynamicClient,
 		watchStopper:      make(chan struct{}),
 		gameServerMap:     &sync.Map{},
 		nodeName:          nodeName,
 		logEveryHeartbeat: logEveryHeartbeat,
+		nowFunc:           now,
 	}
-	n.startWatch()
+	n.runWatch()
+	n.runHeartbeatTimeCheckerLoop()
 	return n
 }
 
-// startWatch starts a watch on the GameServer CRs that reside on this Node
-func (n *NodeAgentManager) startWatch() {
+// runWatch starts a watch on the GameServer CRs that reside on this Node
+func (n *NodeAgentManager) runWatch() {
 	// we watch for GameServers which Pods have been scheduled to the same Node as this NodeAgent DaemonSet Pod
 	listOptions := dynamicinformer.TweakListOptionsFunc(func(options *metav1.ListOptions) {
 		options.LabelSelector = fmt.Sprintf("%s=%s", LabelNodeName, n.nodeName)
@@ -73,6 +88,80 @@ func (n *NodeAgentManager) startWatch() {
 	})
 
 	go informer.Run(n.watchStopper)
+}
+
+
+// runHeartbeatTimeCheckerLoop runs HeartbeatTimeChecker on an infinite loop
+func (n *NodeAgentManager) runHeartbeatTimeCheckerLoop() {
+	n.firstHeartbeatTimeout = ParseInt64FromEnv("FIRST_HEARTBEAT_TIMEOUT", 60000)
+	n.heartbeatTimeout = ParseInt64FromEnv("HEARTBEAT_TIMEOUT", 5000)
+	go func() {
+		for {
+			n.HeartbeatTimeChecker()
+			time.Sleep(time.Duration(n.heartbeatTimeout) * time.Millisecond)
+		}
+	}()
+}
+
+// HeartbeatTimeChecker checks that heartbeats are still being sent for each GameServerInfo
+// in the local gameServerMap, if not it will send a patch to mark those GameServers as unhealthy,
+// it follows these two rules:
+// 1. if the server hasn't sent its first heartbeat, it has FirstHeartbeatTimeout
+//    milliseconds since its creation before being marked as unhealthy
+// 2. if the server has sent its first heartbeat, it has HeartbeatTimeout milliseconds
+//    since its last heartbeat before being marked as unhealthy
+func (n *NodeAgentManager) HeartbeatTimeChecker() {
+	n.gameServerMap.Range(func(key interface{}, value interface{}) bool{
+		currentTime := n.nowFunc().UnixMilli()
+		gsd := value.(*GameServerInfo)
+		state := gotHeartbeat
+		gsd.Mutex.RLock()
+		gameServerName := key.(string)
+		gameServerNamespace := gsd.GameServerNamespace
+		if gsd.LastHeartbeatTime == 0 && gsd.CreationTime != 0 &&
+		   (currentTime - gsd.CreationTime) > n.firstHeartbeatTimeout &&
+		   gsd.PreviousGameHealth != unhealthyStatus {
+			state = noHeartbeatEver
+		} else if gsd.LastHeartbeatTime != 0 &&
+				  (currentTime - gsd.LastHeartbeatTime) > n.heartbeatTimeout &&
+				  gsd.PreviousGameHealth != unhealthyStatus {
+			state = noHeartbeatSince
+		}
+		gsd.Mutex.RUnlock()
+		if state != gotHeartbeat {
+			n.markGameServerUnhealthy(gameServerName, gameServerNamespace, state)
+		}
+		return true
+	})
+}
+
+// markGameServerUnhealthy sends a patch to mark the GameServer, described by its name
+// and namespace, as Unhealthy
+func (n *NodeAgentManager) markGameServerUnhealthy(gameServerName, gameServerNamespace string, state HeartbeatState) {
+	logger := getLogger(gameServerName, gameServerNamespace)
+	if state == noHeartbeatEver {
+		logger.Infof("GameServer has not sent any heartbeats in %d seconds since creation, marking Unhealthy", n.firstHeartbeatTimeout / 1000)
+	} else if state == noHeartbeatSince {
+		logger.Infof("GameServer has not sent any heartbeats in %d seconds since last, marking Unhealthy", n.heartbeatTimeout / 1000)
+	}
+	u := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"status": mpsv1alpha1.GameServerStatus{
+				Health: mpsv1alpha1.GameServerHealth(unhealthyStatus),
+			},
+		},
+	}
+	// this will be marshaled as payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\"}}", "Unhealthy")
+	payloadBytes, err := json.Marshal(u)
+	if err != nil {
+		logger.Errorf("marshaling %s", err.Error())
+	}
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Second*defaultTimeout)
+	defer cancel()
+	_, err = n.dynamicClient.Resource(gameserverGVR).Namespace(gameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
+	if err != nil {
+		logger.Errorf("updating health %s", err.Error())
+	}
 }
 
 // gameServerCreated is called when a GameServer CR is created
@@ -115,6 +204,7 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 			GameServerNamespace: gameServerNamespace,
 			Mutex:               &sync.RWMutex{},
 			GsUid:               obj.GetUID(),
+			CreationTime:        n.nowFunc().UnixMilli(),
 			// we're not adding details about health/state since the NodeAgent might have crashed
 			// and the health/state might have changed during the crash
 		}
@@ -209,6 +299,10 @@ func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Reque
 
 	gsd := gsdi.(*GameServerInfo)
 	logger := getLogger(gameServerName, gsd.GameServerNamespace)
+
+	gsd.Mutex.Lock()
+	gsd.LastHeartbeatTime = n.nowFunc().UnixMilli()
+	gsd.Mutex.Unlock()
 
 	if n.logEveryHeartbeat {
 		heartbeatString := fmt.Sprintf("%v", hb) // from CodeQL analysis: If unsanitized user input is written to a log entry, a malicious user may be able to forge new log entries.

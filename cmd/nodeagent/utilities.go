@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -11,6 +13,23 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
+
+// ParseInt64FromEnv tries to read an int64 from an environment variable envVar
+// if not possible it returns the defaultValue provided
+func ParseInt64FromEnv(envVar string, defaultValue int64) int64 {
+	value := os.Getenv(envVar)
+	if value != "" {
+		parsedValue, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			log.Infof("Error parsing env variable %s, using default value %d", envVar, defaultValue)
+		} else {
+			return parsedValue
+		}
+	} else {
+		log.Infof("Error reading env variable %s, using default value %d", envVar, defaultValue)
+	}
+	return defaultValue	
+}
 
 // internalServerError writes an internal server error to the response
 func internalServerError(w http.ResponseWriter, err error, msg string) {
