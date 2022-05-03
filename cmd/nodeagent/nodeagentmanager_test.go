@@ -105,7 +105,7 @@ var _ = Describe("nodeagent tests", func() {
 			var ok bool
 			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
-		}).Should(BeTrue())
+		}, "2s").Should(BeTrue())
 
 		// simulate subsequent updates by GSDK
 		gsinfo.(*GameServerInfo).PreviousGameState = GameStateStandingBy
@@ -127,7 +127,7 @@ var _ = Describe("nodeagent tests", func() {
 			gsd := *tempgs.(*GameServerInfo)
 			tempgs.(*GameServerInfo).Mutex.RUnlock()
 			return gsd.IsActive && gsd.PreviousGameState == GameStateStandingBy
-		}).Should(BeTrue())
+		}, "2s").Should(BeTrue())
 
 		// heartbeat from the game is still StandingBy
 		hb := &HeartbeatRequest{
@@ -182,7 +182,7 @@ var _ = Describe("nodeagent tests", func() {
 			var ok bool
 			_, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
-		}).Should(BeTrue())
+		}, "2s").Should(BeTrue())
 
 		// simulate 5 standingBy heartbeats
 		for i := 0; i < 5; i++ {
@@ -224,7 +224,7 @@ var _ = Describe("nodeagent tests", func() {
 			var ok bool
 			_, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
-		}).Should(BeTrue())
+		}, "2s").Should(BeTrue())
 
 		err = dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Delete(context.Background(), gs.GetName(), metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
@@ -250,7 +250,7 @@ var _ = Describe("nodeagent tests", func() {
 			var ok bool
 			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
-		}).Should(BeTrue())
+		}, "2s").Should(BeTrue())
 
 		// simulate subsequent updates by GSDK
 		gsinfo.(*GameServerInfo).PreviousGameState = GameStateStandingBy
@@ -373,7 +373,7 @@ var _ = Describe("nodeagent tests", func() {
 					var ok bool
 					gsdetails, ok = n.gameServerMap.Load(randomGameServerName)
 					return ok
-				}).Should(BeTrue())
+				}, "2s").Should(BeTrue())
 
 				// simulate subsequent updates by GSDK
 				gsdetails.(*GameServerInfo).PreviousGameState = GameStateStandingBy
@@ -397,7 +397,7 @@ var _ = Describe("nodeagent tests", func() {
 					gsd := *tempgs.(*GameServerInfo)
 					tempgs.(*GameServerInfo).Mutex.RUnlock()
 					return gsd.IsActive && tempgs.(*GameServerInfo).PreviousGameState == GameStateStandingBy
-				}).Should(BeTrue())
+				}, "2s").Should(BeTrue())
 
 				// wait till the GameServerDetail CR has been created
 				Eventually(func(g Gomega) {
@@ -464,7 +464,7 @@ var _ = Describe("nodeagent tests", func() {
 			var ok bool
 			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
-		}).Should(BeTrue())
+		}, "2s").Should(BeTrue())
 
 		// the CreationTime value should be initialized
 		Expect(gsinfo.(*GameServerInfo).CreationTime).ToNot(Equal(int64(0)))
@@ -484,7 +484,7 @@ var _ = Describe("nodeagent tests", func() {
 			var ok bool
 			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
-		}).Should(BeTrue())
+		}, "2s").Should(BeTrue())
 
 		// the LastHeartbeatTime value is uninitialized
 		Expect(gsinfo.(*GameServerInfo).LastHeartbeatTime).To(Equal(int64(0)))
@@ -508,7 +508,7 @@ var _ = Describe("nodeagent tests", func() {
 				return 0
 			}
 			return gsinfo.(*GameServerInfo).LastHeartbeatTime
-		}).ShouldNot(Equal(int64(0)))
+		}, "2s").ShouldNot(Equal(int64(0)))
 	})
 	It("should mark the game server as unhealthy due to CreationTime", func() {
 		dynamicClient := newDynamicInterface()
@@ -529,7 +529,7 @@ var _ = Describe("nodeagent tests", func() {
 		Eventually(func() bool {
 			_, ok := n.gameServerMap.Load(testGameServerName)
 			return ok
-		}).Should(BeTrue())
+		}, "2s").Should(BeTrue())
 
 		// change time to be 1 min and 1 sec later
 		customNow = func () time.Time{
@@ -571,7 +571,7 @@ var _ = Describe("nodeagent tests", func() {
 		Eventually(func() bool {
 			_, ok := n.gameServerMap.Load(testGameServerName)
 			return ok
-		}).Should(BeTrue())
+		}, "2s").Should(BeTrue())
 
 		// we send a heartbeat
 		hb := &HeartbeatRequest{
@@ -593,7 +593,7 @@ var _ = Describe("nodeagent tests", func() {
 				return 0
 			}
 			return gsinfo.(*GameServerInfo).LastHeartbeatTime
-		}).ShouldNot(Equal(int64(0)))
+		}, "2s").ShouldNot(Equal(int64(0)))
 
 		// change time to be 6 seconds later
 		customNow = func () time.Time{
