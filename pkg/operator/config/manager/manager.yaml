@@ -24,6 +24,8 @@ spec:
       labels:
         control-plane: controller-manager
     spec:
+      nodeSelector:
+        kubernetes.io/os: linux
       securityContext:
         runAsNonRoot: true
       containers:
@@ -117,6 +119,8 @@ spec:
       labels:
         name: nodeagent
     spec:
+      nodeSelector:
+        kubernetes.io/os: linux
       serviceAccountName: nodeagent
       containers:
       - name: nodeagent
