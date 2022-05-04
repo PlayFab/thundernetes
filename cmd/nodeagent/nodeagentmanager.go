@@ -129,7 +129,7 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 		}
 		gsd.Mutex.RUnlock()
 		if state != gotHeartbeat {
-			go n.markGameServerUnhealthy(gameServerName, gameServerNamespace, state)
+			n.markGameServerUnhealthy(gameServerName, gameServerNamespace, state)
 		}
 		return true
 	})
