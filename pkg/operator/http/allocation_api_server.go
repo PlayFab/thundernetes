@@ -12,13 +12,18 @@ import (
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	"github.com/playfab/thundernetes/pkg/operator/controllers"
@@ -37,6 +42,18 @@ type AllocationApiServer struct {
 	CrtBytes        []byte
 	KeyBytes        []byte
 	gameServerCache *GameServersCache
+	events          chan event.GenericEvent
+}
+
+func NewAllocationApiCerver(crt, key []byte, mgr manager.Manager) *AllocationApiServer {
+	return &AllocationApiServer{
+		CrtBytes: crt,
+		KeyBytes: key,
+		Client:   mgr.GetClient(),
+		Config:   mgr.GetConfig(),
+		Scheme:   mgr.GetScheme(),
+		events:   make(chan event.GenericEvent, 100),
+	}
 }
 
 // Start starts the HTTP(S) allocation API service
@@ -146,6 +163,7 @@ func (s *AllocationApiServer) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	err = ctrl.NewControllerManagedBy(mgr).
 		For(&mpsv1alpha1.GameServer{}).
+		Watches(&source.Channel{Source: s.events}, &handler.EnqueueRequestForObject{}).
 		Complete(s)
 
 	if err != nil {
@@ -255,60 +273,6 @@ func (s *AllocationApiServer) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//---------------------------------------------------------------------
-	// allocation using controller-runtime cache
-	// get the standingBy GameServers for this BuildID
-	// for i := 0; i < 5; i++ {
-	// 	if i > 1 {
-	// 		allocationLogger.Info("allocation failed, retrying", "retry", i)
-	// 	}
-	// 	var gameserversStandingBy mpsv1alpha1.GameServerList
-	// 	err = s.Client.List(ctx, &gameserversStandingBy, &client.ListOptions{
-	// 		FieldSelector: fields.SelectorFromSet(fields.Set{"status.state": "StandingBy"}),
-	// 		LabelSelector: labels.SelectorFromSet(labels.Set{controllers.LabelBuildID: args.BuildID}),
-	// 	})
-	// 	if err != nil {
-	// 		internalServerError(w, err, "error listing")
-	// 		return
-	// 	}
-
-	// 	if len(gameserversStandingBy.Items) == 0 {
-	// 		tooManyRequestsError(w, fmt.Errorf("not enough standingBy"), "there are not enough standingBy servers")
-	// 		return
-	// 	}
-
-	// 	sort.Sort(ByNodeAge(gameserversStandingBy.Items))
-	// 	for i := 0; i < 5; i++ {
-	// 		gs := gameserversStandingBy.Items[i]
-
-	// 		// set the relevant status fields for the GameServer
-	// 		gs.Status.State = mpsv1alpha1.GameServerStateActive
-	// 		gs.Status.SessionID = args.SessionID
-	// 		gs.Status.SessionCookie = args.SessionCookie
-	// 		gs.Status.InitialPlayers = args.InitialPlayers
-
-	// 		// we use .Update instead of .Patch to avoid simultaneous allocations updating the same GameServer
-	// 		// this is a very unlikely scenario, since the .Create on the GameServerDetail would fail
-	// 		err = s.Client.Status().Update(ctx, &gs)
-	// 		if err != nil {
-	// 			continue
-	// 		}
-
-	// 		rs := RequestMultiplayerServerResponse{
-	// 			IPV4Address: gs.Status.PublicIP,
-	// 			Ports:       gs.Status.Ports,
-	// 			SessionID:   args.SessionID,
-	// 		}
-	// 		err = json.NewEncoder(w).Encode(rs)
-	// 		if err != nil {
-	// 			internalServerError(w, err, "encode json response")
-	// 			return
-	// 		}
-	// 		controllers.AllocationsCounter.WithLabelValues(gs.Labels[controllers.LabelBuildName]).Inc()
-	// 	}
-	// }
-	//---------------------------------------------------------------------
-
-	//---------------------------------------------------------------------
 	// allocation using the heap
 	for i := 0; i < 5; i++ {
 		if i > 0 {
@@ -321,21 +285,13 @@ func (s *AllocationApiServer) handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		gs2 := mpsv1alpha1.GameServer{}
-		// err = s.Client.Get(ctx, types.NamespacedName{Name: gs.Name, Namespace: gs.Namespace}, &gs2)
-		// if err != nil {
-		// 	allocationLogger.Error(err, "error getting game server", "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
-		// 	continue
-		// }
-
-		// if gs2.Status.State == mpsv1alpha1.GameServerStateActive {
-		// 	allocationLogger.Info("GameServer is already allocated", "GameServerName", gs2.Name, "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
-		// 	continue
-		// }
-
-		gs2.Name = gs.Name
-		gs2.Namespace = gs.Namespace
-		gs2.ObjectMeta.ResourceVersion = gs.ResourceVersion
+		gs2 := mpsv1alpha1.GameServer{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            gs.Name,
+				Namespace:       gs.Namespace,
+				ResourceVersion: gs.ResourceVersion,
+			},
+		}
 
 		m := &client.MergeFromWithOptimisticLock{}
 		patch := client.MergeFromWithOptions(gs2.DeepCopy(), m)
@@ -354,8 +310,10 @@ func (s *AllocationApiServer) handle(w http.ResponseWriter, r *http.Request) {
 				allocationLogger.Info("error not found patching game server", "error", err, "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
 			} else {
 				allocationLogger.Error(err, "error patching game server", "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
-				// generic error, put the game server back in the cache
-				s.gameServerCache.PushToCache(gs)
+			}
+			// trigger a reconciliation for this GameServer object
+			s.events <- event.GenericEvent{
+				Object: &gs2,
 			}
 			continue
 		}

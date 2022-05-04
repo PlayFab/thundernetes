@@ -16,13 +16,13 @@ var _ = Describe("gameservercache tests", func() {
 			gs := createGameServerForCacheTest(fmt.Sprintf("gs-%d", i), fmt.Sprintf("ns-%d", i), fmt.Sprintf("build-%d", i), 0)
 			c.PushToCache(gs)
 		}
-		Expect(len(c.cache)).To(Equal(4))
-		Expect(len(c.nameNamespaceBuildToIdMap)).To(Equal(4))
+		Expect(len(c.heapsPerBuilds)).To(Equal(4))
+		Expect(len(c.nameNamespaceToBuildIdMap)).To(Equal(4))
 
 		for i := 0; i < 4; i++ {
-			Expect(len(c.cache[fmt.Sprintf("build-%d", i)].gameServerNameCache)).To(Equal(1))
-			Expect(len(*c.cache[fmt.Sprintf("build-%d", i)].heap)).To(Equal(1))
-			Expect((*c.cache[fmt.Sprintf("build-%d", i)].heap)[0].Name).To(Equal(fmt.Sprintf("gs-%d", i)))
+			Expect(len(c.heapsPerBuilds[fmt.Sprintf("build-%d", i)].gameServerNameSet)).To(Equal(1))
+			Expect(len(*c.heapsPerBuilds[fmt.Sprintf("build-%d", i)].heap)).To(Equal(1))
+			Expect((*c.heapsPerBuilds[fmt.Sprintf("build-%d", i)].heap)[0].Name).To(Equal(fmt.Sprintf("gs-%d", i)))
 		}
 
 		for i := 0; i < 4; i++ {
@@ -45,14 +45,14 @@ var _ = Describe("gameservercache tests", func() {
 				c.PushToCache(gs)
 			}
 		}
-		Expect(len(c.cache)).To(Equal(4))
-		Expect(len(c.nameNamespaceBuildToIdMap)).To(Equal(20))
+		Expect(len(c.heapsPerBuilds)).To(Equal(4))
+		Expect(len(c.nameNamespaceToBuildIdMap)).To(Equal(20))
 
 		for i := 0; i < 4; i++ {
-			Expect(len(c.cache[fmt.Sprintf("build-%d", i)].gameServerNameCache)).To(Equal(5))
-			Expect(len(*c.cache[fmt.Sprintf("build-%d", i)].heap)).To(Equal(5))
+			Expect(len(c.heapsPerBuilds[fmt.Sprintf("build-%d", i)].gameServerNameSet)).To(Equal(5))
+			Expect(len(*c.heapsPerBuilds[fmt.Sprintf("build-%d", i)].heap)).To(Equal(5))
 			for j := 0; j < 5; j++ {
-				Expect((*c.cache[fmt.Sprintf("build-%d", i)].heap)[j].Name).To(Equal(fmt.Sprintf("gs-%d-%d", i, j)))
+				Expect((*c.heapsPerBuilds[fmt.Sprintf("build-%d", i)].heap)[j].Name).To(Equal(fmt.Sprintf("gs-%d-%d", i, j)))
 			}
 		}
 
@@ -65,7 +65,7 @@ var _ = Describe("gameservercache tests", func() {
 		}
 	})
 	It("should work with deleting game server", func() {
-		c := GameServersPerBuildCache{
+		c := GameServerHeapForBuild{
 			heap: &GameServerHeap{},
 		}
 		gsArray := GenerateGameServersForTest()
@@ -99,7 +99,7 @@ var _ = Describe("gameservercache tests", func() {
 			}(i)
 		}
 		wg.Wait()
-		Expect(len(*c.cache["buildId"].heap)).To(Equal(100))
+		Expect(len(*c.heapsPerBuilds["buildId"].heap)).To(Equal(100))
 
 		wg = &sync.WaitGroup{}
 		for i := 0; i < 100; i++ {
@@ -110,7 +110,7 @@ var _ = Describe("gameservercache tests", func() {
 			}(i)
 		}
 		wg.Wait()
-		Expect(len(*c.cache["buildId"].heap)).To(Equal(0))
+		Expect(len(*c.heapsPerBuilds["buildId"].heap)).To(Equal(0))
 	})
 })
 

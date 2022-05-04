@@ -163,13 +163,7 @@ func main() {
 	}
 	//+kubebuilder:scaffold:builder
 
-	aas := &http.AllocationApiServer{
-		CrtBytes: crt,
-		KeyBytes: key,
-		Client:   mgr.GetClient(),
-		Config:   mgr.GetConfig(),
-		Scheme:   mgr.GetScheme(),
-	}
+	aas := http.NewAllocationApiCerver(crt, key, mgr)
 
 	// initialize the allocation API service
 	if err = aas.SetupWithManager(mgr); err != nil {

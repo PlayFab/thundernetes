@@ -42,7 +42,7 @@ var (
 	podsUnderCreation = sync.Map{}
 )
 
-const safeToEvictPodAttribute string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
+const SafeToEvictPodAttribute string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
 const finalizerName string = "gameservers.mps.playfab.com/finalizer"
 
 // GameServerReconciler reconciles a GameServer object
@@ -274,11 +274,11 @@ func (r *GameServerReconciler) addSafeToEvictAnnotationIfNecessary(ctx context.C
 	// we don't need to check if pod.ObjectMeta.Annotations is nil since the check below accommodates for that
 	// https://go.dev/play/p/O9QmzPnKsOK
 	if gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
-		if _, ok := pod.ObjectMeta.Annotations[safeToEvictPodAttribute]; !ok {
+		if _, ok := pod.ObjectMeta.Annotations[SafeToEvictPodAttribute]; !ok {
 			return r.patchPodSafeToEvictAnnotation(ctx, pod, true)
 		}
 	} else if gs.Status.State == mpsv1alpha1.GameServerStateActive {
-		val, ok := pod.ObjectMeta.Annotations[safeToEvictPodAttribute]
+		val, ok := pod.ObjectMeta.Annotations[SafeToEvictPodAttribute]
 		if !ok || val == strconv.FormatBool(true) {
 			return r.patchPodSafeToEvictAnnotation(ctx, pod, false)
 		}
@@ -292,7 +292,7 @@ func (r *GameServerReconciler) patchPodSafeToEvictAnnotation(ctx context.Context
 	if pod.ObjectMeta.Annotations == nil {
 		pod.ObjectMeta.Annotations = map[string]string{}
 	}
-	pod.ObjectMeta.Annotations[safeToEvictPodAttribute] = strconv.FormatBool(safeToEvict)
+	pod.ObjectMeta.Annotations[SafeToEvictPodAttribute] = strconv.FormatBool(safeToEvict)
 	err := r.Patch(ctx, pod, patch)
 	if err != nil {
 		return err
