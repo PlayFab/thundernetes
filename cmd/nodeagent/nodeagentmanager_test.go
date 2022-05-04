@@ -29,6 +29,7 @@ const (
 	testGameServerName      = "testgs"
 	testGameServerNamespace = "default"
 	testNodeName            = "testnode"
+	numberOfAttemps         = 3
 )
 
 var _ = Describe("nodeagent tests", func() {
@@ -90,7 +91,7 @@ var _ = Describe("nodeagent tests", func() {
 		_ = json.Unmarshal(resBody, &hbr)
 		Expect(hbr.Operation).To(Equal(GameOperationContinue))
 	})
-	It("should transition properly from standingBy to Active", FlakeAttempts(3), func() {
+	It("should transition properly from standingBy to Active", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -168,7 +169,7 @@ var _ = Describe("nodeagent tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hbr.Operation).To(Equal(GameOperationContinue))
 	})
-	It("should not create a GameServerDetail if the server is not Active", FlakeAttempts(3), func() {
+	It("should not create a GameServerDetail if the server is not Active", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -210,7 +211,7 @@ var _ = Describe("nodeagent tests", func() {
 		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 
 	})
-	It("should delete the GameServer from the cache when it's delete on K8s", FlakeAttempts(3), func() {
+	It("should delete the GameServer from the cache when it's delete on K8s", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -235,7 +236,7 @@ var _ = Describe("nodeagent tests", func() {
 			return ok
 		}).Should(BeTrue())
 	})
-	It("should create a GameServerDetail on subsequent heartbeats, if it fails on the first time", FlakeAttempts(3), func() {
+	It("should create a GameServerDetail on subsequent heartbeats, if it fails on the first time", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -350,7 +351,7 @@ var _ = Describe("nodeagent tests", func() {
 			g.Expect(u.GetName()).To(Equal(gs.GetName()))
 		}).Should(Succeed())
 	})
-	It("should handle a lot of simultaneous heartbeats from different game servers", FlakeAttempts(3), func() {
+	It("should handle a lot of simultaneous heartbeats from different game servers", FlakeAttempts(numberOfAttemps), func() {
 		rand.Seed(time.Now().UnixNano())
 
 		var wg sync.WaitGroup
@@ -449,7 +450,7 @@ var _ = Describe("nodeagent tests", func() {
 			wg.Wait()
 		}
 	})
-	It("should set CreationTime value when registering a new game server", FlakeAttempts(3), func() {
+	It("should set CreationTime value when registering a new game server", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -469,7 +470,7 @@ var _ = Describe("nodeagent tests", func() {
 		// the CreationTime value should be initialized
 		Expect(gsinfo.(*GameServerInfo).CreationTime).ToNot(Equal(int64(0)))
 	})
-	It("should set LastHeartbeatTime value when receiving a heartbeat from a game server", FlakeAttempts(3), func() {
+	It("should set LastHeartbeatTime value when receiving a heartbeat from a game server", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -510,7 +511,7 @@ var _ = Describe("nodeagent tests", func() {
 			return gsinfo.(*GameServerInfo).LastHeartbeatTime
 		}).ShouldNot(Equal(int64(0)))
 	})
-	It("should mark the game server as unhealthy due to CreationTime", FlakeAttempts(3), func() {
+	It("should mark the game server as unhealthy due to CreationTime", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 		// set initial time
 		customNow := func () time.Time{
@@ -552,7 +553,7 @@ var _ = Describe("nodeagent tests", func() {
 			g.Expect(gameServerHealth).To(Equal("Unhealthy"))
 		}).Should(Succeed())
 	})
-	It("should mark the game server as unhealthy due to LastHeartbeatTime", FlakeAttempts(3), func() {
+	It("should mark the game server as unhealthy due to LastHeartbeatTime", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 		// set initial time
 		customNow := func () time.Time{
