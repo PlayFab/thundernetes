@@ -90,7 +90,7 @@ var _ = Describe("nodeagent tests", func() {
 		_ = json.Unmarshal(resBody, &hbr)
 		Expect(hbr.Operation).To(Equal(GameOperationContinue))
 	})
-	It("should transition properly from standingBy to Active", func() {
+	It("should transition properly from standingBy to Active", FlakeAttempts(3), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -105,7 +105,7 @@ var _ = Describe("nodeagent tests", func() {
 			var ok bool
 			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
-		}, "2s").Should(BeTrue())
+		}).Should(BeTrue())
 
 		// simulate subsequent updates by GSDK
 		gsinfo.(*GameServerInfo).PreviousGameState = GameStateStandingBy
@@ -127,7 +127,7 @@ var _ = Describe("nodeagent tests", func() {
 			gsd := *tempgs.(*GameServerInfo)
 			tempgs.(*GameServerInfo).Mutex.RUnlock()
 			return gsd.IsActive && gsd.PreviousGameState == GameStateStandingBy
-		}, "2s").Should(BeTrue())
+		}).Should(BeTrue())
 
 		// heartbeat from the game is still StandingBy
 		hb := &HeartbeatRequest{
@@ -168,7 +168,7 @@ var _ = Describe("nodeagent tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hbr.Operation).To(Equal(GameOperationContinue))
 	})
-	It("should not create a GameServerDetail if the server is not Active", func() {
+	It("should not create a GameServerDetail if the server is not Active", FlakeAttempts(3), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -182,7 +182,7 @@ var _ = Describe("nodeagent tests", func() {
 			var ok bool
 			_, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
-		}, "2s").Should(BeTrue())
+		}).Should(BeTrue())
 
 		// simulate 5 standingBy heartbeats
 		for i := 0; i < 5; i++ {
@@ -210,7 +210,7 @@ var _ = Describe("nodeagent tests", func() {
 		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 
 	})
-	It("should delete the GameServer from the cache when it's delete on K8s", func() {
+	It("should delete the GameServer from the cache when it's delete on K8s", FlakeAttempts(3), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -224,7 +224,7 @@ var _ = Describe("nodeagent tests", func() {
 			var ok bool
 			_, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
-		}, "2s").Should(BeTrue())
+		}).Should(BeTrue())
 
 		err = dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Delete(context.Background(), gs.GetName(), metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
@@ -235,7 +235,7 @@ var _ = Describe("nodeagent tests", func() {
 			return ok
 		}).Should(BeTrue())
 	})
-	It("should create a GameServerDetail on subsequent heartbeats, if it fails on the first time", func() {
+	It("should create a GameServerDetail on subsequent heartbeats, if it fails on the first time", FlakeAttempts(3), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -250,7 +250,7 @@ var _ = Describe("nodeagent tests", func() {
 			var ok bool
 			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
-		}, "2s").Should(BeTrue())
+		}).Should(BeTrue())
 
 		// simulate subsequent updates by GSDK
 		gsinfo.(*GameServerInfo).PreviousGameState = GameStateStandingBy
@@ -350,7 +350,7 @@ var _ = Describe("nodeagent tests", func() {
 			g.Expect(u.GetName()).To(Equal(gs.GetName()))
 		}).Should(Succeed())
 	})
-	It("should handle a lot of simultaneous heartbeats from different game servers", func() {
+	It("should handle a lot of simultaneous heartbeats from different game servers", FlakeAttempts(3), func() {
 		rand.Seed(time.Now().UnixNano())
 
 		var wg sync.WaitGroup
@@ -373,7 +373,7 @@ var _ = Describe("nodeagent tests", func() {
 					var ok bool
 					gsdetails, ok = n.gameServerMap.Load(randomGameServerName)
 					return ok
-				}, "2s").Should(BeTrue())
+				}).Should(BeTrue())
 
 				// simulate subsequent updates by GSDK
 				gsdetails.(*GameServerInfo).PreviousGameState = GameStateStandingBy
@@ -397,7 +397,7 @@ var _ = Describe("nodeagent tests", func() {
 					gsd := *tempgs.(*GameServerInfo)
 					tempgs.(*GameServerInfo).Mutex.RUnlock()
 					return gsd.IsActive && tempgs.(*GameServerInfo).PreviousGameState == GameStateStandingBy
-				}, "2s").Should(BeTrue())
+				}).Should(BeTrue())
 
 				// wait till the GameServerDetail CR has been created
 				Eventually(func(g Gomega) {
@@ -449,7 +449,7 @@ var _ = Describe("nodeagent tests", func() {
 			wg.Wait()
 		}
 	})
-	It("should set CreationTime value when registering a new game server", func() {
+	It("should set CreationTime value when registering a new game server", FlakeAttempts(3), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -464,12 +464,12 @@ var _ = Describe("nodeagent tests", func() {
 			var ok bool
 			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
-		}, "2s").Should(BeTrue())
+		}).Should(BeTrue())
 
 		// the CreationTime value should be initialized
 		Expect(gsinfo.(*GameServerInfo).CreationTime).ToNot(Equal(int64(0)))
 	})
-	It("should set LastHeartbeatTime value when receiving a heartbeat from a game server", func() {
+	It("should set LastHeartbeatTime value when receiving a heartbeat from a game server", FlakeAttempts(3), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -484,7 +484,7 @@ var _ = Describe("nodeagent tests", func() {
 			var ok bool
 			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
-		}, "2s").Should(BeTrue())
+		}).Should(BeTrue())
 
 		// the LastHeartbeatTime value is uninitialized
 		Expect(gsinfo.(*GameServerInfo).LastHeartbeatTime).To(Equal(int64(0)))
@@ -508,9 +508,9 @@ var _ = Describe("nodeagent tests", func() {
 				return 0
 			}
 			return gsinfo.(*GameServerInfo).LastHeartbeatTime
-		}, "2s").ShouldNot(Equal(int64(0)))
+		}).ShouldNot(Equal(int64(0)))
 	})
-	It("should mark the game server as unhealthy due to CreationTime", func() {
+	It("should mark the game server as unhealthy due to CreationTime", FlakeAttempts(3), func() {
 		dynamicClient := newDynamicInterface()
 		// set initial time
 		customNow := func () time.Time{
@@ -529,7 +529,7 @@ var _ = Describe("nodeagent tests", func() {
 		Eventually(func() bool {
 			_, ok := n.gameServerMap.Load(testGameServerName)
 			return ok
-		}, "2s").Should(BeTrue())
+		}).Should(BeTrue())
 
 		// change time to be 1 min and 1 sec later
 		customNow = func () time.Time{
@@ -552,7 +552,7 @@ var _ = Describe("nodeagent tests", func() {
 			g.Expect(gameServerHealth).To(Equal("Unhealthy"))
 		}).Should(Succeed())
 	})
-	It("should mark the game server as unhealthy due to LastHeartbeatTime", func() {
+	It("should mark the game server as unhealthy due to LastHeartbeatTime", FlakeAttempts(3), func() {
 		dynamicClient := newDynamicInterface()
 		// set initial time
 		customNow := func () time.Time{
@@ -571,7 +571,7 @@ var _ = Describe("nodeagent tests", func() {
 		Eventually(func() bool {
 			_, ok := n.gameServerMap.Load(testGameServerName)
 			return ok
-		}, "2s").Should(BeTrue())
+		}).Should(BeTrue())
 
 		// we send a heartbeat
 		hb := &HeartbeatRequest{
@@ -593,7 +593,7 @@ var _ = Describe("nodeagent tests", func() {
 				return 0
 			}
 			return gsinfo.(*GameServerInfo).LastHeartbeatTime
-		}, "2s").ShouldNot(Equal(int64(0)))
+		}).ShouldNot(Equal(int64(0)))
 
 		// change time to be 6 seconds later
 		customNow = func () time.Time{
