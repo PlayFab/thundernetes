@@ -44,6 +44,8 @@ spec:
               value: ${API_SERVICE_SECURITY}
             - name: THUNDERNETES_INIT_CONTAINER_IMAGE
               value: ${IMAGE_NAME_INIT_CONTAINER}:${IMAGE_TAG}
+            - name: THUNDERNETES_INIT_CONTAINER_IMAGE_WIN
+              value: ${IMAGE_NAME_INIT_CONTAINER_WIN}:${IMAGE_TAG}
             - name: TLS_SECRET_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -125,6 +127,54 @@ spec:
       containers:
       - name: nodeagent
         image: ${IMAGE_NAME_NODE_AGENT}:${IMAGE_TAG}
+        resources:
+          limits:
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 56001
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        ports:
+        - name: nodeagentport
+          containerPort: 56001
+          hostPort: 56001
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NODE_INTERNAL_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: LOG_LEVEL
+          value: ${LOG_LEVEL}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nodeagent-win
+  namespace: system
+spec:
+  selector:
+    matchLabels:
+      name: nodeagent
+  template:
+    metadata:
+      labels:
+        name: nodeagent
+    spec:
+      nodeSelector:
+        kubernetes.io/os: windows
+      serviceAccountName: nodeagent
+      containers:
+      - name: nodeagent
+        image: ${IMAGE_NAME_NODE_AGENT_WIN}:${IMAGE_TAG}
         resources:
           limits:
             memory: 500Mi

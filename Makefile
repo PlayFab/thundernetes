@@ -3,7 +3,9 @@ NS ?= ghcr.io/playfab/
 
 export IMAGE_NAME_OPERATOR=thundernetes-operator
 export IMAGE_NAME_NODE_AGENT=thundernetes-nodeagent
+export IMAGE_NAME_NODE_AGENT_WIN=thundernetes-nodeagent-win
 export IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer
+export IMAGE_NAME_INIT_CONTAINER_WIN=thundernetes-initcontainer-win
 export IMAGE_NAME_NETCORE_SAMPLE=thundernetes-netcore
 export IMAGE_NAME_OPENARENA_SAMPLE=thundernetes-openarena
 export IMAGE_NAME_GAMESERVER_API=thundernetes-gameserverapi
@@ -91,7 +93,9 @@ create-install-files:
 	. .versions && \
 	IMG=$(NS)$(IMAGE_NAME_OPERATOR):$${IMAGE_TAG} \
 	IMAGE_NAME_INIT_CONTAINER=$(NS)$(IMAGE_NAME_INIT_CONTAINER) \
+	IMAGE_NAME_INIT_CONTAINER_WIN=$(NS)$(IMAGE_NAME_INIT_CONTAINER_WIN) \
 	IMAGE_NAME_NODE_AGENT=$(NS)$(IMAGE_NAME_NODE_AGENT) \
+	IMAGE_NAME_NODE_AGENT_WIN=$(NS)$(IMAGE_NAME_NODE_AGENT_WIN) \
 	LOG_LEVEL=info \
 	make -C pkg/operator create-install-files
 
@@ -100,7 +104,9 @@ create-install-files-dev:
 	INSTALL_FILES_FOLDER=../../installfilesdev \
 	IMG=$(NS)$(IMAGE_NAME_OPERATOR):${IMAGE_TAG} \
 	IMAGE_NAME_INIT_CONTAINER=$(NS)$(IMAGE_NAME_INIT_CONTAINER) \
+	IMAGE_NAME_INIT_CONTAINER_WIN=$(NS)$(IMAGE_NAME_INIT_CONTAINER_WIN) \
 	IMAGE_NAME_NODE_AGENT=$(NS)$(IMAGE_NAME_NODE_AGENT) \
+	IMAGE_NAME_NODE_AGENT_WIN=$(NS)$(IMAGE_NAME_NODE_AGENT_WIN) \
 	LOG_LEVEL=debug \
 	make -C pkg/operator create-install-files
 

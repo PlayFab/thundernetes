@@ -61,7 +61,7 @@ var _ = Describe("Utilities tests", func() {
 					BuildID: "test-build",
 				},
 			}
-			s := getGameServerEnvVariables(gs)
+			s := getGameServerEnvVariables(gs, false)
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_GAMESERVER_NAME", Value: "test-gs"})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_GAMESERVER_NAMESPACE", Value: "test-ns"})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_BUILD_ID", Value: "test-build"})).To(BeTrue())
@@ -107,7 +107,7 @@ var _ = Describe("Utilities tests", func() {
 				},
 			}
 
-			s := getInitContainerEnvVariables(gs)
+			s := getInitContainerEnvVariables(gs, false)
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "HEARTBEAT_ENDPOINT_PORT", Value: fmt.Sprintf("%d", DaemonSetPort)})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "GSDK_CONFIG_FILE", Value: GsdkConfigFile})).To(BeTrue())
 			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_SHARED_CONTENT_FOLDER", Value: GameSharedContentDirectory})).To(BeTrue())
@@ -118,7 +118,7 @@ var _ = Describe("Utilities tests", func() {
 		})
 		It("should attach data volume", func() {
 			container := &corev1.Container{}
-			attachDataVolumeOnContainer(container)
+			attachDataVolumeOnContainer(container, false)
 			Expect(container.VolumeMounts[len(container.VolumeMounts)-1]).To(BeEquivalentTo(corev1.VolumeMount{
 				Name:      DataVolumeName,
 				MountPath: DataVolumeMountPath,
@@ -150,12 +150,12 @@ var _ = Describe("Utilities tests", func() {
 					Name: "test-pod",
 				},
 			}
-			attachInitContainer(gs, pod)
+			attachInitContainer(gs, pod, false)
 			Expect(pod.Spec.InitContainers[len(pod.Spec.InitContainers)-1]).To(BeEquivalentTo(corev1.Container{
 				Name:            InitContainerName,
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Image:           InitContainerImage,
-				Env:             getInitContainerEnvVariables(gs),
+				Env:             getInitContainerEnvVariables(gs, false),
 				VolumeMounts: []corev1.VolumeMount{
 					{
 						Name:      DataVolumeName,

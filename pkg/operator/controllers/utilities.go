@@ -27,7 +27,7 @@ const (
 
 	DataVolumeName      = "gsdkdata"
 	DataVolumeMountPath = "/gsdkdata"
-
+	DataVolumeMountPathWin = "c:\\gsdkdata"
 	RandStringSize = 5
 
 	LabelBuildID          = "BuildID"
@@ -36,10 +36,14 @@ const (
 	LabelOwningOperator   = "OwningOperator"
 	LabelNodeName         = "NodeName"
 
-	GsdkConfigFile             = DataVolumeMountPath + "/Config/gsdkConfig.json"
-	LogDirectory               = DataVolumeMountPath + "/GameLogs/"
-	CertificatesDirectory      = DataVolumeMountPath + "/GameCertificates"
-	GameSharedContentDirectory = DataVolumeMountPath + "/GameSharedContent"
+	GsdkConfigFile                = DataVolumeMountPath + "/Config/gsdkConfig.json"
+	LogDirectory                  = DataVolumeMountPath + "/GameLogs/"
+	CertificatesDirectory         = DataVolumeMountPath + "/GameCertificates"
+	GameSharedContentDirectory    = DataVolumeMountPath + "/GameSharedContent"
+	GsdkConfigFileWin             = DataVolumeMountPathWin + "\\Config\\gsdkConfig.json"
+	LogDirectoryWin               = DataVolumeMountPathWin + "\\GameLogs\\"
+	CertificatesDirectoryWin      = DataVolumeMountPathWin + "\\GameCertificates"
+	GameSharedContentDirectoryWin = DataVolumeMountPathWin + "\\GameSharedContent"
 
 	DaemonSetPort int32 = 56001
 
@@ -47,6 +51,7 @@ const (
 )
 
 var InitContainerImage string
+var InitContainerImageWin string
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano()) //randomize name creation
@@ -54,6 +59,10 @@ func init() {
 	InitContainerImage = os.Getenv("THUNDERNETES_INIT_CONTAINER_IMAGE")
 	if InitContainerImage == "" {
 		panic("THUNDERNETES_INIT_CONTAINER_IMAGE cannot be empty")
+	}
+	InitContainerImageWin = os.Getenv("THUNDERNETES_INIT_CONTAINER_IMAGE_WIN")
+	if InitContainerImageWin == "" {
+		panic("THUNDERNETES_INIT_CONTAINER_IMAGE_WIN cannot be empty")
 	}
 }
 
@@ -163,6 +172,9 @@ func NewPodForGameServer(gs *mpsv1alpha1.GameServer) *corev1.Pod {
 		Spec: gs.Spec.Template.Spec,
 	}
 
+	// if the pod is to be run on windows
+	isWindows := pod.Spec.NodeSelector["kubernetes.io/os"] == "windows"
+
 	// copy Labels and Annotations from Pod Template
 	pod.ObjectMeta.Annotations = gs.Spec.Template.Annotations
 	pod.ObjectMeta.Labels = gs.Spec.Template.Labels
@@ -183,10 +195,10 @@ func NewPodForGameServer(gs *mpsv1alpha1.GameServer) *corev1.Pod {
 	createDataVolumeOnPod(pod)
 	// attach data volume and env for all containers in the Pod
 	for i := 0; i < len(pod.Spec.Containers); i++ {
-		attachDataVolumeOnContainer(&pod.Spec.Containers[i])
-		pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, getGameServerEnvVariables(gs)...)
+		attachDataVolumeOnContainer(&pod.Spec.Containers[i], isWindows)
+		pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, getGameServerEnvVariables(gs, isWindows)...)
 	}
-	attachInitContainer(gs, pod)
+	attachInitContainer(gs, pod, isWindows)
 
 	return pod
 }
@@ -196,16 +208,22 @@ func modifyRestartPolicy(pod *corev1.Pod) {
 }
 
 // attachInitContainer attaches the init container to the GameServer Pod
-func attachInitContainer(gs *mpsv1alpha1.GameServer, pod *corev1.Pod) {
+func attachInitContainer(gs *mpsv1alpha1.GameServer, pod *corev1.Pod, isWindows bool) {
+	dataVolumeMountPath := DataVolumeMountPath
+	initContainerImage := InitContainerImage
+	if isWindows {
+		dataVolumeMountPath = DataVolumeMountPathWin
+		initContainerImage = InitContainerImageWin
+	}
 	initcontainer := corev1.Container{
 		Name:            InitContainerName,
 		ImagePullPolicy: corev1.PullIfNotPresent,
-		Image:           InitContainerImage,
-		Env:             getInitContainerEnvVariables(gs),
+		Image:           initContainerImage,
+		Env:             getInitContainerEnvVariables(gs, isWindows),
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      DataVolumeName,
-				MountPath: DataVolumeMountPath,
+				MountPath: dataVolumeMountPath,
 			},
 		},
 	}
@@ -225,15 +243,29 @@ func createDataVolumeOnPod(pod *corev1.Pod) {
 }
 
 // attachDataVolumeOnContainer attaches the data volume to the specified container
-func attachDataVolumeOnContainer(container *corev1.Container) {
+func attachDataVolumeOnContainer(container *corev1.Container, isWindows bool) {
+	dataVolumeMountPath := DataVolumeMountPath
+	if isWindows {
+		dataVolumeMountPath = DataVolumeMountPathWin
+	}
 	container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
 		Name:      DataVolumeName,
-		MountPath: DataVolumeMountPath,
+		MountPath: dataVolumeMountPath,
 	})
 }
 
 // getInitContainerEnvVariables returns the environment variables for the init container
-func getInitContainerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
+func getInitContainerEnvVariables(gs *mpsv1alpha1.GameServer, isWindows bool) []corev1.EnvVar {
+	gsdkConfigFile := GsdkConfigFile
+	gameSharedContentDirectory := GameSharedContentDirectory
+	certificatesDirectory := CertificatesDirectory
+	logDirectory := LogDirectory
+	if isWindows {
+		gsdkConfigFile = GsdkConfigFileWin
+		gameSharedContentDirectory = GameSharedContentDirectoryWin
+		certificatesDirectory = CertificatesDirectoryWin
+		logDirectory = LogDirectoryWin
+	}
 	envList := []corev1.EnvVar{
 		{
 			Name:  "HEARTBEAT_ENDPOINT_PORT",
@@ -241,19 +273,19 @@ func getInitContainerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 		},
 		{
 			Name:  "GSDK_CONFIG_FILE",
-			Value: GsdkConfigFile,
+			Value: gsdkConfigFile,
 		},
 		{
 			Name:  "PF_SHARED_CONTENT_FOLDER",
-			Value: GameSharedContentDirectory,
+			Value: gameSharedContentDirectory,
 		},
 		{
 			Name:  "CERTIFICATE_FOLDER",
-			Value: CertificatesDirectory,
+			Value: certificatesDirectory,
 		},
 		{
 			Name:  "PF_SERVER_LOG_DIRECTORY",
-			Value: LogDirectory,
+			Value: logDirectory,
 		},
 		{
 			Name: "PF_VM_ID",
@@ -311,7 +343,13 @@ func getInitContainerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 }
 
 // ger getGameServerEnvVariables returns the environment variables for the GameServer container
-func getGameServerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
+func getGameServerEnvVariables(gs *mpsv1alpha1.GameServer, isWindows bool) []corev1.EnvVar {
+	gsdkConfigFile := GsdkConfigFile
+	logDirectory := LogDirectory
+	if isWindows {
+		gsdkConfigFile = GsdkConfigFileWin
+		logDirectory = LogDirectoryWin
+	}
 	envList := []corev1.EnvVar{
 		{
 			Name:  "PF_GAMESERVER_NAME",
@@ -319,7 +357,7 @@ func getGameServerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 		},
 		{
 			Name:  "GSDK_CONFIG_FILE",
-			Value: GsdkConfigFile,
+			Value: gsdkConfigFile,
 		},
 		{
 			Name:  "PF_GAMESERVER_NAMESPACE",
@@ -335,7 +373,7 @@ func getGameServerEnvVariables(gs *mpsv1alpha1.GameServer) []corev1.EnvVar {
 		},
 		{
 			Name:  "PF_SERVER_LOG_DIRECTORY",
-			Value: LogDirectory,
+			Value: logDirectory,
 		},
 	}
 
