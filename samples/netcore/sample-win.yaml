@@ -20,7 +20,7 @@ spec:
       nodeSelector:
         kubernetes.io/os: windows
       containers:
-        - image: thundernetesjavier.azurecr.io/thundernetes-netcore-win:0.0.1
+        - image: ghcr.io/playfab/thundernetes-netcore-win:0.3.2
           name: thundernetes-sample-netcore
           ports:
           - containerPort: 80 # your game server port
