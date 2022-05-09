@@ -1,0 +1,32 @@
+# This is a basic workflow to help you get started with Actions
+
+name: publish-container-images-win
+
+# Controls when the workflow will run
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build-and-push-image:
+    # The type of runner that the job will run on
+    runs-on: windows-2019
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: get current version
+        run: $version = Get-Content .\.versions | Where-Object {$_ -like '*IMAGE_TAG*'} | %{ $_.Split('=')[1] }
+      - name: build and push Docker images
+        run: .\windows\buildDockerWin.ps1 -version $version
