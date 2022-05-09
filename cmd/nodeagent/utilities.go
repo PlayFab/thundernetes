@@ -17,16 +17,16 @@ import (
 // ParseInt64FromEnv tries to read an int64 from an environment variable envVar
 // if not possible it returns the defaultValue provided
 func ParseInt64FromEnv(envVar string, defaultValue int64) int64 {
-	value := os.Getenv(envVar)
-	if value != "" {
+	value, ok := os.LookupEnv(envVar)
+	if !ok {
+		log.Infof("Env variable %s not found, using default value %d", envVar, defaultValue)
+	} else {
 		parsedValue, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
-			log.Infof("Error parsing env variable %s, using default value %d", envVar, defaultValue)
+			log.Infof("Error parsing env variable %s as int64, using default value %d", envVar, defaultValue)
 		} else {
 			return parsedValue
 		}
-	} else {
-		log.Infof("Error reading env variable %s, using default value %d", envVar, defaultValue)
 	}
 	return defaultValue	
 }
