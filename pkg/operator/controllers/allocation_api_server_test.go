@@ -9,23 +9,21 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-var (
-	buildName1 string = "testBuild"
-	buildID1   string = "acb84898-cf73-46e2-8057-314ac557d85d"
-	sessionID1 string = "d5f075a4-517b-4bf4-8123-dfa0021aa169"
-	gsName     string = "testgs"
+const (
+	buildName1     string = "testbuild"
+	buildNamespace string = "default"
+	buildID1       string = "acb84898-cf73-46e2-8057-314ac557d85d"
+	sessionID1     string = "d5f075a4-517b-4bf4-8123-dfa0021aa169"
+	gsName         string = "testgs"
 )
 
-var _ = Describe("allocation API service tests", func() {
+var _ = Describe("allocation API service input validation tests", func() {
 	It("empty body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", nil)
 		w := httptest.NewRecorder()
@@ -85,7 +83,7 @@ var _ = Describe("allocation API service tests", func() {
 	})
 	It("should return existing game server when given an existing sessionID", func() {
 		client := newTestSimpleK8s()
-		err := createTestGameServerAndBuild(client, gsName, buildName1, buildID1, sessionID1, mpsv1alpha1.GameServerStateActive)
+		err := testCreateGameServerAndBuild(client, gsName, buildName1, buildID1, sessionID1, mpsv1alpha1.GameServerStateActive)
 		Expect(err).ToNot(HaveOccurred())
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", sessionID1, buildID1)))
 		w := httptest.NewRecorder()
@@ -105,9 +103,9 @@ var _ = Describe("allocation API service tests", func() {
 	})
 	It("should allocate a game server", func() {
 		client := newTestSimpleK8s()
-		err := createTestGameServerAndBuild(client, gsName, buildName1, buildID1, "", mpsv1alpha1.GameServerStateStandingBy)
+		err := testCreateGameServerAndBuild(client, gsName, buildName1, buildID1, "", mpsv1alpha1.GameServerStateStandingBy)
 		Expect(err).ToNot(HaveOccurred())
-		err = createTestPod(client, gsName)
+		err = testCreatePod(client, gsName)
 		Expect(err).ToNot(HaveOccurred())
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", sessionID1, buildID1)))
 		w := httptest.NewRecorder()
@@ -125,83 +123,99 @@ var _ = Describe("allocation API service tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rm.SessionID).To(Equal(sessionID1))
 	})
-	// this is commented out as the fake client does not implement field selector indexing yet
-	//https://github.com/kubernetes-sigs/controller-runtime/issues/1376
-	// It("should return 429 when there are no more servers to allocate", func() {
-	// 	client := newTestSimpleK8s()
-	// 	err := createTestGameServerAndBuild(client, gsName, buildName1, buildID1, sessionID1, mpsv1alpha1.GameServerStateActive)
-	// 	Expect(err).ToNot(HaveOccurred())
-	// 	err = createTestPod(client, gsName)
-	// 	Expect(err).ToNot(HaveOccurred())
-	// 	req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", sessionID2, buildID1)))
-	// 	w := httptest.NewRecorder()
-	// 	h := &allocateHandler{
-	// 		client: client,
-	// 		changeStatusInternalProvider: func(podIP, state, sessionCookie, sessionId string, initialPlayers []string) error {
-	// 			return nil
-	// 		},
-	// 	}
-	// 	h.handle(w, req)
-	// 	res := w.Result()
-	// 	defer res.Body.Close()
-	// 	_, err = ioutil.ReadAll(res.Body)
-	// 	Expect(err).ToNot(HaveOccurred())
-	// 	Expect(res.StatusCode).To(Equal(http.StatusTooManyRequests))
-	// })
 })
 
-func newTestSimpleK8s() client.Client {
-	cb := fake.NewClientBuilder()
-	return cb.Build()
-}
+var _ = Describe("allocation API service queue tests", func() {
+	It("should update queue properly during allocations", func() {
+		// create a GameServerBuild with 2 standingBy servers
+		gsb := testGenerateGameServerBuild(buildName1, buildNamespace, buildID1, 2, 4, false)
+		Expect(testk8sClient.Create(context.TODO(), &gsb)).Should(Succeed())
+		verifyTotalGameServerCount(context.TODO(), buildID1, 2)
+		updateInitializingGameServersToStandingBy(context.TODO(), buildID1)
+		verifyStandingByActiveByCount(context.TODO(), buildID1, 2, 0)
+		// verify that references exist in queue
+		Eventually(func(g Gomega) {
+			testAllocationApiServer.gameServerQueue.mutex.RLock()
+			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
+			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]
+			g.Expect(exists).To(BeTrue())
+			g.Expect(len(*testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1].queue)).To(Equal(2))
+		}).Should(Succeed())
 
-func createTestGameServerAndBuild(client client.Client, gameServerName, buildName, buildID, sessionID string, state mpsv1alpha1.GameServerState) error {
-	gsb := mpsv1alpha1.GameServerBuild{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildName,
-			Namespace: "default",
-		},
-		Spec: mpsv1alpha1.GameServerBuildSpec{
-			BuildID: buildID,
-		},
-	}
-	err := client.Create(context.Background(), &gsb)
-	if err != nil {
-		return err
-	}
-	gs := mpsv1alpha1.GameServer{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      gameServerName,
-			Namespace: "default",
-			Labels: map[string]string{
-				LabelBuildID:   buildID,
-				LabelBuildName: buildName,
-			},
-		},
-		Status: mpsv1alpha1.GameServerStatus{
-			SessionID: sessionID,
-			State:     state,
-		},
-	}
-	err = client.Create(context.Background(), &gs)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+		// allocate a game server
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", uuid.New(), buildID1)))
+		w := httptest.NewRecorder()
+		testAllocationApiServer.handle(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusOK))
 
-func createTestPod(client client.Client, gsName string) error {
-	pod := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: gsName,
-			Labels: map[string]string{
-				LabelOwningGameServer: gsName,
-			},
-		},
-	}
-	err := client.Create(context.Background(), &pod)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+		// validate that 2 game servers are in the queue (since 1 standingBy was created)
+		Eventually(func(g Gomega) {
+			updateInitializingGameServersToStandingBy(context.TODO(), buildID1)
+			testAllocationApiServer.gameServerQueue.mutex.RLock()
+			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
+			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]
+			g.Expect(exists).To(BeTrue())
+			g.Expect(len(*testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1].queue)).To(Equal(2))
+		}).Should(Succeed())
+
+		// do another allocation
+		req = httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", uuid.New(), buildID1)))
+		w = httptest.NewRecorder()
+		testAllocationApiServer.handle(w, req)
+		res = w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusOK))
+
+		// validate that there are two game servers in the queue
+		Eventually(func(g Gomega) {
+			updateInitializingGameServersToStandingBy(context.TODO(), buildID1)
+			testAllocationApiServer.gameServerQueue.mutex.RLock()
+			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
+			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]
+			g.Expect(exists).To(BeTrue())
+			g.Expect(len(*testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1].queue)).To(Equal(2))
+		}).Should(Succeed())
+
+		// downscale the Build to one standingBy
+		Eventually(func(g Gomega) {
+			verifyStandingByActiveByCount(context.TODO(), buildID1, 2, 2)
+			testUpdateGameServerBuild(context.TODO(), 1, 4, buildName1)
+			verifyStandingByActiveByCount(context.TODO(), buildID1, 1, 2)
+		}).Should(Succeed())
+
+		// validate that there is one game server in the queue
+		Eventually(func(g Gomega) {
+			updateInitializingGameServersToStandingBy(context.TODO(), buildID1)
+			testAllocationApiServer.gameServerQueue.mutex.RLock()
+			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
+			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]
+			g.Expect(exists).To(BeTrue())
+			g.Expect(len(*testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1].queue)).To(Equal(1))
+		}).Should(Succeed())
+
+		// downscale the Build to zero standingBy
+		Eventually(func(g Gomega) {
+			testUpdateGameServerBuild(context.TODO(), 0, 4, buildName1)
+			verifyStandingByActiveByCount(context.TODO(), buildID1, 0, 2)
+		}).Should(Succeed())
+
+		// validate that there are no more game servers in the queue
+		Eventually(func(g Gomega) {
+			updateInitializingGameServersToStandingBy(context.TODO(), buildID1)
+			testAllocationApiServer.gameServerQueue.mutex.RLock()
+			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
+			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]
+			g.Expect(exists).To(BeFalse())
+		}).Should(Succeed())
+
+		// allocate a game server, make sure we get a 429
+		req = httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", uuid.New(), buildID1)))
+		w = httptest.NewRecorder()
+		testAllocationApiServer.handle(w, req)
+		res = w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusTooManyRequests))
+	})
+})

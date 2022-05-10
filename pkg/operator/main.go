@@ -120,12 +120,20 @@ func main() {
 		}
 	}
 
+	// initialize the allocation API service, which is also a controller. So we add it to the manager
+	aas := controllers.NewAllocationApiServer(crt, key, mgr.GetClient())
+	if err = aas.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create HTTP allocation API Server", "Allocation API Server", "HTTP Allocation API Server")
+		os.Exit(1)
+	}
+
+	// initialize the portRegistry
 	portRegistry, err := initializePortRegistry(k8sClient, mgr.GetClient(), setupLog)
 	if err != nil {
 		setupLog.Error(err, "unable to initialize portRegistry")
 		os.Exit(1)
 	}
-	// add the portRegistry to the manager so it can reconcile the Nodes
+	// portRegistry is a controller so we add it to the manager (so it can reconcile the Nodes)
 	if err := portRegistry.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PortRegistry")
 		os.Exit(1)
@@ -160,14 +168,6 @@ func main() {
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
-
-	aas := controllers.NewAllocationApiServer(crt, key, mgr.GetClient())
-
-	// initialize the allocation API service
-	if err = aas.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create HTTP allocation API Server", "Allocation API Server", "HTTP Allocation API Server")
-		os.Exit(1)
-	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

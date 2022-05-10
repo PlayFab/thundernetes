@@ -26,16 +26,21 @@ import (
 )
 
 const (
-	listeningPort = 5000
+	// listeningPort is the port the API server will listen on
+	listeningPort   = 5000
+	allocationTries = 3
 )
 
 // AllocationApiServer is a helper struct that implements manager.Runnable interface
 // so it can be added to our Manager
 type AllocationApiServer struct {
-	Client          client.Client
-	CrtBytes        []byte
-	KeyBytes        []byte
-	gameServerCache *GameServersCache
+	Client client.Client
+	// CrtBytes is the PEM-encoded certificate
+	CrtBytes []byte
+	// KeyBytes is the PEM-encoded key
+	KeyBytes []byte
+	// gameServerQueue is a map of priority queues for game servers
+	gameServerQueue *GameServersQueue
 	events          chan event.GenericEvent
 }
 
@@ -57,7 +62,7 @@ func (s *AllocationApiServer) Start(ctx context.Context) error {
 		addr = fmt.Sprintf(":%d", listeningPort)
 	}
 
-	s.gameServerCache = NewGameServersCache()
+	s.gameServerQueue = NewGameServersQueue()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/allocate", s.handle)
@@ -167,20 +172,18 @@ func (s *AllocationApiServer) SetupWithManager(mgr ctrl.Manager) error {
 // Reconcile gets triggered when there is a change on a game server object
 func (s *AllocationApiServer) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-
 	var gs mpsv1alpha1.GameServer
 	if err := s.Client.Get(ctx, req.NamespacedName, &gs); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("Unable to fetch GameServer - deleting from cache")
-			s.gameServerCache.RemoveFromCache(req.Namespace, req.Name)
+			log.Info("Unable to fetch GameServer - deleting from queue")
+			s.gameServerQueue.RemoveFromQueue(req.Namespace, req.Name)
 			return ctrl.Result{}, nil
 		}
 		log.Error(err, "unable to fetch GameServer")
 		return ctrl.Result{}, err
 	}
-
 	if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
-		s.gameServerCache.PushToCache(&GameServerForHeap{
+		s.gameServerQueue.PushToQueue(&GameServerForQueue{
 			Name:            gs.Name,
 			Namespace:       gs.Namespace,
 			BuildID:         gs.Spec.BuildID,
@@ -264,19 +267,19 @@ func (s *AllocationApiServer) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//---------------------------------------------------------------------
 	// allocation using the heap
-	for i := 0; i < 5; i++ {
+	for i := 0; i < allocationTries; i++ {
 		if i > 0 {
-			allocationLogger.Info("retrying", "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
+			allocationLogger.Info("allocation retrying", "buildID", args.BuildID, "retry count", i, "sessionID", args.SessionID)
 		}
-		gs := s.gameServerCache.PopFromCache(args.BuildID)
+		gs := s.gameServerQueue.PopFromQueue(args.BuildID)
 		if gs == nil {
-			// pop from cache returned nil, this means no more game servers in this build
+			// pop from queue returned nil, this means no more game servers in this build
 			tooManyRequestsError(w, fmt.Errorf("not enough standingBy"), "there are not enough standingBy servers")
 			return
 		}
 
+		// we got a standingBy server, so prepare for the Patch
 		gs2 := mpsv1alpha1.GameServer{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            gs.Name,
@@ -284,7 +287,7 @@ func (s *AllocationApiServer) handle(w http.ResponseWriter, r *http.Request) {
 				ResourceVersion: gs.ResourceVersion,
 			},
 		}
-
+		// we're using optimistic lock to make sure the ResourceVersion of the GameServer CR has not been modified
 		m := &client.MergeFromWithOptimisticLock{}
 		patch := client.MergeFromWithOptions(gs2.DeepCopy(), m)
 
@@ -303,10 +306,12 @@ func (s *AllocationApiServer) handle(w http.ResponseWriter, r *http.Request) {
 			} else {
 				allocationLogger.Error(err, "error patching game server", "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
 			}
-			// trigger a reconciliation for this GameServer object
+			// in case of any error, trigger a reconciliation for this GameServer object
+			// so it's re-added to the queue
 			s.events <- event.GenericEvent{
 				Object: &gs2,
 			}
+			// retry if possible
 			continue
 		}
 
@@ -324,14 +329,13 @@ func (s *AllocationApiServer) handle(w http.ResponseWriter, r *http.Request) {
 		allocationLogger.Info("Allocated GameServer", "name", gs2.Name, "sessionID", args.SessionID, "buildID", args.BuildID, "ip", gs2.Status.PublicIP, "ports", gs2.Status.Ports)
 		AllocationsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
 		return
-
 	}
-	//---------------------------------------------------------------------
 
 	// if we reach this point, it means that we have tried multiple times and failed
-	// we return the last error
+	// we return the last error, if possible
 	if err == nil {
 		err = errors.New("unknown error")
 	}
+	allocationLogger.Info("Error allocating", "sessionID", args.SessionID, "buildID", args.BuildID, "error", err)
 	internalServerError(w, err, "error allocating")
 }

@@ -44,6 +44,7 @@ const (
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// Important: Run "make" and "make manifests" to regenerate code after modifying this file
 
 // GameServerSpec defines the desired state of GameServer
 type GameServerSpec struct {
@@ -67,16 +68,22 @@ type GameServerSpec struct {
 
 // GameServerStatus defines the observed state of GameServer
 type GameServerStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	Health         GameServerHealth `json:"health,omitempty"`
-	State          GameServerState  `json:"state,omitempty"`
-	PublicIP       string           `json:"publicIP,omitempty"`
-	Ports          string           `json:"ports,omitempty"`
-	SessionID      string           `json:"sessionID,omitempty"`
-	SessionCookie  string           `json:"sessionCookie,omitempty"`
-	InitialPlayers []string         `json:"initialPlayers,omitempty"`
-	NodeAge        int              `json:"nodeAge,omitempty"`
+	// Health defines the health of the game server
+	Health GameServerHealth `json:"health,omitempty"`
+	// State defines the state of the game server (Initializing, StandingBy, Active etc.)
+	State GameServerState `json:"state,omitempty"`
+	// PublicIP is the PublicIP of the game server
+	PublicIP string `json:"publicIP,omitempty"`
+	// Ports is a concatenated list of the ports this game server listens to
+	Ports string `json:"ports,omitempty"`
+	// SessionID is used during allocation to uniquely identify a game session
+	SessionID string `json:"sessionID,omitempty"`
+	// SessionCookie is an optional parameter that can be set during allocation. It is passed to the game server process
+	SessionCookie string `json:"sessionCookie,omitempty"`
+	// InitialPlayers is an optional list of usernames of the initial players that will enter the server. It is used for validation via the game server process
+	InitialPlayers []string `json:"initialPlayers,omitempty"`
+	// NodeAge is the age in days of the Node (VM) hosting this game server
+	NodeAge int `json:"nodeAge,omitempty"`
 }
 
 //+kubebuilder:object:root=true

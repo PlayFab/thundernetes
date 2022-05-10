@@ -38,8 +38,9 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var k8sClient client.Client
+var testk8sClient client.Client
 var testEnv *envtest.Environment
+var testAllocationApiServer *AllocationApiServer
 
 func TestController(t *testing.T) {
 	defer GinkgoRecover()
@@ -66,9 +67,9 @@ var _ = BeforeSuite(func() {
 
 	//+kubebuilder:scaffold:scheme
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	testk8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
+	Expect(testk8sClient).NotTo(BeNil())
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
@@ -76,7 +77,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	// generate a port registry for the tests
-	portRegistry, err := NewPortRegistry(k8sClient, &mpsv1alpha1.GameServerList{}, 20000, 20100, 1, false, ctrl.Log)
+	portRegistry, err := NewPortRegistry(testk8sClient, &mpsv1alpha1.GameServerList{}, 20000, 20100, 1, false, ctrl.Log)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = portRegistry.SetupWithManager(k8sManager)
@@ -99,14 +100,14 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = NewAllocationApiServer(nil, nil, k8sManager.GetClient()).SetupWithManager(k8sManager)
+	testAllocationApiServer = NewAllocationApiServer(nil, nil, k8sManager.GetClient())
+	err = testAllocationApiServer.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
 		err = k8sManager.Start(ctrl.SetupSignalHandler())
 		Expect(err).ToNot(HaveOccurred())
 	}()
-
 })
 
 var _ = AfterSuite(func() {
