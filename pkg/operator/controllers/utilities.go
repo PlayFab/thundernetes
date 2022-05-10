@@ -402,7 +402,7 @@ func containsString(slice []string, s string) bool {
 	return false
 }
 
-// getContainerHostPortTuples returns a concatenated of hostPort:containerPort tuples
+// getContainerHostPortTuples returns a concatenated list of hostPort:containerPort tuples
 func getContainerHostPortTuples(pod *corev1.Pod) string {
 	var ports strings.Builder
 	for _, container := range pod.Spec.Containers {

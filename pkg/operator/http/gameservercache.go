@@ -2,7 +2,6 @@ package http
 
 import (
 	"container/heap"
-	"fmt"
 	"sync"
 )
 
@@ -49,7 +48,8 @@ func (gsc *GameServersCache) PopFromCache(buildID string) *GameServerForHeap {
 		return nil
 	}
 	gsfh := gsc.heapsPerBuilds[buildID].PopFromHeap()
-	if gsfh == nil { // heap is empty
+	// if we ran out of GameServers for this GameServerBuild
+	if len(gsc.heapsPerBuilds[buildID].gameServerNameSet) == 0 {
 		delete(gsc.heapsPerBuilds, buildID)
 	}
 	return gsfh
@@ -100,7 +100,6 @@ func (gsbc *GameServerHeapForBuild) PushToCache(gs *GameServerForHeap) {
 		defer gsbc.mutex.Unlock()
 		gsbc.gameServerNameSet[gs.Name] = struct{}{}
 		gsbc.heap.PushToHeap(gs)
-		fmt.Printf("Pushed to heap %s\n", gs.Name)
 	}
 }
 
@@ -128,7 +127,6 @@ func (gsbc *GameServerHeapForBuild) RemoveFromCache(namespace, name string) {
 	defer gsbc.mutex.Unlock()
 	for i, gs2 := range *gsbc.heap {
 		if name == gs2.Name && namespace == gs2.Namespace {
-			fmt.Printf("Removed from heap %s\n", gs2.Name)
 			heap.Remove(gsbc.heap, i)
 			delete(gsbc.gameServerNameSet, name)
 			return
