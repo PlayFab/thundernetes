@@ -1,4 +1,4 @@
-package http
+package controllers
 
 import (
 	"context"
@@ -15,18 +15,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
-	"github.com/playfab/thundernetes/pkg/operator/controllers"
 )
 
 const (
@@ -37,21 +33,17 @@ const (
 // so it can be added to our Manager
 type AllocationApiServer struct {
 	Client          client.Client
-	Config          *rest.Config
-	Scheme          *runtime.Scheme
 	CrtBytes        []byte
 	KeyBytes        []byte
 	gameServerCache *GameServersCache
 	events          chan event.GenericEvent
 }
 
-func NewAllocationApiCerver(crt, key []byte, mgr manager.Manager) *AllocationApiServer {
+func NewAllocationApiServer(crt, key []byte, cl client.Client) *AllocationApiServer {
 	return &AllocationApiServer{
 		CrtBytes: crt,
 		KeyBytes: key,
-		Client:   mgr.GetClient(),
-		Config:   mgr.GetConfig(),
-		Scheme:   mgr.GetScheme(),
+		Client:   cl,
 		events:   make(chan event.GenericEvent, 100),
 	}
 }
@@ -246,7 +238,7 @@ func (s *AllocationApiServer) handle(w http.ResponseWriter, r *http.Request) {
 	var gameserversForSessionID mpsv1alpha1.GameServerList
 	err = s.Client.List(ctx, &gameserversForSessionID, &client.ListOptions{
 		FieldSelector: fields.SelectorFromSet(fields.Set{"status.sessionID": args.SessionID}),
-		LabelSelector: labels.SelectorFromSet(labels.Set{controllers.LabelBuildID: args.BuildID}),
+		LabelSelector: labels.SelectorFromSet(labels.Set{LabelBuildID: args.BuildID}),
 	})
 	if err != nil {
 		internalServerError(w, err, "error listing")
@@ -330,7 +322,7 @@ func (s *AllocationApiServer) handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		allocationLogger.Info("Allocated GameServer", "name", gs2.Name, "sessionID", args.SessionID, "buildID", args.BuildID, "ip", gs2.Status.PublicIP, "ports", gs2.Status.Ports)
-		controllers.AllocationsCounter.WithLabelValues(gs2.Labels[controllers.LabelBuildName]).Inc()
+		AllocationsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
 		return
 
 	}

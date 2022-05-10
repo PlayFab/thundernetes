@@ -45,8 +45,6 @@ import (
 	//+kubebuilder:scaffold:imports
 
 	corev1 "k8s.io/api/core/v1"
-
-	"github.com/playfab/thundernetes/pkg/operator/http"
 )
 
 var (
@@ -163,7 +161,7 @@ func main() {
 	}
 	//+kubebuilder:scaffold:builder
 
-	aas := http.NewAllocationApiCerver(crt, key, mgr)
+	aas := controllers.NewAllocationApiServer(crt, key, mgr.GetClient())
 
 	// initialize the allocation API service
 	if err = aas.SetupWithManager(mgr); err != nil {

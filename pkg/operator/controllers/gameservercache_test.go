@@ -1,4 +1,4 @@
-package http
+package controllers
 
 import (
 	"container/heap"

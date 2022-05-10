@@ -1,4 +1,4 @@
-package http
+package controllers
 
 import (
 	"bytes"
@@ -8,15 +8,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
-	"github.com/playfab/thundernetes/pkg/operator/controllers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -153,16 +150,8 @@ var _ = Describe("allocation API service tests", func() {
 	// })
 })
 
-func TestApiService(t *testing.T) {
-	RegisterFailHandler(Fail)
-
-	RunSpecs(t, "Allocation API Service Suite")
-}
-
 func newTestSimpleK8s() client.Client {
 	cb := fake.NewClientBuilder()
-	err := mpsv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).ToNot(HaveOccurred())
 	return cb.Build()
 }
 
@@ -185,8 +174,8 @@ func createTestGameServerAndBuild(client client.Client, gameServerName, buildNam
 			Name:      gameServerName,
 			Namespace: "default",
 			Labels: map[string]string{
-				controllers.LabelBuildID:   buildID,
-				controllers.LabelBuildName: buildName,
+				LabelBuildID:   buildID,
+				LabelBuildName: buildName,
 			},
 		},
 		Status: mpsv1alpha1.GameServerStatus{
@@ -206,7 +195,7 @@ func createTestPod(client client.Client, gsName string) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: gsName,
 			Labels: map[string]string{
-				controllers.LabelOwningGameServer: gsName,
+				LabelOwningGameServer: gsName,
 			},
 		},
 	}
