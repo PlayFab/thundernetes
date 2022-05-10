@@ -28,7 +28,5 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: get current version
-        run: $version = Get-Content .\.versions | Where-Object {$_ -like '*IMAGE_TAG*'} | %{ $_.Split('=')[1] }
       - name: build and push Docker images
-        run: .\windows\buildDockerWin.ps1 -version $version
+        run: $version = Get-Content .\.versions | Where-Object {$_ -like '*IMAGE_TAG*'} | %{ $_.Split('=')[1] } && .\windows\buildDockerWin.ps1 -version $version
