@@ -25,10 +25,10 @@ const (
 	GameServerKind      = "GameServer"
 	GameServerBuildKind = "GameServerBuild"
 
-	DataVolumeName      = "gsdkdata"
-	DataVolumeMountPath = "/gsdkdata"
+	DataVolumeName         = "gsdkdata"
+	DataVolumeMountPath    = "/gsdkdata"
 	DataVolumeMountPathWin = "c:\\gsdkdata"
-	RandStringSize = 5
+	RandStringSize         = 5
 
 	LabelBuildID          = "BuildID"
 	LabelBuildName        = "BuildName"
