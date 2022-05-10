@@ -1,8 +1,15 @@
-param ($repo, $imageVersion)
-if ($imageVersion -eq "")
+param ($registry, $version)
+
+if (-Not $PSBoundParameters.ContainsKey("version"))
 {
     $version = git rev-list HEAD --max-count=1 --abbrev-commit
 }
+if (-Not $PSBoundParameters.ContainsKey("registry"))
+{
+    $registry = "ghcr.io/playfab/"
+}
+write-host "version:"$version
+write-host "registry:"$registry
 $version = ":"+$version
 $dockerfilesWin = Get-ChildItem -Include Dockerfile.win -Recurse
 $dockerFolders = Split-Path -parent $dockerfilesWin
