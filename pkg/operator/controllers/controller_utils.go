@@ -193,7 +193,7 @@ func NewPodForGameServer(gs *mpsv1alpha1.GameServer) *corev1.Pod {
 	pod.ObjectMeta.Labels[LabelOwningOperator] = "thundernetes"
 
 	// following methods should be called in this exact order
-	modifyRestartPolicy(pod)
+	setPodRestartPolicyToNever(pod)
 	createDataVolumeOnPod(pod)
 	// attach data volume and env for all containers in the Pod
 	for i := 0; i < len(pod.Spec.Containers); i++ {
@@ -205,7 +205,8 @@ func NewPodForGameServer(gs *mpsv1alpha1.GameServer) *corev1.Pod {
 	return pod
 }
 
-func modifyRestartPolicy(pod *corev1.Pod) {
+// setPodRestartPolicyToNever sets the Pod's restart policy to Never
+func setPodRestartPolicyToNever(pod *corev1.Pod) {
 	pod.Spec.RestartPolicy = corev1.RestartPolicyNever
 }
 

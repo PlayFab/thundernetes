@@ -53,7 +53,7 @@ func verifyThatBuildIsUnhealthy(ctx context.Context, buildName string) {
 	}, assertTimeout, assertPollingInterval).Should(BeTrue())
 }
 
-func verifyGameServersForBuildAreInitializing(ctx context.Context, buildID string, count int) {
+func testVerifyGameServersForBuildAreInitializing(ctx context.Context, buildID string, count int) {
 	Eventually(func() bool {
 		var gameServers mpsv1alpha1.GameServerList
 		err := testk8sClient.List(ctx, &gameServers, client.InNamespace(testnamespace), client.MatchingLabels{LabelBuildID: buildID})
@@ -116,8 +116,8 @@ func testUpdateGameServerBuild(ctx context.Context, standingBy, max int, buildNa
 	}, timeout, interval).Should(Succeed())
 }
 
-// verifyTotalGameServerCount verifies the total number of game servers
-func verifyTotalGameServerCount(ctx context.Context, buildID string, total int) {
+// testVerifyTotalGameServerCount verifies the total number of game servers
+func testVerifyTotalGameServerCount(ctx context.Context, buildID string, total int) {
 	Eventually(func() bool {
 		var gameServers mpsv1alpha1.GameServerList
 		err := testk8sClient.List(ctx, &gameServers, client.InNamespace(testnamespace), client.MatchingLabels{LabelBuildID: buildID})
@@ -127,7 +127,7 @@ func verifyTotalGameServerCount(ctx context.Context, buildID string, total int) 
 }
 
 // verifyStandindByActiveCount verifies that the number of standingBy and active game servers is equal to the expected
-func verifyStandingByActiveByCount(ctx context.Context, buildID string, standingByCount, activeCount int) {
+func testVerifyStandingByActiveByCount(ctx context.Context, buildID string, standingByCount, activeCount int) {
 	Eventually(func() bool {
 		var gameServers mpsv1alpha1.GameServerList
 		err := testk8sClient.List(ctx, &gameServers, client.InNamespace(testnamespace), client.MatchingLabels{LabelBuildID: buildID})
@@ -161,8 +161,8 @@ func getGameServer(ctx context.Context, gameServerName string) mpsv1alpha1.GameS
 	return gameServer
 }
 
-// updateInitializingGameServersToStandingBy sets all initializing game servers to standing by
-func updateInitializingGameServersToStandingBy(ctx context.Context, buildID string) {
+// testUpdateInitializingGameServersToStandingBy sets all initializing game servers to standing by
+func testUpdateInitializingGameServersToStandingBy(ctx context.Context, buildID string) {
 	var gameServers mpsv1alpha1.GameServerList
 	err := testk8sClient.List(ctx, &gameServers, client.InNamespace(testnamespace), client.MatchingLabels{LabelBuildID: buildID})
 	Expect(err).ToNot(HaveOccurred())
@@ -241,7 +241,7 @@ func generateGameServer(buildName, buildID, gsNamespace, gsName string) *mpsv1al
 	}
 }
 
-func newTestSimpleK8s() client.Client {
+func testNewSimpleK8sClient() client.Client {
 	cb := fake.NewClientBuilder()
 	return cb.Build()
 }

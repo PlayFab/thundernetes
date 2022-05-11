@@ -38,15 +38,21 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
+// testK8sClient is a k8s client used for testing
 var testk8sClient client.Client
+
+// testEnv is the test environment for the test suite
 var testEnv *envtest.Environment
+
+// testAllocationApiServer is a global allocation API server
+// global since we need to access it from various places
 var testAllocationApiServer *AllocationApiServer
 
 func TestController(t *testing.T) {
 	defer GinkgoRecover()
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "GameServerBuild Suite")
+	RunSpecs(t, "Thundernetes controller Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -80,6 +86,7 @@ var _ = BeforeSuite(func() {
 	portRegistry, err := NewPortRegistry(testk8sClient, &mpsv1alpha1.GameServerList{}, 20000, 20100, 1, false, ctrl.Log)
 	Expect(err).ToNot(HaveOccurred())
 
+	// port registry is a controller, add it to the manager
 	err = portRegistry.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -100,6 +107,7 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
+	// allocation api service is a controller, so add it to the manager
 	testAllocationApiServer = NewAllocationApiServer(nil, nil, k8sManager.GetClient())
 	err = testAllocationApiServer.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

@@ -13,7 +13,7 @@ var _ = Describe("gameserverqueue tests", func() {
 	It("should add a game server per build", func() {
 		c := NewGameServersQueue()
 		for i := 0; i < 4; i++ {
-			gs := createGameServerForQueueTest(fmt.Sprintf("gs-%d", i), fmt.Sprintf("ns-%d", i), fmt.Sprintf("build-%d", i), 0)
+			gs := testCreateGameServerForQueue(fmt.Sprintf("gs-%d", i), fmt.Sprintf("ns-%d", i), fmt.Sprintf("build-%d", i), 0)
 			c.PushToQueue(gs)
 		}
 		Expect(len(c.queuesPerBuilds)).To(Equal(4))
@@ -48,7 +48,7 @@ var _ = Describe("gameserverqueue tests", func() {
 		const gameServersPerBuild = 5
 		for i := 0; i < totalBuilds; i++ {
 			for j := 0; j < gameServersPerBuild; j++ {
-				gs := createGameServerForQueueTest(fmt.Sprintf("gs-%d-%d", i, j), fmt.Sprintf("ns-%d", i), fmt.Sprintf("build-%d", i), j)
+				gs := testCreateGameServerForQueue(fmt.Sprintf("gs-%d-%d", i, j), fmt.Sprintf("ns-%d", i), fmt.Sprintf("build-%d", i), j)
 				c.PushToQueue(gs)
 			}
 		}
@@ -79,7 +79,7 @@ var _ = Describe("gameserverqueue tests", func() {
 		c := GameServerQueueForBuild{
 			queue: &GameServerQueue{},
 		}
-		gsArray := generateGameServersForTest()
+		gsArray := testFenerateGameServers()
 		for _, gs := range gsArray {
 			c.queue.PushToQueue(gs)
 		}
@@ -88,10 +88,10 @@ var _ = Describe("gameserverqueue tests", func() {
 		Expect(gs.NodeAge).To(Equal(1))
 		Expect(gs.Name).To(Equal("gs-1"))
 
-		deleteGameServerWithName("gs-2", c.queue)
-		deleteGameServerWithName("gs-2", c.queue)
-		deleteGameServerWithName("gs-3", c.queue)
-		deleteGameServerWithName("gs-3", c.queue)
+		testDeleteGameServerWithName("gs-2", c.queue)
+		testDeleteGameServerWithName("gs-2", c.queue)
+		testDeleteGameServerWithName("gs-3", c.queue)
+		testDeleteGameServerWithName("gs-3", c.queue)
 
 		gs = c.queue.PopFromQueue()
 		Expect(gs.NodeAge).To(Equal(4))
@@ -101,7 +101,7 @@ var _ = Describe("gameserverqueue tests", func() {
 		Expect(gs.NodeAge).To(Equal(5))
 		Expect(gs.Name).To(Equal("gs-5"))
 
-		deleteGameServerWithName("gs-5", c.queue)
+		testDeleteGameServerWithName("gs-5", c.queue)
 
 		gs = c.queue.PopFromQueue()
 		Expect(gs.NodeAge).To(Equal(6))
@@ -115,7 +115,7 @@ var _ = Describe("gameserverqueue tests", func() {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
-				gs := createGameServerForQueueTest(fmt.Sprintf("gs-%d", i), "ns", testBuildID, i)
+				gs := testCreateGameServerForQueue(fmt.Sprintf("gs-%d", i), "ns", testBuildID, i)
 				c.PushToQueue(gs)
 			}(i)
 		}
@@ -136,7 +136,7 @@ var _ = Describe("gameserverqueue tests", func() {
 	})
 })
 
-func createGameServerForQueueTest(name, namespace, buildID string, nodeAge int) *GameServerForQueue {
+func testCreateGameServerForQueue(name, namespace, buildID string, nodeAge int) *GameServerForQueue {
 	return &GameServerForQueue{
 		Name:      name,
 		Namespace: namespace,
@@ -145,7 +145,7 @@ func createGameServerForQueueTest(name, namespace, buildID string, nodeAge int) 
 	}
 }
 
-func deleteGameServerWithName(name string, h *GameServerQueue) {
+func testDeleteGameServerWithName(name string, h *GameServerQueue) {
 	for i, gs := range *h {
 		if gs.Name == name {
 			heap.Remove(h, i)
@@ -154,7 +154,7 @@ func deleteGameServerWithName(name string, h *GameServerQueue) {
 	}
 }
 
-func generateGameServersForTest() []*GameServerForQueue {
+func testFenerateGameServers() []*GameServerForQueue {
 	nums := []int{3, 2, 20, 5, 3, 1, 2, 5, 6, 9, 10, 4}
 	var gameServers []*GameServerForQueue
 	for _, i := range nums {

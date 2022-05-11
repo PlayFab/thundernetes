@@ -168,7 +168,7 @@ var _ = Describe("Utilities tests", func() {
 			pod := &corev1.Pod{
 				Spec: corev1.PodSpec{},
 			}
-			modifyRestartPolicy(pod)
+			setPodRestartPolicyToNever(pod)
 			Expect(pod.Spec.RestartPolicy).To(Equal(corev1.RestartPolicyNever))
 		})
 		It("should generate a random name with prefix", func() {
