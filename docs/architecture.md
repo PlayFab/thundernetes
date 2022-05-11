@@ -68,13 +68,18 @@ Make sure you familiarize yourself with the [GameServer lifecycle](gameserverlif
 - Find a GameServer instance for the requested GameServerBuild in the StandindBy state and update it to the Active state.
 - Inform the corresponding GameServer Pod (specifically, the NodeAgent that handles GSDK calls for that Pod) that the GameServer state is now Active. NodeAgent will pass this information to the GameServer container. The way that this is accomplished is the following: each GameServer process/container regularly heartbeats (sends a JSON HTTP request) to the NodeAgent. When the NodeAgent is notified that the GameServer state has transitioned to Active, it will respond send information about the change of state back to the GameServer container.
 
-There are two ways we could accomplish the second step:
+The way we accomplish the second step is by having a [Kubernetes watch](https://kubernetes.io/docs/reference/using-api/api-concepts/#efficient-detection-of-changes) from the NodeAgent to the Kubernetes' API server which will be notified when the GameServer is updated. This approach works well from a security perspective, since you can configure RBAC rules for the GameServer Pod.
 
-- Have a [Kubernetes watch](https://kubernetes.io/docs/reference/using-api/api-concepts/#efficient-detection-of-changes) from the NodeAgent to the Kubernetes' API server which will be notified when the GameServer is updated. This approach works well from a security perspective, since you can configure RBAC rules for the GameServer Pod.
-- Have the controller's allocation API service forward the allocation request to the NodeAgent. This is done via having the NodeAgent expose its HTTP server inside the cluster. Of course, this assumes that we trust the processes running on the containers in the cluster.
+> Originally, we have the controller's allocation API service forward the allocation request to the NodeAgent. This was done via having the NodeAgent expose its HTTP server inside the cluster. Of course, this assumes that we trust the processes running on the containers in the cluster. This approach was abandoned due to security concerns
 
-For communicating with the NodeAgent, we eventually picked the first approach. The second approach was used initially but was abandoned due to security concerns.
+### How Thundernetes chooses a GameServer to allocate
 
-Moreover, when the user allocates a game server we create an instance of the GameServerDetail custom resource which stores details about the connected players of the game. User can call the `UpdateConnectedPlayers` GSDK method from within the game server process to update the connected players. The GameServerDetail has a 1:1 relationship with the GameServer CR and share the same name. Moreover, GameServer is the owner of the GameServerDetail instance so both will be deleted, upon GameServer's deletion. 
+Currently (version>=0.4) Thundernetes tries to find a StandingBy server that is on the newest Node, in order to allocate. This is done so the oldest Nodes will tend to have only StandingBy servers, so in case of a scale down they will be removed. On a potential scale up, we will bring fresh Nodes to the cluster. Fresh Nodes have the advantage that will have the latest security updates installed and will come with a clean state. 
 
-Worth mentioning here is the fact that up to 0.1, the NodeAgent process was a sidecar container that lived inside the GameServer Pod. However, on version 0.2 we transitioned to a NodeAgent Pod that runs on all Nodes in the cluster. This was done to avoid the need for a sidecar container and also made `hostNetwork` functionality available.
+Thundernetes prioritizes allocations on the newest Node by maintaining a priority queue of GameServers with an ascending order of the Node's age (in days). The allocation API service monitors the GameServer custom resources and adds/removes them to/from the queue as needed.
+
+### Tracking connected players
+
+Moreover, when the user allocates a game server NodeAgent creates an instance of the GameServerDetail custom resource which stores details about the connected players of the game. User can call the `UpdateConnectedPlayers` GSDK method from within the game server process to update the connected players. The GameServerDetail has a 1:1 relationship with the GameServer CR and share the same name. Moreover, GameServer is the owner of the GameServerDetail instance so both will be deleted, upon GameServer's deletion. 
+
+> Worth mentioning here is the fact that up to 0.1, the NodeAgent process was a sidecar container that lived inside the GameServer Pod. However, on version 0.2 we transitioned to a NodeAgent Pod that runs on all Nodes in the cluster. This was done to avoid the need for a sidecar container and also made `hostNetwork` functionality available.
