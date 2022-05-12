@@ -19,7 +19,7 @@ var _ = Describe("GameServer controller tests", func() {
 		It("should create pod", func() {
 			ctx := context.Background()
 
-			gs := generateGameServer(buildName, buildID, testnamespace, gsName)
+			gs := testGenerateGameServer(buildName, buildID, testnamespace, gsName)
 			Expect(testk8sClient.Create(ctx, gs)).Should(Succeed())
 
 			var pod corev1.Pod

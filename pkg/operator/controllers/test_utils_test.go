@@ -209,7 +209,8 @@ func testGenerateGameServerBuild(buildName, buildNamespace, buildID string, stan
 	}
 }
 
-func generateGameServer(buildName, buildID, gsNamespace, gsName string) *mpsv1alpha1.GameServer {
+// testGenerateGameServer returns a new GameServer with the given name and ID.
+func testGenerateGameServer(buildName, buildID, gsNamespace, gsName string) *mpsv1alpha1.GameServer {
 	return &mpsv1alpha1.GameServer{
 		Spec: mpsv1alpha1.GameServerSpec{
 			BuildID: buildID,
@@ -241,11 +242,13 @@ func generateGameServer(buildName, buildID, gsNamespace, gsName string) *mpsv1al
 	}
 }
 
+// testNewSimpleK8sClient returns a new fake k8s client
 func testNewSimpleK8sClient() client.Client {
 	cb := fake.NewClientBuilder()
 	return cb.Build()
 }
 
+// testCreateGameServerAndBuild creates a GameServer and GameServerBuild with the given name and ID.
 func testCreateGameServerAndBuild(client client.Client, gameServerName, buildName, buildID, sessionID string, state mpsv1alpha1.GameServerState) error {
 	gsb := mpsv1alpha1.GameServerBuild{
 		ObjectMeta: metav1.ObjectMeta{
@@ -281,6 +284,7 @@ func testCreateGameServerAndBuild(client client.Client, gameServerName, buildNam
 	return nil
 }
 
+// testCreatePod creates a Pod with the given name
 func testCreatePod(client client.Client, gsName string) error {
 	pod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -295,4 +299,14 @@ func testCreatePod(client client.Client, gsName string) error {
 		return err
 	}
 	return nil
+}
+
+// testVerifyEnv verifies that environment variable exists in the array and has the expected value
+func testVerifyEnv(envs []corev1.EnvVar, env corev1.EnvVar) bool {
+	for _, e := range envs {
+		if e.Name == env.Name {
+			return e.Value == env.Value
+		}
+	}
+	return false
 }

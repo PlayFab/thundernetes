@@ -123,10 +123,10 @@ var _ = Describe("allocation API service queue tests", func() {
 	It("should update queue properly during allocations", func() {
 		// create a GameServerBuild with 2 standingBy servers
 		gsb := testGenerateGameServerBuild(buildName1, buildNamespace, buildID1, 2, 4, false)
-		Expect(testk8sClient.Create(context.TODO(), &gsb)).Should(Succeed())
-		testVerifyTotalGameServerCount(context.TODO(), buildID1, 2)
-		testUpdateInitializingGameServersToStandingBy(context.TODO(), buildID1)
-		testVerifyStandingByActiveByCount(context.TODO(), buildID1, 2, 0)
+		Expect(testk8sClient.Create(context.Background(), &gsb)).Should(Succeed())
+		testVerifyTotalGameServerCount(context.Background(), buildID1, 2)
+		testUpdateInitializingGameServersToStandingBy(context.Background(), buildID1)
+		testVerifyStandingByActiveByCount(context.Background(), buildID1, 2, 0)
 		// verify that references exist in queue
 		Eventually(func(g Gomega) {
 			testAllocationApiServer.gameServerQueue.mutex.RLock()
@@ -146,7 +146,7 @@ var _ = Describe("allocation API service queue tests", func() {
 
 		// validate that 2 game servers are in the queue (since 1 standingBy was created)
 		Eventually(func(g Gomega) {
-			testUpdateInitializingGameServersToStandingBy(context.TODO(), buildID1)
+			testUpdateInitializingGameServersToStandingBy(context.Background(), buildID1)
 			testAllocationApiServer.gameServerQueue.mutex.RLock()
 			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
 			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]
@@ -164,7 +164,7 @@ var _ = Describe("allocation API service queue tests", func() {
 
 		// validate that there are two game servers in the queue
 		Eventually(func(g Gomega) {
-			testUpdateInitializingGameServersToStandingBy(context.TODO(), buildID1)
+			testUpdateInitializingGameServersToStandingBy(context.Background(), buildID1)
 			testAllocationApiServer.gameServerQueue.mutex.RLock()
 			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
 			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]
@@ -174,14 +174,14 @@ var _ = Describe("allocation API service queue tests", func() {
 
 		// downscale the Build to one standingBy
 		Eventually(func(g Gomega) {
-			testVerifyStandingByActiveByCount(context.TODO(), buildID1, 2, 2)
-			testUpdateGameServerBuild(context.TODO(), 1, 4, buildName1)
-			testVerifyStandingByActiveByCount(context.TODO(), buildID1, 1, 2)
+			testVerifyStandingByActiveByCount(context.Background(), buildID1, 2, 2)
+			testUpdateGameServerBuild(context.Background(), 1, 4, buildName1)
+			testVerifyStandingByActiveByCount(context.Background(), buildID1, 1, 2)
 		}).Should(Succeed())
 
 		// validate that there is one game server in the queue
 		Eventually(func(g Gomega) {
-			testUpdateInitializingGameServersToStandingBy(context.TODO(), buildID1)
+			testUpdateInitializingGameServersToStandingBy(context.Background(), buildID1)
 			testAllocationApiServer.gameServerQueue.mutex.RLock()
 			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
 			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]
@@ -191,13 +191,13 @@ var _ = Describe("allocation API service queue tests", func() {
 
 		// downscale the Build to zero standingBy
 		Eventually(func(g Gomega) {
-			testUpdateGameServerBuild(context.TODO(), 0, 4, buildName1)
-			testVerifyStandingByActiveByCount(context.TODO(), buildID1, 0, 2)
+			testUpdateGameServerBuild(context.Background(), 0, 4, buildName1)
+			testVerifyStandingByActiveByCount(context.Background(), buildID1, 0, 2)
 		}).Should(Succeed())
 
 		// validate that there are no more game servers in the queue
 		Eventually(func(g Gomega) {
-			testUpdateInitializingGameServersToStandingBy(context.TODO(), buildID1)
+			testUpdateInitializingGameServersToStandingBy(context.Background(), buildID1)
 			testAllocationApiServer.gameServerQueue.mutex.RLock()
 			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
 			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]

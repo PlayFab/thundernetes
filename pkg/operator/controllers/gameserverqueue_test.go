@@ -11,21 +11,22 @@ import (
 
 var _ = Describe("gameserverqueue tests", func() {
 	It("should add a game server per build", func() {
+		const totalBuilds = 4
 		c := NewGameServersQueue()
-		for i := 0; i < 4; i++ {
+		for i := 0; i < totalBuilds; i++ {
 			gs := testCreateGameServerForQueue(fmt.Sprintf("gs-%d", i), fmt.Sprintf("ns-%d", i), fmt.Sprintf("build-%d", i), 0)
 			c.PushToQueue(gs)
 		}
-		Expect(len(c.queuesPerBuilds)).To(Equal(4))
-		Expect(len(c.namespacedNameToBuildId)).To(Equal(4))
+		Expect(len(c.queuesPerBuilds)).To(Equal(totalBuilds))
+		Expect(len(c.namespacedNameToBuildId)).To(Equal(totalBuilds))
 
-		for i := 0; i < 4; i++ {
+		for i := 0; i < totalBuilds; i++ {
 			Expect(len(c.queuesPerBuilds[fmt.Sprintf("build-%d", i)].gameServerNameSet)).To(Equal(1))
 			Expect(len(*c.queuesPerBuilds[fmt.Sprintf("build-%d", i)].queue)).To(Equal(1))
 			Expect((*c.queuesPerBuilds[fmt.Sprintf("build-%d", i)].queue)[0].Name).To(Equal(fmt.Sprintf("gs-%d", i)))
 		}
 
-		for i := 0; i < 4; i++ {
+		for i := 0; i < totalBuilds; i++ {
 			gs := c.PopFromQueue(fmt.Sprintf("build-%d", i))
 			Expect(gs.Name).To(Equal(fmt.Sprintf("gs-%d", i)))
 			Expect(gs.Namespace).To(Equal(fmt.Sprintf("ns-%d", i)))
@@ -37,7 +38,7 @@ var _ = Describe("gameserverqueue tests", func() {
 		}
 
 		// next pops should be nil
-		for i := 0; i < 4; i++ {
+		for i := 0; i < totalBuilds; i++ {
 			gs := c.PopFromQueue(fmt.Sprintf("build-%d", i))
 			Expect(gs).To(BeNil())
 		}
@@ -79,7 +80,7 @@ var _ = Describe("gameserverqueue tests", func() {
 		c := GameServerQueueForBuild{
 			queue: &GameServerQueue{},
 		}
-		gsArray := testFenerateGameServers()
+		gsArray := testGenerateGameServers()
 		for _, gs := range gsArray {
 			c.queue.PushToQueue(gs)
 		}
@@ -154,7 +155,7 @@ func testDeleteGameServerWithName(name string, h *GameServerQueue) {
 	}
 }
 
-func testFenerateGameServers() []*GameServerForQueue {
+func testGenerateGameServers() []*GameServerForQueue {
 	nums := []int{3, 2, 20, 5, 3, 1, 2, 5, 6, 9, 10, 4}
 	var gameServers []*GameServerForQueue
 	for _, i := range nums {

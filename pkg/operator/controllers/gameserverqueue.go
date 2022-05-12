@@ -28,55 +28,55 @@ func NewGameServersQueue() *GameServersQueue {
 }
 
 // PushToQueue pushes a GameServerForQueue onto the queue
-func (gsc *GameServersQueue) PushToQueue(gs *GameServerForQueue) {
-	gsc.mutex.RLock()
-	_, exists := gsc.queuesPerBuilds[gs.BuildID]
-	gsc.mutex.RUnlock()
+func (gsq *GameServersQueue) PushToQueue(gs *GameServerForQueue) {
+	gsq.mutex.RLock()
+	_, exists := gsq.queuesPerBuilds[gs.BuildID]
+	gsq.mutex.RUnlock()
 
 	// check if we have created a queue for this GameServerBuild
 	if !exists {
-		gsc.mutex.Lock()
-		gsc.queuesPerBuilds[gs.BuildID] = NewGameServersPerBuildQueue()
-		gsc.mutex.Unlock()
+		gsq.mutex.Lock()
+		gsq.queuesPerBuilds[gs.BuildID] = NewGameServersPerBuildQueue()
+		gsq.mutex.Unlock()
 	}
 
-	gsc.mutex.Lock()
-	defer gsc.mutex.Unlock()
+	gsq.mutex.Lock()
+	defer gsq.mutex.Unlock()
 	// store the BuildID for this GameServer
-	gsc.namespacedNameToBuildId[getNamespacedName(gs.Namespace, gs.Name)] = gs.BuildID
-	gsc.queuesPerBuilds[gs.BuildID].PushToQueue(gs)
+	gsq.namespacedNameToBuildId[getNamespacedName(gs.Namespace, gs.Name)] = gs.BuildID
+	gsq.queuesPerBuilds[gs.BuildID].PushToQueue(gs)
 }
 
 // PopFromQueue pops the top GameServerForHeap off the queue
-func (gsc *GameServersQueue) PopFromQueue(buildID string) *GameServerForQueue {
-	gsc.mutex.Lock()
-	defer gsc.mutex.Unlock()
-	if _, exists := gsc.queuesPerBuilds[buildID]; !exists {
+func (gsq *GameServersQueue) PopFromQueue(buildID string) *GameServerForQueue {
+	gsq.mutex.Lock()
+	defer gsq.mutex.Unlock()
+	if _, exists := gsq.queuesPerBuilds[buildID]; !exists {
 		return nil
 	}
-	gsfh := gsc.queuesPerBuilds[buildID].PopFromQueue()
+	gsfh := gsq.queuesPerBuilds[buildID].PopFromQueue()
 	// we ran out of GameServers for this GameServerBuild
-	if len(gsc.queuesPerBuilds[buildID].gameServerNameSet) == 0 {
-		delete(gsc.queuesPerBuilds, buildID)
+	if len(gsq.queuesPerBuilds[buildID].gameServerNameSet) == 0 {
+		delete(gsq.queuesPerBuilds, buildID)
 	}
 	return gsfh
 }
 
 // RemoveFromQueue removes a GameServer from the queue based on the provided namespace/name tuple
-func (gsc *GameServersQueue) RemoveFromQueue(namespace, name string) {
-	gsc.mutex.Lock()
-	defer gsc.mutex.Unlock()
+func (gsq *GameServersQueue) RemoveFromQueue(namespace, name string) {
+	gsq.mutex.Lock()
+	defer gsq.mutex.Unlock()
 	// get the buildID for this GameServer
-	buildID := gsc.namespacedNameToBuildId[getNamespacedName(namespace, name)]
-	if _, exists := gsc.queuesPerBuilds[buildID]; !exists {
+	buildID := gsq.namespacedNameToBuildId[getNamespacedName(namespace, name)]
+	if _, exists := gsq.queuesPerBuilds[buildID]; !exists {
 		return
 	}
-	gsc.queuesPerBuilds[buildID].RemoveFromQueue(namespace, name)
+	gsq.queuesPerBuilds[buildID].RemoveFromQueue(namespace, name)
 	// remove the GameServer from the nameNamespaceToBuildIdMap
-	delete(gsc.namespacedNameToBuildId, getNamespacedName(namespace, name))
+	delete(gsq.namespacedNameToBuildId, getNamespacedName(namespace, name))
 	// we ran out of GameServers for this GameServerBuild
-	if len(gsc.queuesPerBuilds[buildID].gameServerNameSet) == 0 {
-		delete(gsc.queuesPerBuilds, buildID)
+	if len(gsq.queuesPerBuilds[buildID].gameServerNameSet) == 0 {
+		delete(gsq.queuesPerBuilds, buildID)
 	}
 }
 
