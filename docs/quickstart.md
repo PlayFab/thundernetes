@@ -118,13 +118,17 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/
 
 ## Install Thundernetes with the installation script
 
-Then you can run the following command to install Thundernetes. This will install thundernetes *without* TLS authentication for the allocation API service, which should only be used on test environments.
+Then you can run the following command to install Thundernetes. This will install Thundernetes *without* TLS authentication for the allocation API service, which should only be used on test environments.
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator.yaml
 ```
+**Note:** installing Thundernetes will automatically deploy two DaemonSets: one for Linux nodes and for Windows nodes. If you only plan to use one OS for the nodes, you can safely delete the DaemonSet for the other. These DaemonSets live under the ```thundernetes-system``` namespace, and you can delete them with the following commands:
 
-### Install thundernetes with TLS authentication
+- Linux: ```kubectl delete -n thundernetes-system daemonset thundernetes-nodeagent```
+- Windows: ```kubectl delete -n thundernetes-system daemonset thundernetes-nodeagent-win```
+
+### Install Thundernetes with TLS authentication
 
 You need to create/configure the certificate that will be used to protect the allocation API service. A properly configured certificate (signed by a well-known CA) is recommended for production environments.
 
@@ -249,7 +253,7 @@ You can allocate a game server by using the same command as the fake game server
 
 You can use `kubectl edit gsb <name-of-your-gameserverbuild>` to modify the max/standingBy numbers. Bear in mind that the count of active+standingBy will never be larger than the max.
 
-## Uninstalling thundernetes
+## Uninstalling Thundernetes
 
 You should first remove all your GameServerBuilds. Since each GameServer has a finalizer, removing the controller before removing GameServer instances will make the GameServer instances get stuck if you try to delete them.
 

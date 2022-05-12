@@ -25,7 +25,7 @@ While it's possible to create and manage your own Prometheus and Grafana instanc
 # clone the kube-prometheus repository
 git clone https://github.com/prometheus-operator/kube-prometheus.git
 
-cd prometheus-operator/
+cd kube-prometheus/
 
 # install kube-prometheus' CRDs
 kubectl create -f manifests/setup
