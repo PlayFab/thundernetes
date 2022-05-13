@@ -38,29 +38,37 @@ var _ = Describe("GameServerAPI tests", func() {
 		build.Name = ""
 		b, err := json.Marshal(build)
 		Expect(err).ToNot(HaveOccurred())
-		req, err := client.Post(url+"/gameserverbuilds", contentType, bytes.NewReader(b))
-		Expect(err).ToNot(HaveOccurred())
-		Expect(req.StatusCode).To(Equal(http.StatusInternalServerError))
+		Eventually(func(g Gomega) {
+			req, err := client.Post(url+"/gameserverbuilds", contentType, bytes.NewReader(b))
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(req.StatusCode).To(Equal(http.StatusInternalServerError))
+		}).Should(Succeed())
 	})
 
 	It("should return an error when deleting a non-existent GameServerBuild", func() {
 		req, err := http.NewRequest("DELETE", url+"/gameserverbuilds/nonexistentbuild", nil)
 		Expect(err).ToNot(HaveOccurred())
-		res, err := client.Do(req)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(res.StatusCode).To(Equal(http.StatusNotFound))
+		Eventually(func(g Gomega) {
+			res, err := client.Do(req)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(res.StatusCode).To(Equal(http.StatusNotFound))
+		}).Should(Succeed())
 	})
 
 	It("should return an error when getting an non-existing GameServerBuild", func() {
-		r, err := client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, "nonexistentbuild"))
-		Expect(err).ToNot(HaveOccurred())
-		Expect(r.StatusCode).To(Equal(http.StatusNotFound))
+		Eventually(func(g Gomega) {
+			r, err := client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, "nonexistentbuild"))
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(r.StatusCode).To(Equal(http.StatusNotFound))
+		}).Should(Succeed())
 	})
 
 	It("should return an error when getting an non-existing GameServer", func() {
-		r, err := client.Get(fmt.Sprintf("%s/gameservers/%s/%s", url, testNamespace, "nonexistentgameserver"))
-		Expect(err).ToNot(HaveOccurred())
-		Expect(r.StatusCode).To(Equal(http.StatusNotFound))
+		Eventually(func(g Gomega) {
+			r, err := client.Get(fmt.Sprintf("%s/gameservers/%s/%s", url, testNamespace, "nonexistentgameserver"))
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(r.StatusCode).To(Equal(http.StatusNotFound))
+		}).Should(Succeed())
 	})
 
 	It("should create a new GameServerBuild, list it and then delete it", func() {
@@ -72,41 +80,47 @@ var _ = Describe("GameServerAPI tests", func() {
 		Expect(req.StatusCode).To(Equal(http.StatusCreated))
 
 		// list all the GameServerBuilds and see if the one we created is there
-		r, err := client.Get(url + "/gameserverbuilds")
-		Expect(err).ToNot(HaveOccurred())
-		Expect(r.StatusCode).To(Equal(http.StatusOK))
-		defer r.Body.Close()
-		var l mpsv1alpha1.GameServerBuildList
-		body, err := ioutil.ReadAll(r.Body)
-		Expect(err).ToNot(HaveOccurred())
-		err = json.Unmarshal(body, &l)
-		Expect(err).ToNot(HaveOccurred())
-		var found bool
-		for _, b := range l.Items {
-			if b.Name == buildName {
-				found = true
-				break
+		Eventually(func(g Gomega) {
+			r, err := client.Get(url + "/gameserverbuilds")
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(r.StatusCode).To(Equal(http.StatusOK))
+			defer r.Body.Close()
+			var l mpsv1alpha1.GameServerBuildList
+			body, err := ioutil.ReadAll(r.Body)
+			g.Expect(err).ToNot(HaveOccurred())
+			err = json.Unmarshal(body, &l)
+			g.Expect(err).ToNot(HaveOccurred())
+			var found bool
+			for _, b := range l.Items {
+				if b.Name == buildName {
+					found = true
+					break
+				}
 			}
-		}
-		Expect(found).To(BeTrue())
+			g.Expect(found).To(BeTrue())
+		}).Should(Succeed())
 
 		// get the specific GameServerBuild
-		r, err = client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, buildName))
-		Expect(err).ToNot(HaveOccurred())
-		Expect(r.StatusCode).To(Equal(http.StatusOK))
-		var bu mpsv1alpha1.GameServerBuild
-		body, err = ioutil.ReadAll(r.Body)
-		Expect(err).ToNot(HaveOccurred())
-		err = json.Unmarshal(body, &bu)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(bu.Name).To(Equal(buildName))
+		Eventually(func(g Gomega) {
+			r, err := client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, buildName))
+			defer r.Body.Close()
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(r.StatusCode).To(Equal(http.StatusOK))
+			var bu mpsv1alpha1.GameServerBuild
+			body, err := ioutil.ReadAll(r.Body)
+			g.Expect(err).ToNot(HaveOccurred())
+			err = json.Unmarshal(body, &bu)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(bu.Name).To(Equal(buildName))
+		}).Should(Succeed())
 
 		// list GameServers for GameServerBuild
 		var gsList mpsv1alpha1.GameServerList
 		Eventually(func(g Gomega) {
-			r, err = client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s/gameservers", url, testNamespace, buildName))
+			r, err := client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s/gameservers", url, testNamespace, buildName))
+			defer r.Body.Close()
 			g.Expect(err).ToNot(HaveOccurred())
-			body, err = ioutil.ReadAll(r.Body)
+			body, err := ioutil.ReadAll(r.Body)
 			g.Expect(err).ToNot(HaveOccurred())
 			err = json.Unmarshal(body, &gsList)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -114,15 +128,18 @@ var _ = Describe("GameServerAPI tests", func() {
 		}, timeout, interval).Should(Succeed())
 
 		gsName := gsList.Items[0].Name
-		// get a GameServer
-		r, err = client.Get(fmt.Sprintf("%s/gameservers/%s/%s", url, testNamespace, gsName))
-		Expect(err).ToNot(HaveOccurred())
-		var gs mpsv1alpha1.GameServer
-		body, err = ioutil.ReadAll(r.Body)
-		Expect(err).ToNot(HaveOccurred())
-		err = json.Unmarshal(body, &gs)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(gs.Name).To(Equal(gsName))
+		Eventually(func(g Gomega) {
+			// get a GameServer
+			r, err := client.Get(fmt.Sprintf("%s/gameservers/%s/%s", url, testNamespace, gsName))
+			defer r.Body.Close()
+			g.Expect(err).ToNot(HaveOccurred())
+			var gs mpsv1alpha1.GameServer
+			body, err := ioutil.ReadAll(r.Body)
+			g.Expect(err).ToNot(HaveOccurred())
+			err = json.Unmarshal(body, &gs)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gs.Name).To(Equal(gsName))
+		}).Should(Succeed())
 
 		// delete this GameServer
 		req1, err := http.NewRequest("DELETE", fmt.Sprintf("%s/gameservers/%s/%s", url, testNamespace, gsName), nil)
@@ -134,17 +151,19 @@ var _ = Describe("GameServerAPI tests", func() {
 		// make sure this GameServer is not returned any more
 		// a finalizer runs so it will not disappear at once
 		Eventually(func() int {
-			r, err = client.Get(fmt.Sprintf("%s/gameservers/%s/%s", url, testNamespace, gsName))
+			r, err := client.Get(fmt.Sprintf("%s/gameservers/%s/%s", url, testNamespace, gsName))
+			defer r.Body.Close()
 			Expect(err).ToNot(HaveOccurred())
 			return r.StatusCode
 		}, timeout, interval).Should(Equal(http.StatusNotFound))
 
 		// make sure controller creates an extra GameServer
 		Eventually(func() int {
-			r, err = client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s/gameservers", url, testNamespace, buildName))
+			r, err := client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s/gameservers", url, testNamespace, buildName))
+			defer r.Body.Close()
 			Expect(err).ToNot(HaveOccurred())
 			var gsList mpsv1alpha1.GameServerList
-			body, err = ioutil.ReadAll(r.Body)
+			body, err := ioutil.ReadAll(r.Body)
 			Expect(err).ToNot(HaveOccurred())
 			err = json.Unmarshal(body, &gsList)
 			Expect(err).ToNot(HaveOccurred())
@@ -170,11 +189,13 @@ var _ = Describe("GameServerAPI tests", func() {
 
 		// get the specific GameServerBuild again and make sure the values were updated
 		Eventually(func(g Gomega) {
-			r, err = client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, buildName))
+			r, err := client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, buildName))
+			defer r.Body.Close()
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(r.StatusCode).To(Equal(http.StatusOK))
-			body, err = ioutil.ReadAll(r.Body)
+			body, err := ioutil.ReadAll(r.Body)
 			g.Expect(err).ToNot(HaveOccurred())
+			var bu mpsv1alpha1.GameServerBuild
 			err = json.Unmarshal(body, &bu)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(bu.Spec.StandingBy).To(Equal(3))
@@ -189,9 +210,12 @@ var _ = Describe("GameServerAPI tests", func() {
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
 
 		// make sure the GameServerBuild is gone
-		r, err = client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, buildName))
-		Expect(err).ToNot(HaveOccurred())
-		Expect(r.StatusCode).To(Equal(http.StatusNotFound))
+		Eventually(func(g Gomega) {
+			r, err := client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, buildName))
+			defer r.Body.Close()
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(r.StatusCode).To(Equal(http.StatusNotFound))
+		}).Should(Succeed())
 	})
 })
 
