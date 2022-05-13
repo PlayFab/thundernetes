@@ -7170,23 +7170,27 @@ spec:
             description: GameServerBuildStatus defines the observed state of GameServerBuild
             properties:
               crashesCount:
+                description: CrashesCount is the number of crashed servers
                 type: integer
               currentActive:
+                description: CurrentActive is the number of active servers
                 type: integer
               currentInitializing:
+                description: CurrentInitializing is the number of initializing servers
                 type: integer
               currentPending:
-                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                  of cluster Important: Run "make" to regenerate code after modifying
-                  this file'
+                description: CurrentPending is the number of pending servers
                 type: integer
               currentStandingBy:
+                description: CurrentStandingBy is the number of standingBy servers
                 type: integer
               currentStandingByReadyDesired:
+                description: CurrentStandingByReadyDesired represents the number of
+                  servers that have reached the standingBy state vs the one that is
+                  desired
                 type: string
               health:
-                description: GameServerBuildHealth describes the health of the game
-                  server build
+                description: Health is the health of the GameServerBuild
                 enum:
                 - Healthy
                 - Unhealthy

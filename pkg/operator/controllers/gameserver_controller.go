@@ -42,16 +42,16 @@ var (
 	podsUnderCreation = sync.Map{}
 )
 
-const safeToEvictPodAttribute string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
+const SafeToEvictPodAttribute string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
 const finalizerName string = "gameservers.mps.playfab.com/finalizer"
 
 // GameServerReconciler reconciles a GameServer object
 type GameServerReconciler struct {
 	client.Client
-	Scheme                     *runtime.Scheme
-	Recorder                   record.EventRecorder
-	PortRegistry               *PortRegistry
-	GetPublicIpForNodeProvider func(ctx context.Context, r client.Reader, nodeName string) (string, error) // we abstract this for testing purposes
+	Scheme                 *runtime.Scheme
+	Recorder               record.EventRecorder
+	PortRegistry           *PortRegistry
+	GetNodeDetailsProvider func(ctx context.Context, r client.Reader, nodeName string) (string, int, error) // we abstract this for testing purposes
 }
 
 // we request secret RBAC access here so they can be potentially used by the allocation API service (for GameServer allocations)
@@ -185,7 +185,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			// nodename is empty, maybe the Pod hasn't been scheduled yet?
 			return ctrl.Result{}, nil // will requeue when the Pod is scheduled
 		}
-		publicIP, err := r.GetPublicIpForNodeProvider(ctx, r, pod.Spec.NodeName)
+		publicIP, nodeAgeInDays, err := r.GetNodeDetailsProvider(ctx, r, pod.Spec.NodeName)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -193,6 +193,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		patch := client.MergeFrom(gs.DeepCopy())
 		gs.Status.PublicIP = publicIP
 		gs.Status.Ports = getContainerHostPortTuples(&pod)
+		gs.Status.NodeAge = nodeAgeInDays
 		err = r.Status().Patch(ctx, &gs, patch)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -270,14 +271,14 @@ func (r *GameServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // addSafeToEvictAnnotationIfNecessary will set the safe-to-evict attribute to true on Initalizing or StandingBy GameServers
 // and will set it to false for Active (so they don't go down during a potential cluster scale down)
 func (r *GameServerReconciler) addSafeToEvictAnnotationIfNecessary(ctx context.Context, gs *mpsv1alpha1.GameServer, pod *corev1.Pod) error {
-	// we don't need to check if pod.ObjectMeta.Annotations is nil since the check below accomodates for that
+	// we don't need to check if pod.ObjectMeta.Annotations is nil since the check below accommodates for that
 	// https://go.dev/play/p/O9QmzPnKsOK
 	if gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
-		if _, ok := pod.ObjectMeta.Annotations[safeToEvictPodAttribute]; !ok {
+		if _, ok := pod.ObjectMeta.Annotations[SafeToEvictPodAttribute]; !ok {
 			return r.patchPodSafeToEvictAnnotation(ctx, pod, true)
 		}
 	} else if gs.Status.State == mpsv1alpha1.GameServerStateActive {
-		val, ok := pod.ObjectMeta.Annotations[safeToEvictPodAttribute]
+		val, ok := pod.ObjectMeta.Annotations[SafeToEvictPodAttribute]
 		if !ok || val == strconv.FormatBool(true) {
 			return r.patchPodSafeToEvictAnnotation(ctx, pod, false)
 		}
@@ -291,7 +292,7 @@ func (r *GameServerReconciler) patchPodSafeToEvictAnnotation(ctx context.Context
 	if pod.ObjectMeta.Annotations == nil {
 		pod.ObjectMeta.Annotations = map[string]string{}
 	}
-	pod.ObjectMeta.Annotations[safeToEvictPodAttribute] = strconv.FormatBool(safeToEvict)
+	pod.ObjectMeta.Annotations[SafeToEvictPodAttribute] = strconv.FormatBool(safeToEvict)
 	err := r.Patch(ctx, pod, patch)
 	if err != nil {
 		return err
