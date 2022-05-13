@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"net/http"
 
@@ -45,9 +44,9 @@ func main() {
 		FullTimestamp: true,
 	})
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancelFunc()
-
+	// creating a split client https://cs.github.com/kubernetes-sigs/controller-runtime/blob/eb39b8eb28cfe920fa2450eb38f814fc9e8003e8/pkg/cluster/cluster.go#L265
+	// to facilitate reads from the cache and writes with the live API client
+	ctx := context.Background()
 	config := ctrl.GetConfigOrDie()
 	ca, err := cache.New(config, cache.Options{Scheme: scheme})
 	if err != nil {
