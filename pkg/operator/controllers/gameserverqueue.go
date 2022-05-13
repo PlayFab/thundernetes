@@ -101,44 +101,44 @@ func NewGameServersPerBuildQueue() *GameServerQueueForBuild {
 }
 
 // PushToQueue pushes a GameServerForQueue onto the queue
-func (gsbc *GameServerQueueForBuild) PushToQueue(gs *GameServerForQueue) {
-	gsbc.mutex.RLock()
-	_, exists := gsbc.gameServerNameSet[gs.Name]
-	gsbc.mutex.RUnlock()
+func (gsqb *GameServerQueueForBuild) PushToQueue(gs *GameServerForQueue) {
+	gsqb.mutex.RLock()
+	_, exists := gsqb.gameServerNameSet[gs.Name]
+	gsqb.mutex.RUnlock()
 	if !exists {
-		gsbc.mutex.Lock()
-		defer gsbc.mutex.Unlock()
-		gsbc.gameServerNameSet[gs.Name] = struct{}{}
-		gsbc.queue.PushToQueue(gs)
+		gsqb.mutex.Lock()
+		defer gsqb.mutex.Unlock()
+		gsqb.gameServerNameSet[gs.Name] = struct{}{}
+		gsqb.queue.PushToQueue(gs)
 	}
 }
 
 // PopFromQueue pops the top GameServerForQueue off the queue
-func (gsbc *GameServerQueueForBuild) PopFromQueue() *GameServerForQueue {
-	gsbc.mutex.Lock()
-	defer gsbc.mutex.Unlock()
-	if len(*gsbc.queue) == 0 {
+func (gsqb *GameServerQueueForBuild) PopFromQueue() *GameServerForQueue {
+	gsqb.mutex.Lock()
+	defer gsqb.mutex.Unlock()
+	if len(*gsqb.queue) == 0 {
 		return nil
 	}
-	gsfh := heap.Pop(gsbc.queue).(*GameServerForQueue)
-	delete(gsbc.gameServerNameSet, gsfh.Name)
+	gsfh := heap.Pop(gsqb.queue).(*GameServerForQueue)
+	delete(gsqb.gameServerNameSet, gsfh.Name)
 	return gsfh
 }
 
 // RemoveFromQueue removes a GameServer from the queue based on the provided namespace/name tuple
-func (gsbc *GameServerQueueForBuild) RemoveFromQueue(namespace, name string) {
-	gsbc.mutex.RLock()
-	_, exists := gsbc.gameServerNameSet[name]
-	gsbc.mutex.RUnlock()
+func (gsqb *GameServerQueueForBuild) RemoveFromQueue(namespace, name string) {
+	gsqb.mutex.RLock()
+	_, exists := gsqb.gameServerNameSet[name]
+	gsqb.mutex.RUnlock()
 	if !exists {
 		return
 	}
-	gsbc.mutex.Lock()
-	defer gsbc.mutex.Unlock()
-	for i, gs2 := range *gsbc.queue {
+	gsqb.mutex.Lock()
+	defer gsqb.mutex.Unlock()
+	for i, gs2 := range *gsqb.queue {
 		if name == gs2.Name && namespace == gs2.Namespace {
-			heap.Remove(gsbc.queue, i)
-			delete(gsbc.gameServerNameSet, name)
+			heap.Remove(gsqb.queue, i)
+			delete(gsqb.gameServerNameSet, name)
 			return
 		}
 	}
