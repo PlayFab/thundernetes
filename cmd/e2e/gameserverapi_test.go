@@ -169,15 +169,17 @@ var _ = Describe("GameServerAPI tests", func() {
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
 
 		// get the specific GameServerBuild again and make sure the values were updated
-		r, err = client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, buildName))
-		Expect(err).ToNot(HaveOccurred())
-		Expect(r.StatusCode).To(Equal(http.StatusOK))
-		body, err = ioutil.ReadAll(r.Body)
-		Expect(err).ToNot(HaveOccurred())
-		err = json.Unmarshal(body, &bu)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(bu.Spec.StandingBy).To(Equal(3))
-		Expect(bu.Spec.Max).To(Equal(6))
+		Eventually(func(g Gomega) {
+			r, err = client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, buildName))
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(r.StatusCode).To(Equal(http.StatusOK))
+			body, err = ioutil.ReadAll(r.Body)
+			g.Expect(err).ToNot(HaveOccurred())
+			err = json.Unmarshal(body, &bu)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(bu.Spec.StandingBy).To(Equal(3))
+			g.Expect(bu.Spec.Max).To(Equal(6))
+		}).Should(Succeed())
 
 		// delete the GameServerBuild
 		req3, err := http.NewRequest("DELETE", fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, buildName), nil)

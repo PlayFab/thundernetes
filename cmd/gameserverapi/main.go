@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"net/http"
 
@@ -15,7 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
 )
 
 var (
@@ -42,14 +45,35 @@ func main() {
 		FullTimestamp: true,
 	})
 
-	var err error
-	kubeClient, err = client.New(ctrl.GetConfigOrDie(), client.Options{Scheme: scheme})
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelFunc()
+
+	config := ctrl.GetConfigOrDie()
+	ca, err := cache.New(config, cache.Options{Scheme: scheme})
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Info("Starting cache")
+	go func() {
+		err := ca.Start(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	b := ca.WaitForCacheSync(ctx)
+	if !b {
+		log.Fatal("Cache sync failed")
+	}
+
+	log.Info("Cache sync succeeded")
+	kubeClient, err = cluster.DefaultNewClient(ca, config, client.Options{Scheme: scheme})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	r := setupRouter()
-	// By default it serves on :8080 unless a
+	// By default it serves on :5001 unless a
 	// PORT environment variable was defined.
 	addr := os.Getenv("PORT")
 	if addr == "" {
