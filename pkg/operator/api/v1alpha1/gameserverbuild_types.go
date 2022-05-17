@@ -23,6 +23,7 @@ import (
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// Important: Run "make" and "make manifests" to regenerate code after modifying this file
 
 //+kubebuilder:validation:Enum=Healthy;Unhealthy
 // GameServerBuildHealth describes the health of the game server build
@@ -71,15 +72,20 @@ type GameServerBuildSpec struct {
 
 // GameServerBuildStatus defines the observed state of GameServerBuild
 type GameServerBuildStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	CurrentPending                int                   `json:"currentPending,omitempty"`
-	CurrentInitializing           int                   `json:"currentInitializing,omitempty"`
-	CurrentStandingBy             int                   `json:"currentStandingBy,omitempty"`
-	CurrentStandingByReadyDesired string                `json:"currentStandingByReadyDesired,omitempty"`
-	CurrentActive                 int                   `json:"currentActive,omitempty"`
-	CrashesCount                  int                   `json:"crashesCount,omitempty"`
-	Health                        GameServerBuildHealth `json:"health,omitempty"`
+	// CurrentPending is the number of pending servers
+	CurrentPending int `json:"currentPending,omitempty"`
+	// CurrentInitializing is the number of initializing servers
+	CurrentInitializing int `json:"currentInitializing,omitempty"`
+	// CurrentStandingBy is the number of standingBy servers
+	CurrentStandingBy int `json:"currentStandingBy,omitempty"`
+	// CurrentStandingByReadyDesired represents the number of servers that have reached the standingBy state vs the one that is desired
+	CurrentStandingByReadyDesired string `json:"currentStandingByReadyDesired,omitempty"`
+	// CurrentActive is the number of active servers
+	CurrentActive int `json:"currentActive,omitempty"`
+	// CrashesCount is the number of crashed servers
+	CrashesCount int `json:"crashesCount,omitempty"`
+	// Health is the health of the GameServerBuild
+	Health GameServerBuildHealth `json:"health,omitempty"`
 }
 
 //+kubebuilder:object:root=true

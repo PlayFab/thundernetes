@@ -22,9 +22,11 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -43,8 +45,6 @@ import (
 	//+kubebuilder:scaffold:imports
 
 	corev1 "k8s.io/api/core/v1"
-
-	"github.com/playfab/thundernetes/pkg/operator/http"
 )
 
 var (
@@ -76,6 +76,8 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	opts := zap.Options{
 		Development: true,
+		// https://github.com/uber-go/zap/issues/661#issuecomment-520686037 and https://github.com/uber-go/zap/issues/485#issuecomment-834021392
+		TimeEncoder: zapcore.TimeEncoderOfLayout(time.RFC3339),
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -118,23 +120,31 @@ func main() {
 		}
 	}
 
+	// initialize the allocation API service, which is also a controller. So we add it to the manager
+	aas := controllers.NewAllocationApiServer(crt, key, mgr.GetClient())
+	if err = aas.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create HTTP allocation API Server", "Allocation API Server", "HTTP Allocation API Server")
+		os.Exit(1)
+	}
+
+	// initialize the portRegistry
 	portRegistry, err := initializePortRegistry(k8sClient, mgr.GetClient(), setupLog)
 	if err != nil {
 		setupLog.Error(err, "unable to initialize portRegistry")
 		os.Exit(1)
 	}
-	// add the portRegistry to the manager so it can reconcile the Nodes
+	// portRegistry is a controller so we add it to the manager (so it can reconcile the Nodes)
 	if err := portRegistry.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PortRegistry")
 		os.Exit(1)
 	}
 
 	if err = (&controllers.GameServerReconciler{
-		Client:                     mgr.GetClient(),
-		Scheme:                     mgr.GetScheme(),
-		PortRegistry:               portRegistry,
-		Recorder:                   mgr.GetEventRecorderFor("GameServer"),
-		GetPublicIpForNodeProvider: controllers.GetPublicIPForNode,
+		Client:                 mgr.GetClient(),
+		Scheme:                 mgr.GetScheme(),
+		PortRegistry:           portRegistry,
+		Recorder:               mgr.GetEventRecorderFor("GameServer"),
+		GetNodeDetailsProvider: controllers.GetNodeDetails,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GameServer")
 		os.Exit(1)
@@ -158,13 +168,6 @@ func main() {
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
-
-	// initialize the allocation API service
-	err = http.NewAllocationApiServer(mgr, crt, key)
-	if err != nil {
-		setupLog.Error(err, "unable to create HTTP allocation API Server", "Allocation API Server", "HTTP Allocation API Server")
-		os.Exit(1)
-	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

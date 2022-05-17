@@ -1,4 +1,4 @@
-package http
+package controllers
 
 import (
 	. "github.com/onsi/ginkgo/v2"

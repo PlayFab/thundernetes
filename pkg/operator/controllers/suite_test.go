@@ -38,14 +38,21 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var k8sClient client.Client
+// testK8sClient is a k8s client used for testing
+var testk8sClient client.Client
+
+// testEnv is the test environment for the test suite
 var testEnv *envtest.Environment
+
+// testAllocationApiServer is a global allocation API server
+// global since we need to access it from various places
+var testAllocationApiServer *AllocationApiServer
 
 func TestController(t *testing.T) {
 	defer GinkgoRecover()
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "GameServerBuild Suite")
+	RunSpecs(t, "Thundernetes controller Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -66,9 +73,9 @@ var _ = BeforeSuite(func() {
 
 	//+kubebuilder:scaffold:scheme
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	testk8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
+	Expect(testk8sClient).NotTo(BeNil())
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
@@ -76,9 +83,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	// generate a port registry for the tests
-	portRegistry, err := NewPortRegistry(k8sClient, &mpsv1alpha1.GameServerList{}, 20000, 20100, 1, false, ctrl.Log)
+	portRegistry, err := NewPortRegistry(testk8sClient, &mpsv1alpha1.GameServerList{}, 20000, 20100, 1, false, ctrl.Log)
 	Expect(err).ToNot(HaveOccurred())
 
+	// port registry is a controller, add it to the manager
 	err = portRegistry.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -91,19 +99,23 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&GameServerReconciler{
-		Client:                     k8sManager.GetClient(),
-		Scheme:                     k8sManager.GetScheme(),
-		PortRegistry:               portRegistry,
-		Recorder:                   k8sManager.GetEventRecorderFor("GameServerReconciler"),
-		GetPublicIpForNodeProvider: func(_ context.Context, _ client.Reader, _ string) (string, error) { return "testPublicIP", nil },
+		Client:                 k8sManager.GetClient(),
+		Scheme:                 k8sManager.GetScheme(),
+		PortRegistry:           portRegistry,
+		Recorder:               k8sManager.GetEventRecorderFor("GameServerReconciler"),
+		GetNodeDetailsProvider: func(_ context.Context, _ client.Reader, _ string) (string, int, error) { return "testPublicIP", 0, nil },
 	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	// allocation api service is a controller, so add it to the manager
+	testAllocationApiServer = NewAllocationApiServer(nil, nil, k8sManager.GetClient())
+	err = testAllocationApiServer.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
 		err = k8sManager.Start(ctrl.SetupSignalHandler())
 		Expect(err).ToNot(HaveOccurred())
 	}()
-
 })
 
 var _ = AfterSuite(func() {

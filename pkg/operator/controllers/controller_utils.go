@@ -81,29 +81,31 @@ func randString(n int) string {
 	return string(b)
 }
 
-// GetPublicIPForNode returns the Public IP of the node
+// GetNodeDetails returns the Public IP of the node and the node age in days
 // if the Node does not have a Public IP, method returns the internal one
-func GetPublicIPForNode(ctx context.Context, r client.Reader, nodeName string) (string, error) {
+func GetNodeDetails(ctx context.Context, r client.Reader, nodeName string) (string, int, error) {
 	log := log.FromContext(ctx)
 	var node corev1.Node
 	if err := r.Get(ctx, client.ObjectKey{Name: nodeName}, &node); err != nil {
-		return "", err
+		return "", 0, err
 	}
+
+	nodeAgeInDays := int(time.Since(node.CreationTimestamp.Time).Hours() / 24)
 
 	for _, x := range node.Status.Addresses {
 		if x.Type == corev1.NodeExternalIP {
-			return x.Address, nil
+			return x.Address, nodeAgeInDays, nil
 		}
 	}
 	log.Info(fmt.Sprintf("Node with name %s does not have a Public IP, will try to return the internal IP", nodeName))
 	// externalIP not found, try InternalIP
 	for _, x := range node.Status.Addresses {
 		if x.Type == corev1.NodeInternalIP {
-			return x.Address, nil
+			return x.Address, nodeAgeInDays, nil
 		}
 	}
 
-	return "", fmt.Errorf("node %s does not have a Public or Internal IP", nodeName)
+	return "", 0, fmt.Errorf("node %s does not have a Public or Internal IP", nodeName)
 }
 
 // NewGameServerForGameServerBuild creates a GameServer for a GameServerBuild
@@ -191,7 +193,7 @@ func NewPodForGameServer(gs *mpsv1alpha1.GameServer) *corev1.Pod {
 	pod.ObjectMeta.Labels[LabelOwningOperator] = "thundernetes"
 
 	// following methods should be called in this exact order
-	modifyRestartPolicy(pod)
+	setPodRestartPolicyToNever(pod)
 	createDataVolumeOnPod(pod)
 	// attach data volume and env for all containers in the Pod
 	for i := 0; i < len(pod.Spec.Containers); i++ {
@@ -203,7 +205,8 @@ func NewPodForGameServer(gs *mpsv1alpha1.GameServer) *corev1.Pod {
 	return pod
 }
 
-func modifyRestartPolicy(pod *corev1.Pod) {
+// setPodRestartPolicyToNever sets the Pod's restart policy to Never
+func setPodRestartPolicyToNever(pod *corev1.Pod) {
 	pod.Spec.RestartPolicy = corev1.RestartPolicyNever
 }
 
@@ -400,7 +403,7 @@ func containsString(slice []string, s string) bool {
 	return false
 }
 
-// getContainerHostPortTuples returns a concatenated of hostPort:containerPort tuples
+// getContainerHostPortTuples returns a concatenated list of hostPort:containerPort tuples
 func getContainerHostPortTuples(pod *corev1.Pod) string {
 	var ports strings.Builder
 	for _, container := range pod.Spec.Containers {

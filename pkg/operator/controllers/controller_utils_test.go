@@ -62,10 +62,10 @@ var _ = Describe("Utilities tests", func() {
 				},
 			}
 			s := getGameServerEnvVariables(gs, false)
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_GAMESERVER_NAME", Value: "test-gs"})).To(BeTrue())
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_GAMESERVER_NAMESPACE", Value: "test-ns"})).To(BeTrue())
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_BUILD_ID", Value: "test-build"})).To(BeTrue())
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_TITLE_ID", Value: "test-title"})).To(BeTrue())
+			Expect(testVerifyEnv(s, corev1.EnvVar{Name: "PF_GAMESERVER_NAME", Value: "test-gs"})).To(BeTrue())
+			Expect(testVerifyEnv(s, corev1.EnvVar{Name: "PF_GAMESERVER_NAMESPACE", Value: "test-ns"})).To(BeTrue())
+			Expect(testVerifyEnv(s, corev1.EnvVar{Name: "PF_BUILD_ID", Value: "test-build"})).To(BeTrue())
+			Expect(testVerifyEnv(s, corev1.EnvVar{Name: "PF_TITLE_ID", Value: "test-title"})).To(BeTrue())
 		})
 		It("should return env variables for InitContainer", func() {
 			gs := &mpsv1alpha1.GameServer{
@@ -108,13 +108,13 @@ var _ = Describe("Utilities tests", func() {
 			}
 
 			s := getInitContainerEnvVariables(gs, false)
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "HEARTBEAT_ENDPOINT_PORT", Value: fmt.Sprintf("%d", DaemonSetPort)})).To(BeTrue())
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "GSDK_CONFIG_FILE", Value: GsdkConfigFile})).To(BeTrue())
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_SHARED_CONTENT_FOLDER", Value: GameSharedContentDirectory})).To(BeTrue())
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "CERTIFICATE_FOLDER", Value: CertificatesDirectory})).To(BeTrue())
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_SERVER_LOG_DIRECTORY", Value: LogDirectory})).To(BeTrue())
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_GAMESERVER_NAME", Value: gs.Name})).To(BeTrue())
-			Expect(checkEnvTestHelper(s, corev1.EnvVar{Name: "PF_GAMESERVER_PORTS", Value: "port1,80,123?port2,443,456"})).To(BeTrue())
+			Expect(testVerifyEnv(s, corev1.EnvVar{Name: "HEARTBEAT_ENDPOINT_PORT", Value: fmt.Sprintf("%d", DaemonSetPort)})).To(BeTrue())
+			Expect(testVerifyEnv(s, corev1.EnvVar{Name: "GSDK_CONFIG_FILE", Value: GsdkConfigFile})).To(BeTrue())
+			Expect(testVerifyEnv(s, corev1.EnvVar{Name: "PF_SHARED_CONTENT_FOLDER", Value: GameSharedContentDirectory})).To(BeTrue())
+			Expect(testVerifyEnv(s, corev1.EnvVar{Name: "CERTIFICATE_FOLDER", Value: CertificatesDirectory})).To(BeTrue())
+			Expect(testVerifyEnv(s, corev1.EnvVar{Name: "PF_SERVER_LOG_DIRECTORY", Value: LogDirectory})).To(BeTrue())
+			Expect(testVerifyEnv(s, corev1.EnvVar{Name: "PF_GAMESERVER_NAME", Value: gs.Name})).To(BeTrue())
+			Expect(testVerifyEnv(s, corev1.EnvVar{Name: "PF_GAMESERVER_PORTS", Value: "port1,80,123?port2,443,456"})).To(BeTrue())
 		})
 		It("should attach data volume", func() {
 			container := &corev1.Container{}
@@ -168,7 +168,7 @@ var _ = Describe("Utilities tests", func() {
 			pod := &corev1.Pod{
 				Spec: corev1.PodSpec{},
 			}
-			modifyRestartPolicy(pod)
+			setPodRestartPolicyToNever(pod)
 			Expect(pod.Spec.RestartPolicy).To(Equal(corev1.RestartPolicyNever))
 		})
 		It("should generate a random name with prefix", func() {
@@ -179,12 +179,3 @@ var _ = Describe("Utilities tests", func() {
 		})
 	})
 })
-
-func checkEnvTestHelper(envs []corev1.EnvVar, env corev1.EnvVar) bool {
-	for _, e := range envs {
-		if e.Name == env.Name {
-			return e.Value == env.Value
-		}
-	}
-	return false
-}
