@@ -205,9 +205,12 @@ func (s *AllocationApiServer) Reconcile(ctx context.Context, req ctrl.Request) (
 // handleAllocationRequest handles the allocation request from the client
 func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	if r.Method != http.MethodPost && r.Method != http.MethodPatch {
-		badRequestError(w, s.logger, errors.New("invalid method"), "Only POST and PATCH are accepted")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, PATCH, OPTIONS")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, cache-control")
+	if r.Method == "OPTIONS" {
+		return
 	}
 
 	// Parse args
