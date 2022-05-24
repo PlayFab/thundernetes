@@ -217,7 +217,7 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 	if r.Method != http.MethodPost && r.Method != http.MethodPatch {
 		badRequestError(w, s.logger, errors.New("invalid method"), "Only POST and PATCH are accepted")
 	}
-	
+
 	// Parse args
 	var args AllocateArgs
 	err := json.NewDecoder(r.Body).Decode(&args)
