@@ -207,6 +207,7 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 	ctx := r.Context()
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, PATCH, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	if r.Method == "OPTIONS" {
 		return
 	}
