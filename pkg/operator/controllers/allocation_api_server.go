@@ -206,9 +206,10 @@ func (s *AllocationApiServer) Reconcile(ctx context.Context, req ctrl.Request) (
 func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, PATCH, OPTIONS")
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, cache-control")
+	w.Header().Set("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
 	if r.Method == "OPTIONS" {
 		return
 	}
