@@ -205,13 +205,19 @@ func (s *AllocationApiServer) Reconcile(ctx context.Context, req ctrl.Request) (
 // handleAllocationRequest handles the allocation request from the client
 func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, PATCH, OPTIONS")
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	if r.Method == "OPTIONS" {
 		return
 	}
 
+	if r.Method != http.MethodPost && r.Method != http.MethodPatch {
+		badRequestError(w, s.logger, errors.New("invalid method"), "Only POST and PATCH are accepted")
+	}
+	
 	// Parse args
 	var args AllocateArgs
 	err := json.NewDecoder(r.Body).Decode(&args)
@@ -270,8 +276,6 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 			Ports:       gs.Status.Ports,
 			SessionID:   args.SessionID,
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusAccepted)
 		json.NewEncoder(w).Encode(rs)
 		return
 	}
