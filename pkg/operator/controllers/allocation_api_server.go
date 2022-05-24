@@ -274,7 +274,11 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(rs)
+		jdata, err := json.Marshal(rs)
+		if err != nil {
+			internalServerError(w, s.logger, err, "json marshal error")
+		}
+		w.Write(jdata)
 		return
 	}
 
