@@ -11,4 +11,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: ghcr.io/playfab/thundernetes-operator
-  newTag: 0.3.2
+  newTag: 0.4.0

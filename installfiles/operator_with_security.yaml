@@ -9,10 +9,20 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: thundernetes-system/thundernetes-serving-cert
     controller-gen.kubebuilder.io/version: v0.8.0
-  creationTimestamp: null
   name: gameserverbuilds.mps.playfab.com
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: thundernetes-webhook-service
+          namespace: thundernetes-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
   group: mps.playfab.com
   names:
     kind: GameServerBuild
@@ -4182,20 +4192,25 @@ spec:
             description: GameServerBuildStatus defines the observed state of GameServerBuild
             properties:
               crashesCount:
+                description: CrashesCount is the number of crashed servers
                 type: integer
               currentActive:
+                description: CurrentActive is the number of active servers
                 type: integer
               currentInitializing:
+                description: CurrentInitializing is the number of initializing servers
                 type: integer
               currentPending:
-                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run "make" to regenerate code after modifying this file'
+                description: CurrentPending is the number of pending servers
                 type: integer
               currentStandingBy:
+                description: CurrentStandingBy is the number of standingBy servers
                 type: integer
               currentStandingByReadyDesired:
+                description: CurrentStandingByReadyDesired represents the number of servers that have reached the standingBy state vs the one that is desired
                 type: string
               health:
-                description: GameServerBuildHealth describes the health of the game server build
+                description: Health is the health of the GameServerBuild
                 enum:
                 - Healthy
                 - Unhealthy
@@ -4205,6 +4220,9 @@ spec:
     served: true
     storage: true
     subresources:
+      scale:
+        specReplicasPath: .spec.standingBy
+        statusReplicasPath: .status.currentStandingBy
       status: {}
 status:
   acceptedNames:
@@ -4217,10 +4235,20 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: thundernetes-system/thundernetes-serving-cert
     controller-gen.kubebuilder.io/version: v0.8.0
-  creationTimestamp: null
   name: gameserverdetails.mps.playfab.com
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: thundernetes-webhook-service
+          namespace: thundernetes-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
   group: mps.playfab.com
   names:
     kind: GameServerDetail
@@ -4257,10 +4285,6 @@ spec:
                 type: array
               connectedPlayersCount:
                 type: integer
-              initialPlayers:
-                items:
-                  type: string
-                type: array
             type: object
           status:
             description: GameServerDetailStatus defines the observed state of GameServerDetail
@@ -8444,21 +8468,33 @@ spec:
             description: GameServerStatus defines the observed state of GameServer
             properties:
               health:
-                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run "make" to regenerate code after modifying this file'
+                description: Health defines the health of the game server
                 enum:
                 - Healthy
                 - Unhealthy
                 type: string
+              initialPlayers:
+                description: InitialPlayers is an optional list of usernames of the initial players that will enter the server. It is used for validation via the game server process
+                items:
+                  type: string
+                type: array
+              nodeAge:
+                description: NodeAge is the age in days of the Node (VM) hosting this game server
+                type: integer
               ports:
+                description: Ports is a concatenated list of the ports this game server listens to
                 type: string
               publicIP:
+                description: PublicIP is the PublicIP of the game server
                 type: string
               sessionCookie:
+                description: SessionCookie is an optional parameter that can be set during allocation. It is passed to the game server process
                 type: string
               sessionID:
+                description: SessionID is used during allocation to uniquely identify a game session
                 type: string
               state:
-                description: GameServerState describes the state of the game server
+                description: State defines the state of the game server (Initializing, StandingBy, Active etc.)
                 enum:
                 - Initializing
                 - Active
@@ -8660,6 +8696,7 @@ rules:
   resources:
   - gameserverdetails
   verbs:
+  - create
   - get
   - patch
 ---
@@ -8812,6 +8849,19 @@ spec:
   selector:
     name: nodeagent
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thundernetes-webhook-service
+  namespace: thundernetes-system
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 9443
+  selector:
+    control-plane: controller-manager
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -8844,12 +8894,14 @@ spec:
         - name: API_SERVICE_SECURITY
           value: usetls
         - name: THUNDERNETES_INIT_CONTAINER_IMAGE
-          value: ghcr.io/playfab/thundernetes-initcontainer:0.3.2
+          value: ghcr.io/playfab/thundernetes-initcontainer:0.4.0
+        - name: THUNDERNETES_INIT_CONTAINER_IMAGE_WIN
+          value: ghcr.io/playfab/thundernetes-initcontainer-win:0.4.0
         - name: TLS_SECRET_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: ghcr.io/playfab/thundernetes-operator:0.3.2
+        image: ghcr.io/playfab/thundernetes-operator:0.4.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -8859,6 +8911,9 @@ spec:
           periodSeconds: 20
         name: manager
         ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
         - containerPort: 5000
           hostPort: 5000
         - containerPort: 8080
@@ -8877,10 +8932,21 @@ spec:
             memory: 500Mi
         securityContext:
           allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      nodeSelector:
+        kubernetes.io/os: linux
       securityContext:
         runAsNonRoot: true
       serviceAccountName: thundernetes-controller-manager
       terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -8908,7 +8974,7 @@ spec:
               fieldPath: status.hostIP
         - name: LOG_LEVEL
           value: info
-        image: ghcr.io/playfab/thundernetes-nodeagent:0.3.2
+        image: ghcr.io/playfab/thundernetes-nodeagent:0.4.0
         livenessProbe:
           httpGet:
             path: /healthz
@@ -8926,4 +8992,124 @@ spec:
           requests:
             cpu: 100m
             memory: 100Mi
+      nodeSelector:
+        kubernetes.io/os: linux
       serviceAccountName: thundernetes-nodeagent
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: thundernetes-nodeagent-win
+  namespace: thundernetes-system
+spec:
+  selector:
+    matchLabels:
+      name: nodeagent
+  template:
+    metadata:
+      labels:
+        name: nodeagent
+    spec:
+      containers:
+      - env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NODE_INTERNAL_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: LOG_LEVEL
+          value: info
+        image: ghcr.io/playfab/thundernetes-nodeagent-win:0.4.0
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 56001
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        name: nodeagent
+        ports:
+        - containerPort: 56001
+          hostPort: 56001
+          name: nodeagentport
+        resources:
+          limits:
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+      nodeSelector:
+        kubernetes.io/os: windows
+      serviceAccountName: thundernetes-nodeagent
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: thundernetes-serving-cert
+  namespace: thundernetes-system
+spec:
+  dnsNames:
+  - thundernetes-webhook-service.thundernetes-system.svc
+  - thundernetes-webhook-service.thundernetes-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: thundernetes-selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: thundernetes-selfsigned-issuer
+  namespace: thundernetes-system
+spec:
+  selfSigned: {}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: thundernetes-system/thundernetes-serving-cert
+  name: thundernetes-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: thundernetes-webhook-service
+      namespace: thundernetes-system
+      path: /validate-mps-playfab-com-v1alpha1-gameserver
+  failurePolicy: Fail
+  name: vgameserver.kb.io
+  rules:
+  - apiGroups:
+    - mps.playfab.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - gameservers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: thundernetes-webhook-service
+      namespace: thundernetes-system
+      path: /validate-mps-playfab-com-v1alpha1-gameserverbuild
+  failurePolicy: Fail
+  name: vgameserverbuild.kb.io
+  rules:
+  - apiGroups:
+    - mps.playfab.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - gameserverbuilds
+  sideEffects: None
