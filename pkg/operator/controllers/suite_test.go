@@ -117,7 +117,6 @@ var _ = BeforeSuite(func() {
 
 	go func() {
 		err = k8sManager.Start(ctrl.SetupSignalHandler())
-		fmt.Print(err)
 		Expect(err).ToNot(HaveOccurred())
 	}()
 })
