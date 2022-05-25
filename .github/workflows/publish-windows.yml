@@ -27,4 +27,4 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: build and push Docker images
-        run: .\windows\buildDockerWin.ps1 -version (Get-Content .\.versions | Where-Object {$_ -like '*IMAGE_TAG*'} | %{ $_.Split('=')[1] })
+        run: .\windows\Build-DockerWin.ps1 -version (Get-Content .\.versions | Where-Object {$_ -like '*IMAGE_TAG*'} | %{ $_.Split('=')[1] })

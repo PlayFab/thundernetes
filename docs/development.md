@@ -283,7 +283,7 @@ Thundernetes now supports game servers running on Windows containers, you can re
 - Login to your container registry (`docker login <registry>`) on your Linux machine or WSL, where `<registry>` is the registry where you want to upload your images.
 - Run `NS=<registry> make clean build push create-install-files-dev`.
 - Login to your container registry (`docker login`) on your Windows machine.
-- Run `.\windows\buildDockerWin.ps1 -registry <registry>`.
+- Run `.\windows\Build-DockerWin.ps1 -registry <registry>`.
 - Now you can install Thundernetes on your cluster using any of the files on the `installfilesdev` directory.
 - If you want to deploy a Windows game server on Thundernetes make sure to include the following on the game server build YAML file, we use this to know how to deploy the game servers correctly:
 

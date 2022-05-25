@@ -101,5 +101,5 @@ For GameServers we make these ones:
 
 ## Can I use ```kubectl scale``` to scale GameServers?
 
-Currently we enabled the scale command for changing the number of standingBy GameServers, but it's use is discouraged because it bypasses the validation webhooks. This means you can have a standingBy value thats higher than the max of GameServers allowed. In practice, the controller won't create more GameServers than the max, but it's an inconsistency. We recommend changing the standingBy value using ```kubectl edit``` instead.
+Currently we enabled the scale command for changing the number of standingBy GameServers, but it has the side effect of bypassing the validation webhooks. This means you can have a standingBy value thats higher than the max of GameServers allowed. In practice, the controller won't create more GameServers than the max, but it's an inconsistency. We recommend changing the standingBy value using ```kubectl edit``` instead.
 
