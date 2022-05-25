@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -99,11 +100,13 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&GameServerReconciler{
-		Client:                 k8sManager.GetClient(),
-		Scheme:                 k8sManager.GetScheme(),
-		PortRegistry:           portRegistry,
-		Recorder:               k8sManager.GetEventRecorderFor("GameServerReconciler"),
-		GetNodeDetailsProvider: func(_ context.Context, _ client.Reader, _ string) (string, int, error) { return "testPublicIP", 0, nil },
+		Client:       k8sManager.GetClient(),
+		Scheme:       k8sManager.GetScheme(),
+		PortRegistry: portRegistry,
+		Recorder:     k8sManager.GetEventRecorderFor("GameServerReconciler"),
+		GetNodeDetailsProvider: func(_ context.Context, _ client.Reader, _ string) (string, string, int, error) {
+			return "testNodeName", "testPublicIP", 0, nil
+		},
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -114,6 +117,7 @@ var _ = BeforeSuite(func() {
 
 	go func() {
 		err = k8sManager.Start(ctrl.SetupSignalHandler())
+		fmt.Print(err)
 		Expect(err).ToNot(HaveOccurred())
 	}()
 })

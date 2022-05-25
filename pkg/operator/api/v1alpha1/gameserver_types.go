@@ -84,6 +84,8 @@ type GameServerStatus struct {
 	InitialPlayers []string `json:"initialPlayers,omitempty"`
 	// NodeAge is the age in days of the Node (VM) hosting this game server
 	NodeAge int `json:"nodeAge,omitempty"`
+	//NodeName is the name of the Node (VM) hosting this game server
+	NodeName string `json:"nodeName,omitempty"`
 }
 
 //+kubebuilder:object:root=true
