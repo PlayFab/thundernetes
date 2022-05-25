@@ -15,7 +15,7 @@ This will require 2 PRs.
 - Make sure you update `.versions` file on the root of this repository with the new version
 - Run `make clean` to ensure any cached artifacts of old builds are deleted.
 - Push and merge
-- Manually run the GitHub Actions workflow [here](https://github.com/PlayFab/thundernetes/actions/workflows/publish.yml) to create the new images
+- Manually run the GitHub Actions workflows to create new [linux images](https://github.com/PlayFab/thundernetes/actions/workflows/publish.yml) and [windows images](https://github.com/PlayFab/thundernetes/actions/workflows/publish-windows.yml)
 - Git pull the latest changes from the main branch
 - Run `make create-install-files` to generate the operator install files
 - Replace the image on the [netcore-sample YAML files](https://github.com/PlayFab/thundernetes/samples/netcore)
@@ -283,7 +283,7 @@ Thundernetes now supports game servers running on Windows containers, you can re
 - Login to your container registry (`docker login <registry>`) on your Linux machine or WSL, where `<registry>` is the registry where you want to upload your images.
 - Run `NS=<registry> make clean build push create-install-files-dev`.
 - Login to your container registry (`docker login`) on your Windows machine.
-- Run `.\windows\buildDockerWin.ps1 -registry <registry>`.
+- Run `.\windows\Build-DockerWin.ps1 -registry <registry>`.
 - Now you can install Thundernetes on your cluster using any of the files on the `installfilesdev` directory.
 - If you want to deploy a Windows game server on Thundernetes make sure to include the following on the game server build YAML file, we use this to know how to deploy the game servers correctly:
 

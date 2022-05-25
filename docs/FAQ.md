@@ -84,3 +84,22 @@ You can use the [PreStop container hook](https://kubernetes.io/docs/concepts/con
 ## Where does the name 'Thundernetes' come from?
 
 It's a combination of the words 'thunderhead' and 'kubernetes'. 'Thunderhead' is the internal code name for the Azure PlayFab Multiplayer Servers service. Credits to [Andreas Pohl](https://github.com/Annonator) for the naming idea!
+
+## Is there any validation when creating or editing GameServerBuilds?
+
+Currently we are using validation webhooks when for GameServerBuild and GameServers. For GameServerBuild we make the following validations:
+
+- Checks that there is not another GameServerBuild with different name but with the same buildID.
+- Prevents changing the buildID.
+- Validates that the port configuration is correct.
+- Validates that standingBy < Max
+
+For GameServers we make these ones:
+
+- Validates that every GameServer has a GameServerBuild as an owner.
+- Validates that the port configuration is correct.
+
+## Can I use ```kubectl scale``` to scale GameServers?
+
+Currently we enabled the scale command for changing the number of standingBy GameServers, but it has the side effect of bypassing the validation webhooks. This means you can have a standingBy value thats higher than the max of GameServers allowed. In practice, the controller won't create more GameServers than the max, but it's an inconsistency. We recommend changing the standingBy value using ```kubectl edit``` instead.
+
