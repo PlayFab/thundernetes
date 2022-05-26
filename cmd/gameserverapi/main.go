@@ -106,6 +106,7 @@ func setupRouter() *gin.Engine {
 	r.GET(fmt.Sprintf("%s/gameserverbuilds/:namespace/:buildName", urlprefix), getGameServerBuild)
 	r.DELETE(fmt.Sprintf("%s/gameserverbuilds/:namespace/:buildName", urlprefix), deleteGameServerBuild)
 	r.GET(fmt.Sprintf("%s/gameserverbuilds/:namespace/:buildName/gameservers", urlprefix), listGameServersForBuild)
+	r.GET(fmt.Sprintf("%s/gameservers", urlprefix), listGameServers)
 	r.GET(fmt.Sprintf("%s/gameservers/:namespace/:gameServerName", urlprefix), getGameServer)
 	r.DELETE(fmt.Sprintf("%s/gameservers/:namespace/:gameServerName", urlprefix), deleteGameServer)
 	r.PATCH(fmt.Sprintf("%s/gameserverbuilds/:namespace/:buildName", urlprefix), patchGameServerBuild)
@@ -155,6 +156,17 @@ func getGameServerBuild(c *gin.Context) {
 		}
 	} else {
 		c.JSON(http.StatusOK, gsb)
+	}
+}
+
+func listGameServers(c *gin.Context) {
+	var gsList mpsv1alpha1.GameServerList
+	err := kubeClient.List(ctx, &gsList)
+	if err != nil {
+		log.Error(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	} else {
+		c.JSON(http.StatusOK, gsList)
 	}
 }
 
