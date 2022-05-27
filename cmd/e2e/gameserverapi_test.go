@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"time"
 
@@ -139,6 +140,9 @@ var _ = Describe("GameServerAPI tests", func() {
 			err = json.Unmarshal(body, &gs)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gs.Name).To(Equal(gsName))
+			// check that GameServers have a NodeName and a PublicIP
+			g.Expect(gs.Status.NodeName).ToNot(BeEmpty())
+			g.Expect(net.ParseIP(gs.Status.PublicIP)).ToNot(BeNil())
 		}).Should(Succeed())
 
 		// delete this GameServer
