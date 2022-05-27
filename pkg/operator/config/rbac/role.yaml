@@ -69,7 +69,9 @@ rules:
   resources:
   - gameserverdetails
   verbs:
-  - create
+  - get
+  - list
+  - watch
 - apiGroups:
   - mps.playfab.com
   resources:
