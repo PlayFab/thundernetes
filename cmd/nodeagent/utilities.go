@@ -160,8 +160,8 @@ func parseStateHealth(u *unstructured.Unstructured) (string, string, error) {
 }
 
 // parseBuildID parses and returns the GameServer buildID from the unstructured GameServer CR.
-func parseBuildID(u *unstructured.Unstructured) (string, error) {
-	buildID, buildIDExists, buildIDErr := unstructured.NestedString(u.Object, "spec", "buildID")
+func parseBuildName(u *unstructured.Unstructured) (string, error) {
+	buildID, buildIDExists, buildIDErr := unstructured.NestedString(u.Object, "metadata", "labels", "BuildName")
 	if buildIDErr != nil {
 		return "", buildIDErr
 	}

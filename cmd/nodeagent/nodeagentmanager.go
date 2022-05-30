@@ -192,11 +192,11 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 
 	logger := getLogger(gameServerName, gameServerNamespace)
 
-	gameServerBuildID, err := parseBuildID(obj)
+	gameServerBuildName, err := parseBuildName(obj)
 	if err != nil {
 		logger.Errorf("parsing buildID: %s", err.Error())
 	}
-	
+
 	// check if the details for this GameServer exist in the map
 	gsdi, exists := n.gameServerMap.Load(gameServerName)
 
@@ -211,7 +211,7 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 			Mutex:               &sync.RWMutex{},
 			GsUid:               obj.GetUID(),
 			CreationTime:        n.nowFunc().UnixMilli(),
-			BuildID:             gameServerBuildID,
+			BuildName:           gameServerBuildName,
 			// we're not adding details about health/state since the NodeAgent might have crashed
 			// and the health/state might have changed during the crash
 		}
@@ -233,7 +233,7 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 	logger.Infof("getting values from allocation - GameServer CR, sessionID:%s, sessionCookie:%s, initialPlayers: %v", sessionID, sessionCookie, initialPlayers)
 
 	// create the GameServerDetails CR
-	err = n.createGameServerDetails(ctx, obj.GetUID(), gameServerName, gameServerNamespace, gameServerBuildID, nil)
+	err = n.createGameServerDetails(ctx, obj.GetUID(), gameServerName, gameServerNamespace, gameServerBuildName, nil)
 	if err != nil {
 		logger.Errorf("error creating GameServerDetails: %s", err.Error())
 	}
@@ -481,7 +481,7 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 		if apierrors.IsNotFound(err) {
 			// GameServerDetails CR not found, there was an error when it was created
 			logger.Warnf("GameServerDetail CR not found, will create it")
-			errCreate := n.createGameServerDetails(ctx, gsd.GsUid, gameServerName, gsd.GameServerNamespace, gsd.BuildID, currentPlayerIDs)
+			errCreate := n.createGameServerDetails(ctx, gsd.GsUid, gameServerName, gsd.GameServerNamespace, gsd.BuildName, currentPlayerIDs)
 			if errCreate != nil {
 				return errCreate
 			}
@@ -501,7 +501,7 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 }
 
 // createGameServerDetails creates a GameServerDetails CR with the specified name and namespace
-func (n *NodeAgentManager) createGameServerDetails(ctx context.Context, gsuid types.UID, gsname, gsnamespace string, gsbuildID string, connectedPlayers []string) error {
+func (n *NodeAgentManager) createGameServerDetails(ctx context.Context, gsuid types.UID, gsname, gsnamespace string, gsbuildname string, connectedPlayers []string) error {
 	gs := &mpsv1alpha1.GameServer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      gsname,
@@ -523,7 +523,7 @@ func (n *NodeAgentManager) createGameServerDetails(ctx context.Context, gsuid ty
 		},
 		Spec: mpsv1alpha1.GameServerDetailSpec{
 			ConnectedPlayers: connectedPlayers,
-			BuildID: gsbuildID,
+			BuildName: gsbuildname,
 		},
 	}
 
