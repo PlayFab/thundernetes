@@ -196,9 +196,7 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 	if err != nil {
 		logger.Errorf("parsing buildID: %s", err.Error())
 	}
-
-	logger.Infof("parsed buildID: %s", gameServerBuildID)
-
+	
 	// check if the details for this GameServer exist in the map
 	gsdi, exists := n.gameServerMap.Load(gameServerName)
 
@@ -540,12 +538,17 @@ func (n *NodeAgentManager) createGameServerDetails(ctx context.Context, gsuid ty
 		return err
 	}
 
+	spec, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&gsd.Spec)
+	if err != nil {
+		return err
+	}
+
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": gameserverDetailGVR.GroupVersion().String(),
 			"kind":       "GameServerDetail",
 			"metadata":   metadata,
-			"spec":       map[string]interface{}{},
+			"spec":       spec,
 		},
 	}
 
