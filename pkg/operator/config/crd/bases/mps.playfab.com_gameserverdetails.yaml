@@ -41,7 +41,7 @@ spec:
           spec:
             description: GameServerDetailSpec defines the desired state of GameServerDetail
             properties:
-              buildID:
+              buildName:
                 type: string
               connectedPlayers:
                 items:
