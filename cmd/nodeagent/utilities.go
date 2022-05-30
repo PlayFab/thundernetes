@@ -137,7 +137,7 @@ func parseSessionDetails(u *unstructured.Unstructured, gameServerName, gameServe
 	return sessionID, sessionCookie, initialPlayers
 }
 
-// parseState parses the GameServer state from the unstructured GameServer CR.
+// parseStateHealth parses the GameServer state from the unstructured GameServer CR.
 // Returns state, health and error
 func parseStateHealth(u *unstructured.Unstructured) (string, string, error) {
 	state, stateExists, stateErr := unstructured.NestedString(u.Object, "status", "state")
@@ -157,4 +157,16 @@ func parseStateHealth(u *unstructured.Unstructured) (string, string, error) {
 		return "", "", errors.New(ErrHealthNotExists)
 	}
 	return state, health, nil
+}
+
+// parseBuildID parses and returns the GameServer buildID from the unstructured GameServer CR.
+func parseBuildID(u *unstructured.Unstructured) (string, error) {
+	buildID, buildIDExists, buildIDErr := unstructured.NestedString(u.Object, "spec", "buildID")
+	if buildIDErr != nil {
+		return "", buildIDErr
+	}
+	if !buildIDExists {
+		return "", errors.New(ErrBuildIDNotExists)
+	}
+	return buildID, nil
 }
