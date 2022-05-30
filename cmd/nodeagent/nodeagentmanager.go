@@ -197,6 +197,8 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 		logger.Errorf("parsing buildID: %s", err.Error())
 	}
 
+	logger.Infof("parsed buildID: %s", gameServerBuildID)
+
 	// check if the details for this GameServer exist in the map
 	gsdi, exists := n.gameServerMap.Load(gameServerName)
 
