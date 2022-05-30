@@ -30,7 +30,6 @@ type GameServerDetailSpec struct {
 
 	ConnectedPlayersCount int      `json:"connectedPlayersCount,omitempty"`
 	ConnectedPlayers      []string `json:"connectedPlayers,omitempty"`
-	BuildName             string   `json:"buildName,omitempty"`
 }
 
 // GameServerDetailStatus defines the observed state of GameServerDetail

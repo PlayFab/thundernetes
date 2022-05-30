@@ -520,10 +520,10 @@ func (n *NodeAgentManager) createGameServerDetails(ctx context.Context, gsuid ty
 					Kind:    "GameServer",
 				}),
 			},
+			Labels: map[string]string{"BuildName": gsbuildname},
 		},
 		Spec: mpsv1alpha1.GameServerDetailSpec{
 			ConnectedPlayers: connectedPlayers,
-			BuildName: gsbuildname,
 		},
 	}
 
