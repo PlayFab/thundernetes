@@ -538,17 +538,12 @@ func (n *NodeAgentManager) createGameServerDetails(ctx context.Context, gsuid ty
 		return err
 	}
 
-	spec, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&gsd.Spec)
-	if err != nil {
-		return err
-	}
-
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": gameserverDetailGVR.GroupVersion().String(),
 			"kind":       "GameServerDetail",
 			"metadata":   metadata,
-			"spec":       spec,
+			"spec":       map[string]interface{}{},
 		},
 	}
 
