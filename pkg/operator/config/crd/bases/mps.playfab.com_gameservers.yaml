@@ -7176,6 +7176,10 @@ spec:
                 description: NodeAge is the age in days of the Node (VM) hosting this
                   game server
                 type: integer
+              nodeName:
+                description: NodeName is the name of the Node (VM) hosting this game
+                  server
+                type: string
               ports:
                 description: Ports is a concatenated list of the ports this game server
                   listens to

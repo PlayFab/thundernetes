@@ -51,13 +51,15 @@ type GameServerReconciler struct {
 	Scheme                 *runtime.Scheme
 	Recorder               record.EventRecorder
 	PortRegistry           *PortRegistry
-	GetNodeDetailsProvider func(ctx context.Context, r client.Reader, nodeName string) (string, int, error) // we abstract this for testing purposes
+	GetNodeDetailsProvider func(ctx context.Context, r client.Reader, nodeName string) (string, string, int, error) // we abstract this for testing purposes
 }
 
 // we request secret RBAC access here so they can be potentially used by the allocation API service (for GameServer allocations)
 
+// the gameserverapi uses the same manager role, so we need to add get, list and watch for gameserverdetails
+
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverdetails,verbs=create
+//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverdetails,verbs=get;list;watch
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
@@ -185,7 +187,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			// nodename is empty, maybe the Pod hasn't been scheduled yet?
 			return ctrl.Result{}, nil // will requeue when the Pod is scheduled
 		}
-		publicIP, nodeAgeInDays, err := r.GetNodeDetailsProvider(ctx, r, pod.Spec.NodeName)
+		nodeName, publicIP, nodeAgeInDays, err := r.GetNodeDetailsProvider(ctx, r, pod.Spec.NodeName)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -194,6 +196,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		gs.Status.PublicIP = publicIP
 		gs.Status.Ports = getContainerHostPortTuples(&pod)
 		gs.Status.NodeAge = nodeAgeInDays
+		gs.Status.NodeName = nodeName
 		err = r.Status().Patch(ctx, &gs, patch)
 		if err != nil {
 			return ctrl.Result{}, err

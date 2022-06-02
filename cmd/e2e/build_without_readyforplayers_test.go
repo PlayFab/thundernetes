@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -108,6 +109,17 @@ var _ = Describe("Build without ReadyForPlayers GSDK call", func() {
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
 		}, timeout, interval).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			var gsList mpsv1alpha1.GameServerList
+			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{"BuildName": testBuildWithoutReadyForPlayers})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(gsList.Items)).To(Equal(2))
+			gs := gsList.Items[0]
+			g.Expect(gs.Status.NodeName).ToNot(BeEmpty())
+			g.Expect(net.ParseIP(gs.Status.PublicIP)).ToNot(BeNil())
+		}, timeout, interval).Should(Succeed())
+
 	})
 })
 
