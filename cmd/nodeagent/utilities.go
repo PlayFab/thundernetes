@@ -137,7 +137,7 @@ func parseSessionDetails(u *unstructured.Unstructured, gameServerName, gameServe
 	return sessionID, sessionCookie, initialPlayers
 }
 
-// parseStateHealth parses the GameServer state from the unstructured GameServer CR.
+// parseStateHealth parses the GameServer state and health from the unstructured GameServer CR.
 // Returns state, health and error
 func parseStateHealth(u *unstructured.Unstructured) (string, string, error) {
 	state, stateExists, stateErr := unstructured.NestedString(u.Object, "status", "state")

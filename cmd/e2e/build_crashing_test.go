@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -82,6 +83,16 @@ var _ = Describe("Crashing Build", func() {
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
 		}, 40*time.Second, interval).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			var gsList mpsv1alpha1.GameServerList
+			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{"BuildName": testBuildCrashingName})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(gsList.Items)).To(Equal(2))
+			gs := gsList.Items[0]
+			g.Expect(gs.Status.NodeName).ToNot(BeEmpty())
+			g.Expect(net.ParseIP(gs.Status.PublicIP)).ToNot(BeNil())
+		}, 10*time.Second, interval).Should(Succeed())
 	})
 })
 

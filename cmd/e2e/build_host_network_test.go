@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"net"
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
@@ -102,6 +103,16 @@ var _ = Describe("Build with hostnetwork", func() {
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
 			g.Expect(verifyPodsInHostNetwork(ctx, kubeClient, gsb, state)).To(Succeed())
+		}, timeout, interval).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			var gsList mpsv1alpha1.GameServerList
+			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{"BuildName": testBuildWithHostNetworkName})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(gsList.Items)).To(Equal(3))
+			gs := gsList.Items[0]
+			g.Expect(gs.Status.NodeName).ToNot(BeEmpty())
+			g.Expect(net.ParseIP(gs.Status.PublicIP)).ToNot(BeNil())
 		}, timeout, interval).Should(Succeed())
 
 	})
