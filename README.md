@@ -31,5 +31,3 @@ Check out our video presentation for GDC 2022!
 ## 💬❓Feedback - Community 
 
 As mentioned, Thundernetes is in preview and a work in progress. If you find a bug or have a feature request, please file an issue [here](https://github.com/PlayFab/thundernetes/issues) and we will try to get back to you as soon as possible. You can also reach us directly on [Game Dev server on Discord](https://aka.ms/msftgamedevdiscord).
-
-> Project will soon have a new name (https://github.com/PlayFab/thundernetes/issues/177)!
