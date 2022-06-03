@@ -65,13 +65,13 @@ builddockerlocal: build
 	done
 
 installkind:
-	curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.12.0/kind-linux-amd64
+	curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.13.0/kind-linux-amd64
 	chmod +x ./kind
 	mkdir -p ./pkg/operator/testbin/bin
 	mv ./kind ./pkg/operator/testbin/bin/kind
 
 createkindcluster: 
-	./pkg/operator/testbin/bin/kind create cluster --config ./e2e/kind-config.yaml --image kindest/node:v1.23.4
+	./pkg/operator/testbin/bin/kind create cluster --config ./e2e/kind-config.yaml --image kindest/node:v1.24.0
 
 deletekindcluster:
 	./pkg/operator/testbin/bin/kind delete cluster 
