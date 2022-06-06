@@ -18,7 +18,7 @@ spec:
   template:
     spec:
       containers:
-        - image: ghcr.io/playfab/thundernetes-netcore:0.4.0
+        - image: ghcr.io/playfab/thundernetes-netcore:0.4.1
           name: thundernetes-sample-netcore
           ports:
           - containerPort: 80 # your game server port
