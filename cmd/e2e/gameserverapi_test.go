@@ -104,8 +104,8 @@ var _ = Describe("GameServerAPI tests", func() {
 		// get the specific GameServerBuild
 		Eventually(func(g Gomega) {
 			r, err := client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, buildName))
-			defer r.Body.Close()
 			g.Expect(err).ToNot(HaveOccurred())
+			defer r.Body.Close()
 			g.Expect(r.StatusCode).To(Equal(http.StatusOK))
 			var bu mpsv1alpha1.GameServerBuild
 			body, err := ioutil.ReadAll(r.Body)
@@ -119,8 +119,8 @@ var _ = Describe("GameServerAPI tests", func() {
 		var gsList mpsv1alpha1.GameServerList
 		Eventually(func(g Gomega) {
 			r, err := client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s/gameservers", url, testNamespace, buildName))
-			defer r.Body.Close()
 			g.Expect(err).ToNot(HaveOccurred())
+			defer r.Body.Close()
 			body, err := ioutil.ReadAll(r.Body)
 			g.Expect(err).ToNot(HaveOccurred())
 			err = json.Unmarshal(body, &gsList)
@@ -132,8 +132,8 @@ var _ = Describe("GameServerAPI tests", func() {
 		Eventually(func(g Gomega) {
 			// get a GameServer
 			r, err := client.Get(fmt.Sprintf("%s/gameservers/%s/%s", url, testNamespace, gsName))
-			defer r.Body.Close()
 			g.Expect(err).ToNot(HaveOccurred())
+			defer r.Body.Close()
 			var gs mpsv1alpha1.GameServer
 			body, err := ioutil.ReadAll(r.Body)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -156,16 +156,16 @@ var _ = Describe("GameServerAPI tests", func() {
 		// a finalizer runs so it will not disappear at once
 		Eventually(func() int {
 			r, err := client.Get(fmt.Sprintf("%s/gameservers/%s/%s", url, testNamespace, gsName))
-			defer r.Body.Close()
 			Expect(err).ToNot(HaveOccurred())
+			defer r.Body.Close()
 			return r.StatusCode
 		}, timeout, interval).Should(Equal(http.StatusNotFound))
 
 		// make sure controller creates an extra GameServer
 		Eventually(func() int {
 			r, err := client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s/gameservers", url, testNamespace, buildName))
-			defer r.Body.Close()
 			Expect(err).ToNot(HaveOccurred())
+			defer r.Body.Close()
 			var gsList mpsv1alpha1.GameServerList
 			body, err := ioutil.ReadAll(r.Body)
 			Expect(err).ToNot(HaveOccurred())
@@ -194,8 +194,8 @@ var _ = Describe("GameServerAPI tests", func() {
 		// get the specific GameServerBuild again and make sure the values were updated
 		Eventually(func(g Gomega) {
 			r, err := client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, buildName))
-			defer r.Body.Close()
 			g.Expect(err).ToNot(HaveOccurred())
+			defer r.Body.Close()
 			g.Expect(r.StatusCode).To(Equal(http.StatusOK))
 			body, err := ioutil.ReadAll(r.Body)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -216,8 +216,8 @@ var _ = Describe("GameServerAPI tests", func() {
 		// make sure the GameServerBuild is gone
 		Eventually(func(g Gomega) {
 			r, err := client.Get(fmt.Sprintf("%s/gameserverbuilds/%s/%s", url, testNamespace, buildName))
-			defer r.Body.Close()
 			g.Expect(err).ToNot(HaveOccurred())
+			defer r.Body.Close()
 			g.Expect(r.StatusCode).To(Equal(http.StatusNotFound))
 		}).Should(Succeed())
 	})

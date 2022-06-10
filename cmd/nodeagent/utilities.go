@@ -28,7 +28,7 @@ func ParseInt64FromEnv(envVar string, defaultValue int64) int64 {
 			return parsedValue
 		}
 	}
-	return defaultValue	
+	return defaultValue
 }
 
 // internalServerError writes an internal server error to the response

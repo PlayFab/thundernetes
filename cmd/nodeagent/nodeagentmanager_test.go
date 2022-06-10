@@ -514,7 +514,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("should mark the game server as unhealthy due to CreationTime", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 		// set initial time
-		customNow := func () time.Time{
+		customNow := func() time.Time {
 			layout := "Mon, 02 Jan 2006 15:04:05 MST"
 			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:00:00 PST")
 			return value
@@ -533,7 +533,7 @@ var _ = Describe("nodeagent tests", func() {
 		}).Should(BeTrue())
 
 		// change time to be 1 min and 1 sec later
-		customNow = func () time.Time{
+		customNow = func() time.Time {
 			layout := "Mon, 02 Jan 2006 15:04:05 MST"
 			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:01:01 PST")
 			return value
@@ -556,7 +556,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("should mark the game server as unhealthy due to LastHeartbeatTime", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 		// set initial time
-		customNow := func () time.Time{
+		customNow := func() time.Time {
 			layout := "Mon, 02 Jan 2006 15:04:05 MST"
 			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:00:00 PST")
 			return value
@@ -597,7 +597,7 @@ var _ = Describe("nodeagent tests", func() {
 		}).ShouldNot(Equal(int64(0)))
 
 		// change time to be 6 seconds later
-		customNow = func () time.Time{
+		customNow = func() time.Time {
 			layout := "Mon, 02 Jan 2006 15:04:05 MST"
 			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:00:06 PST")
 			return value
