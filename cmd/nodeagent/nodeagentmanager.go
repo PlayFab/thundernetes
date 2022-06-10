@@ -37,10 +37,11 @@ const (
 
 // HeartbeatState is a status of a gameserver, it represents if it has sent heartbeats
 type HeartbeatState int
+
 const (
 	gotHeartbeat     HeartbeatState = iota // it has sent a hearbeat in the corresponding time window
-	noHeartbeatEver // it has never sent a heartbeat
-	noHeartbeatSince // it hasn't sent a heartbeat in the corresponding time window
+	noHeartbeatEver                        // it has never sent a heartbeat
+	noHeartbeatSince                       // it hasn't sent a heartbeat in the corresponding time window
 )
 
 // NodeAgentManager manages the GameServer CRs that reside on this Node
@@ -91,7 +92,6 @@ func (n *NodeAgentManager) runWatch() {
 	go informer.Run(n.watchStopper)
 }
 
-
 // runHeartbeatTimeCheckerLoop runs HeartbeatTimeChecker on an infinite loop
 func (n *NodeAgentManager) runHeartbeatTimeCheckerLoop() {
 	n.firstHeartbeatTimeout = ParseInt64FromEnv("FIRST_HEARTBEAT_TIMEOUT", 60000)
@@ -112,7 +112,7 @@ func (n *NodeAgentManager) runHeartbeatTimeCheckerLoop() {
 // 2. if the server has sent its first heartbeat, it has HeartbeatTimeout milliseconds
 //    since its last heartbeat before being marked as unhealthy
 func (n *NodeAgentManager) HeartbeatTimeChecker() {
-	n.gameServerMap.Range(func(key interface{}, value interface{}) bool{
+	n.gameServerMap.Range(func(key interface{}, value interface{}) bool {
 		currentTime := n.nowFunc().UnixMilli()
 		gsd := value.(*GameServerInfo)
 		state := gotHeartbeat
@@ -120,12 +120,12 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 		gameServerName := key.(string)
 		gameServerNamespace := gsd.GameServerNamespace
 		if gsd.LastHeartbeatTime == 0 && gsd.CreationTime != 0 &&
-		   (currentTime - gsd.CreationTime) > n.firstHeartbeatTimeout &&
-		   gsd.PreviousGameHealth != unhealthyStatus {
+			(currentTime-gsd.CreationTime) > n.firstHeartbeatTimeout &&
+			gsd.PreviousGameHealth != unhealthyStatus {
 			state = noHeartbeatEver
 		} else if gsd.LastHeartbeatTime != 0 &&
-				  (currentTime - gsd.LastHeartbeatTime) > n.heartbeatTimeout &&
-				  gsd.PreviousGameHealth != unhealthyStatus {
+			(currentTime-gsd.LastHeartbeatTime) > n.heartbeatTimeout &&
+			gsd.PreviousGameHealth != unhealthyStatus {
 			state = noHeartbeatSince
 		}
 		gsd.Mutex.RUnlock()
@@ -141,9 +141,9 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 func (n *NodeAgentManager) markGameServerUnhealthy(gameServerName, gameServerNamespace string, state HeartbeatState) {
 	logger := getLogger(gameServerName, gameServerNamespace)
 	if state == noHeartbeatEver {
-		logger.Infof("GameServer has not sent any heartbeats in %d seconds since creation, marking Unhealthy", n.firstHeartbeatTimeout / 1000)
+		logger.Infof("GameServer has not sent any heartbeats in %d seconds since creation, marking Unhealthy", n.firstHeartbeatTimeout/1000)
 	} else if state == noHeartbeatSince {
-		logger.Infof("GameServer has not sent any heartbeats in %d seconds since last, marking Unhealthy", n.heartbeatTimeout / 1000)
+		logger.Infof("GameServer has not sent any heartbeats in %d seconds since last, marking Unhealthy", n.heartbeatTimeout/1000)
 	}
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{

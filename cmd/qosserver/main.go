@@ -108,7 +108,7 @@ func serverLoop(conn *net.UDPConn) (*net.UDPAddr, error) {
 // getResponse validates the bytes received, expecting the first two
 // values to be 0xFF, and if thats the case returns the same input
 // with those values flipped to 0x00, if not return nil
-func getResponse(buffer []byte, count int) ([]byte) {
+func getResponse(buffer []byte, count int) []byte {
 	if count > 2 && buffer[0] == 0xFF && buffer[1] == 0xFF {
 		buffer[0] = 0x00
 		buffer[1] = 0x00

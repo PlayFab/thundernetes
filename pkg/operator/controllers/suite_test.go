@@ -99,10 +99,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&GameServerReconciler{
-		Client:                 k8sManager.GetClient(),
-		Scheme:                 k8sManager.GetScheme(),
-		PortRegistry:           portRegistry,
-		Recorder:               k8sManager.GetEventRecorderFor("GameServerReconciler"),
+		Client:       k8sManager.GetClient(),
+		Scheme:       k8sManager.GetScheme(),
+		PortRegistry: portRegistry,
+		Recorder:     k8sManager.GetEventRecorderFor("GameServerReconciler"),
 		GetNodeDetailsProvider: func(_ context.Context, _ client.Reader, _ string) (string, string, int, error) {
 			return "testNodeName", "testPublicIP", 0, nil
 		},

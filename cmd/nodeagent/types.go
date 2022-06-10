@@ -102,7 +102,7 @@ type GameServerInfo struct {
 	ConnectedPlayersCount int
 	Mutex                 *sync.RWMutex
 	GsUid                 types.UID // UID of the GameServer object
-	CreationTime          int64 // time when this GameServerInfo was created in the nodeagent
-	LastHeartbeatTime     int64 // time since the nodeagent received a heartbeat from this GameServer
-	BuildName             string // the name of the GameServerBuild that this GameServer belongs to
+	CreationTime          int64     // time when this GameServerInfo was created in the nodeagent
+	LastHeartbeatTime     int64     // time since the nodeagent received a heartbeat from this GameServer
+	BuildName             string    // the name of the GameServerBuild that this GameServer belongs to
 }
