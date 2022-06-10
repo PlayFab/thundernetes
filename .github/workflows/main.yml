@@ -33,6 +33,14 @@ jobs:
         with:
           # The Go version to download (if necessary) and use. Supports semver spec and ranges.
           go-version: 1.17.x
+      - name: check if install files are modified
+        run: |
+          make -C pkg/operator kustomize
+          make create-install-files
+          if ! [ -z "$(git status --porcelain)" ]; then
+            echo "install files are modified"
+            exit 1
+          fi
       - name: build Docker images
         run: make builddockerlocal
       - name: GameServer API service unit tests
