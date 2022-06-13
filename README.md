@@ -8,8 +8,6 @@
 
 Thundernetes makes it easy to run your game servers on Kubernetes.
 
-> Thundernetes is a project still in development, feel free to try it and let us know of any [feedback](#feedback---community)!
-
 ## ℹ️ Description
 
 Thundernetes is a project originating from the [Azure PlayFab Multiplayer Servers (MPS)](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/) team and other teams in Azure/XBOX that enables you to run both Windows and Linux game servers on your Kubernetes cluster. Thundernetes can be useful in the following scenarios:
@@ -30,4 +28,4 @@ Check out our video presentation for GDC 2022!
 
 ## 💬❓Feedback - Community 
 
-As mentioned, Thundernetes is in preview and a work in progress. If you find a bug or have a feature request, please file an issue [here](https://github.com/PlayFab/thundernetes/issues) and we will try to get back to you as soon as possible. You can also reach us directly on [Game Dev server on Discord](https://aka.ms/msftgamedevdiscord).
+As mentioned, Thundernetes is in beta stage. If you find a bug or have a feature request, please file an issue [here](https://github.com/PlayFab/thundernetes/issues) and we will try to get back to you as soon as possible. You can also reach us directly on [Game Dev server on Discord](https://aka.ms/msftgamedevdiscord).
