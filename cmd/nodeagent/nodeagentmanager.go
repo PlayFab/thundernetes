@@ -95,7 +95,7 @@ func (n *NodeAgentManager) runWatch() {
 // runHeartbeatTimeCheckerLoop runs HeartbeatTimeChecker on an infinite loop
 func (n *NodeAgentManager) runHeartbeatTimeCheckerLoop() {
 	n.firstHeartbeatTimeout = ParseInt64FromEnv("FIRST_HEARTBEAT_TIMEOUT", 60000)
-	n.heartbeatTimeout = ParseInt64FromEnv("HEARTBEAT_TIMEOUT", 5000)
+	n.heartbeatTimeout = ParseInt64FromEnv("HEARTBEAT_TIMEOUT", 60000)
 	go func() {
 		for {
 			n.HeartbeatTimeChecker()
