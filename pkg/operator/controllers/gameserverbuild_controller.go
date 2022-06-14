@@ -95,7 +95,10 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	var gsb mpsv1alpha1.GameServerBuild
 	if err := r.Get(ctx, req.NamespacedName, &gsb); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("Unable to fetch GameServerBuild - skipping")
+			log.Info("Unable to fetch GameServerBuild - it is being deleted")
+			// GameServerBuild is being deleted so clear its entry from the crashesPerBuild map
+			// no-op if the entry is not present
+			crashesPerBuild.Delete(getKeyForCrashesPerBuildMap(&gsb))
 			return ctrl.Result{}, nil
 		}
 		log.Error(err, "unable to fetch gameServerBuild")
@@ -123,12 +126,6 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	if !creationsCompleted {
 		return ctrl.Result{}, nil
-	}
-
-	if !gsb.DeletionTimestamp.IsZero() {
-		// GameServerBuild is being deleted so clear its entry from the crashesPerBuild map
-		// no-op if the entry is not present
-		crashesPerBuild.Delete(getKeyForCrashesPerBuildMap(&gsb))
 	}
 
 	// get the gameServers that are owned by this gameServerBuild
