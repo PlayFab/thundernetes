@@ -33,6 +33,7 @@ const (
 	testNamespace                      = "e2e"
 	connectedPlayersCount              = 3 // this should the same as in the netcore sample
 	LabelBuildID                       = "BuildID"
+	LabelBuildName                     = "BuildName"
 	invalidStatusCode           string = "invalid status code"
 	containerName               string = "netcore-sample" // this must be the same as the GameServer name
 	nodeAgentName               string = "nodeagent"
@@ -314,7 +315,7 @@ func verifyPodsInHostNetwork(ctx context.Context, kubeClient client.Client, gsb 
 	var pods = corev1.PodList{}
 	opts := []client.ListOption{
 		client.InNamespace(gsb.Namespace),
-		client.MatchingLabels{"BuildName": gsb.Name, "BuildID": gsb.Spec.BuildID},
+		client.MatchingLabels{LabelBuildName: gsb.Name, "BuildID": gsb.Spec.BuildID},
 	}
 
 	if err := kubeClient.List(ctx, &pods, opts...); err != nil {

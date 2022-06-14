@@ -171,7 +171,7 @@ func testUpdateInitializingGameServersToStandingBy(ctx context.Context, buildID 
 			gs := getGameServer(ctx, gameServer.Name) // getting the latest updated GameServer object
 			patch := client.MergeFrom(gs.DeepCopy())
 			gs.Status.State = mpsv1alpha1.GameServerStateStandingBy
-			gs.Status.Health = mpsv1alpha1.Healthy
+			gs.Status.Health = mpsv1alpha1.GameServerHealthy
 			err = testk8sClient.Status().Patch(ctx, &gs, patch)
 			Expect(err).ToNot(HaveOccurred())
 		}

@@ -86,7 +86,7 @@ var _ = Describe("Crashing Build", func() {
 
 		Eventually(func(g Gomega) {
 			var gsList mpsv1alpha1.GameServerList
-			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{"BuildName": testBuildCrashingName})
+			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{LabelBuildName: testBuildCrashingName})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(gsList.Items)).To(Equal(2))
 			gs := gsList.Items[0]

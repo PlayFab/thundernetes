@@ -107,7 +107,7 @@ var _ = Describe("Build with hostnetwork", func() {
 
 		Eventually(func(g Gomega) {
 			var gsList mpsv1alpha1.GameServerList
-			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{"BuildName": testBuildWithHostNetworkName})
+			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{LabelBuildName: testBuildWithHostNetworkName})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(gsList.Items)).To(Equal(3))
 			gs := gsList.Items[0]

@@ -32,6 +32,7 @@ const (
 	gameServerDetailNameParam = "gameServerDetailName"
 	urlprefix                 = "/api/v1"
 	listeningPort             = 5001
+	LabelBuildName            = "BuildName"
 )
 
 func main() {
@@ -173,7 +174,7 @@ func listGameServers(c *gin.Context) {
 func listGameServersForBuild(c *gin.Context) {
 	buildName := c.Param(buildNameParam)
 	var gsList mpsv1alpha1.GameServerList
-	err := kubeClient.List(ctx, &gsList, client.MatchingLabels{"BuildName": buildName})
+	err := kubeClient.List(ctx, &gsList, client.MatchingLabels{LabelBuildName: buildName})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -304,7 +305,7 @@ func deleteGameServerBuild(c *gin.Context) {
 func listGameServerDetailsForBuild(c *gin.Context) {
 	buildName := c.Param(buildNameParam)
 	var gsdList mpsv1alpha1.GameServerDetailList
-	err := kubeClient.List(ctx, &gsdList, client.MatchingLabels{"BuildName": buildName})
+	err := kubeClient.List(ctx, &gsdList, client.MatchingLabels{LabelBuildName: buildName})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

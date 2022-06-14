@@ -175,7 +175,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// if a game server is active, there are players present.
 	// When using the cluster autoscaler, an annotation will be added
 	// to prevent the node from being scaled down.
-	r.Recorder.Eventf(&gs, corev1.EventTypeNormal, "Update", "Gameserver %s state is %s", gs.Name, gs.Status.State)
+	r.Recorder.Eventf(&gs, corev1.EventTypeNormal, "Update", "Gameserver %s state is %s, health is %s", gs.Name, gs.Status.State, gs.Status.Health)
 	err := r.addSafeToEvictAnnotationIfNecessary(ctx, &gs, &pod)
 	if err != nil {
 		return ctrl.Result{}, err

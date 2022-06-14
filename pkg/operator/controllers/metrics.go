@@ -36,7 +36,15 @@ var (
 		prometheus.CounterOpts{
 			Namespace: "thundernetes",
 			Name:      "gameservers_crashed_total",
-			Help:      "Number of GameServers sessions crashed",
+			Help:      "Number of GameServers crashed",
+		},
+		[]string{"BuildName"},
+	)
+	GameServersUnhealthyCounter = registry.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "thundernetes",
+			Name:      "gameservers_unhealthy_total",
+			Help:      "Number of GameServers marked as Unhealthy",
 		},
 		[]string{"BuildName"},
 	)
