@@ -159,14 +159,14 @@ func parseStateHealth(u *unstructured.Unstructured) (string, string, error) {
 	return state, health, nil
 }
 
-// parseBuildID parses and returns the GameServer buildID from the unstructured GameServer CR.
+// parseBuildName parses and returns the GameServerBuild name from the unstructured GameServer CR.
 func parseBuildName(u *unstructured.Unstructured) (string, error) {
-	buildID, buildIDExists, buildIDErr := unstructured.NestedString(u.Object, "metadata", "labels", "BuildName")
-	if buildIDErr != nil {
-		return "", buildIDErr
+	buildName, buildNameExists, buildNameErr := unstructured.NestedString(u.Object, "metadata", "labels", "BuildName")
+	if buildNameErr != nil {
+		return "", buildNameErr
 	}
-	if !buildIDExists {
-		return "", errors.New(ErrBuildIDNotExists)
+	if !buildNameExists {
+		return "", errors.New(ErrBuildNameNotExists)
 	}
-	return buildID, nil
+	return buildName, nil
 }
