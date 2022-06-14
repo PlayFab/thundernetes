@@ -24,15 +24,15 @@ import (
 )
 
 const (
-	GameServerName      = "GameServerName"
-	GameServerNamespace = "GameServerNamespace"
-	defaultTimeout      = 4
-	LabelNodeName       = "NodeName"
-	ErrBuildIDNotExists = "buildID does not exist"
-	ErrStateNotExists   = "state does not exist"
-	ErrHealthNotExists  = "health does not exist"
-	unhealthyStatus     = "Unhealthy"
-	healthyStatus       = "Healthy"
+	GameServerName        = "GameServerName"
+	GameServerNamespace   = "GameServerNamespace"
+	defaultTimeout        = 4
+	LabelNodeName         = "NodeName"
+	ErrBuildNameNotExists = "build name does not exist"
+	ErrStateNotExists     = "state does not exist"
+	ErrHealthNotExists    = "health does not exist"
+	unhealthyStatus       = "Unhealthy"
+	healthyStatus         = "Healthy"
 )
 
 // HeartbeatState is a status of a gameserver, it represents if it has sent heartbeats

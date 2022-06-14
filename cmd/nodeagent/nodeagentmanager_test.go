@@ -29,6 +29,7 @@ const (
 	testGameServerName      = "testgs"
 	testGameServerNamespace = "default"
 	testNodeName            = "testnode"
+	testBuildName           = "testBuild"
 	numberOfAttemps         = 3
 )
 
@@ -641,7 +642,13 @@ func createUnstructuredTestGameServer(name, namespace string) *unstructured.Unst
 	g := map[string]interface{}{
 		"apiVersion": "mps.playfab.com/v1alpha1",
 		"kind":       "GameServer",
-		"metadata":   map[string]interface{}{"name": name, "namespace": namespace, "labels": map[string]interface{}{"NodeName": testNodeName}},
+		"metadata": map[string]interface{}{
+			"name":      name,
+			"namespace": namespace,
+			"labels": map[string]interface{}{
+				"NodeName":  testNodeName,
+				"BuildName": testBuildName,
+			}},
 		"spec": map[string]interface{}{
 			"titleID": "testTitleID",
 			"buildID": "testBuildID",
