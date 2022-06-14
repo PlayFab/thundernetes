@@ -98,11 +98,7 @@ func main() {
 	}
 
 	// initialize a live API client, used for the PortRegistry
-	k8sClient, err := client.New(ctrl.GetConfigOrDie(), client.Options{Scheme: scheme})
-	if err != nil {
-		setupLog.Error(err, "unable to start live API client")
-		os.Exit(1)
-	}
+	k8sClient := mgr.GetAPIReader()
 
 	var crt, key []byte
 	apiServiceSecurity := os.Getenv("API_SERVICE_SECURITY")
@@ -188,7 +184,7 @@ func main() {
 // initializePortRegistry performs some initialization and creates a new PortRegistry struct
 // the k8sClient is a live API client and is used to get the existing gameservers and the "Ready" Nodes
 // the crClient is the cached controller-runtime client, used to watch for changes to the nodes from inside the PortRegistry
-func initializePortRegistry(k8sClient client.Client, crClient client.Client, setupLog logr.Logger) (*controllers.PortRegistry, error) {
+func initializePortRegistry(k8sClient client.Reader, crClient client.Client, setupLog logr.Logger) (*controllers.PortRegistry, error) {
 	var gameServers mpsv1alpha1.GameServerList
 	if err := k8sClient.List(context.Background(), &gameServers); err != nil {
 		return nil, err
@@ -229,7 +225,7 @@ func initializePortRegistry(k8sClient client.Client, crClient client.Client, set
 
 // getTlsSecret returns the TLS secret from the given namespace
 // used in the allocation API service
-func getTlsSecret(k8sClient client.Client, namespace string) ([]byte, []byte, error) {
+func getTlsSecret(k8sClient client.Reader, namespace string) ([]byte, []byte, error) {
 	var secret corev1.Secret
 	err := k8sClient.Get(context.Background(), types.NamespacedName{
 		Name:      secretName,
