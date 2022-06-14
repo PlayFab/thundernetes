@@ -24,7 +24,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -34,11 +36,20 @@ import (
 // log is for logging in this package.
 var (
 	gameserverbuildlog = logf.Log.WithName("gameserverbuild-resource")
-	c                  client.Client
+	// c is a live API client so we can bypass the cache when validating
+	c client.Client
 )
 
 func (r *GameServerBuild) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	c = mgr.GetClient()
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(AddToScheme(scheme))
+
+	var err error
+	c, err = client.New(ctrl.GetConfigOrDie(), client.Options{Scheme: runtime.NewScheme()})
+	if err != nil {
+		return err
+	}
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
