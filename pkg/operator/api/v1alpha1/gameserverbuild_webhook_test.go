@@ -3,12 +3,19 @@ package v1alpha1
 import (
 	"math/rand"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	timeout  = time.Second * 5
+	interval = time.Millisecond * 250
 )
 
 var _ = Describe("GameServerBuild webhook tests", func() {
@@ -19,6 +26,12 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 			buildName2, _ := getNewNameAndID()
 			gsb := createTestGameServerBuild(buildName, buildID, 2, 4, false)
 			Expect(k8sClient.Create(ctx, &gsb)).Should(Succeed())
+			// make sure the new GameServerBuild is part of the cache
+			var gsbTest GameServerBuild
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: buildName, Namespace: "default"}, &gsbTest)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
 			gsb = createTestGameServerBuild(buildName2, buildID, 2, 4, false)
 			err := k8sClient.Create(ctx, &gsb)
 			Expect(err).To(HaveOccurred())
