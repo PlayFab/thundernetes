@@ -65,7 +65,7 @@ builddockerlocal: build
 	done
 
 installkind:
-	curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.13.0/kind-linux-amd64
+	curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.14.0/kind-linux-amd64
 	chmod +x ./kind
 	mkdir -p ./pkg/operator/testbin/bin
 	mv ./kind ./pkg/operator/testbin/bin/kind
