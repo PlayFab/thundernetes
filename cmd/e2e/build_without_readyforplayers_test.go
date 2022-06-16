@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("Build without ReadyForPlayers GSDK call", func() {
+var _ = Describe("GameServerBuild without ReadyForPlayers GSDK call", func() {
 	testBuildWithoutReadyForPlayers := "withoutreadyforplayers"
 	testWithoutReadyForPlayersBuildID := "85ffe8da-c82f-4035-86c5-9d2b5f42d6f8"
 	It("should have GameServers stuck in Initializing", func() {
@@ -112,7 +112,7 @@ var _ = Describe("Build without ReadyForPlayers GSDK call", func() {
 
 		Eventually(func(g Gomega) {
 			var gsList mpsv1alpha1.GameServerList
-			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{"BuildName": testBuildWithoutReadyForPlayers})
+			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{LabelBuildName: testBuildWithoutReadyForPlayers})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(gsList.Items)).To(Equal(2))
 			gs := gsList.Items[0]

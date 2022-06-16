@@ -38,8 +38,8 @@ const (
 )
 
 const (
-	Healthy   GameServerHealth = "Healthy"
-	Unhealthy GameServerHealth = "Unhealthy"
+	GameServerHealthy   GameServerHealth = "Healthy"
+	GameServerUnhealthy GameServerHealth = "Unhealthy"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!

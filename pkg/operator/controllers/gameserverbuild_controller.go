@@ -105,10 +105,10 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	// if GameServerBuild is unhealthy and current crashes equal or more than the crashesToMarkUnhealthy, so do nothing more
+	// if GameServerBuild is unhealthy and current crashes equal or more than CrashesToMarkUnhealthy, do nothing more
 	if gsb.Status.Health == mpsv1alpha1.BuildUnhealthy && gsb.Status.CrashesCount >= gsb.Spec.CrashesToMarkUnhealthy {
-		log.Info("GameServerBuild is unhealthy, do nothing")
-		r.Recorder.Event(&gsb, corev1.EventTypeNormal, "Unhealthy Build", "GameServerBuild is unhealthy, do nothing")
+		log.Info("GameServerBuild is Unhealthy, do nothing")
+		r.Recorder.Event(&gsb, corev1.EventTypeNormal, "Unhealthy Build", "GameServerBuild is Unhealthy, stopping reconciliation")
 		return ctrl.Result{}, nil
 	}
 
@@ -128,7 +128,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 
-	// get the gameServers that are owned by this gameServerBuild
+	// get the gameServers that are owned by this GameServerBuild
 	var gameServers mpsv1alpha1.GameServerList
 	if err := r.List(ctx, &gameServers, client.InNamespace(req.Namespace), client.MatchingFields{ownerKey: req.Name}); err != nil {
 		// there has been an error
@@ -140,32 +140,44 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	for i := 0; i < len(gameServers.Items); i++ {
 		gs := gameServers.Items[i]
 
-		if gs.Status.State == "" {
+		if gs.Status.State == "" && gs.Status.Health != mpsv1alpha1.GameServerUnhealthy { // under normal circumstances, Health will also be equal to ""
 			pendingCount++
-		} else if gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
+		} else if gs.Status.State == mpsv1alpha1.GameServerStateInitializing && gs.Status.Health == mpsv1alpha1.GameServerHealthy {
 			initializingCount++
-		} else if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
+		} else if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy && gs.Status.Health == mpsv1alpha1.GameServerHealthy {
 			standingByCount++
-		} else if gs.Status.State == mpsv1alpha1.GameServerStateActive {
+		} else if gs.Status.State == mpsv1alpha1.GameServerStateActive && gs.Status.Health == mpsv1alpha1.GameServerHealthy {
 			activeCount++
-		} else if gs.Status.State == mpsv1alpha1.GameServerStateCrashed {
-			crashesCount++
-			if err := r.Delete(ctx, &gs); err != nil {
-				return ctrl.Result{}, err
-			}
-			GameServersCrashedCounter.WithLabelValues(gsb.Name).Inc()
-			addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
-			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Crashed", "GameServer %s crashed", gs.Name)
-		} else if gs.Status.State == mpsv1alpha1.GameServerStateGameCompleted {
+		} else if gs.Status.State == mpsv1alpha1.GameServerStateGameCompleted && gs.Status.Health == mpsv1alpha1.GameServerHealthy {
+			// game server process exited with code 0
 			if err := r.Delete(ctx, &gs); err != nil {
 				return ctrl.Result{}, err
 			}
 			GameServersSessionEndedCounter.WithLabelValues(gsb.Name).Inc()
 			addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Exited", "GameServer %s session completed", gs.Name)
+		} else if gs.Status.State == mpsv1alpha1.GameServerStateCrashed {
+			// game server process exited with code != 0 (crashed)
+			crashesCount++
+			if err := r.Delete(ctx, &gs); err != nil {
+				return ctrl.Result{}, err
+			}
+			GameServersCrashedCounter.WithLabelValues(gsb.Name).Inc()
+			addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
+			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Unhealthy", "GameServer %s was deleted because it became unhealthy, state: %s, health: %s", gs.Name, gs.Status.State, gs.Status.Health)
+		} else if gs.Status.Health == mpsv1alpha1.GameServerUnhealthy {
+			// all cases where the game server was marked as Unhealthy
+			crashesCount++
+			if err := r.Delete(ctx, &gs); err != nil {
+				return ctrl.Result{}, err
+			}
+			GameServersUnhealthyCounter.WithLabelValues(gsb.Name).Inc()
+			addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
+			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Crashed", "GameServer %s was deleted because it crashed, state: %s, health: %s", gs.Name, gs.Status.State, gs.Status.Health)
 		}
 	}
 
+	// calculate the total amount of servers not in the active state
 	nonActiveGameServersCount := standingByCount + initializingCount + pendingCount
 
 	// user has decreased standingBy numbers

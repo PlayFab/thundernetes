@@ -101,7 +101,7 @@ var _ = Describe("Build which sleeps before calling GSDK ReadyForPlayers", func(
 
 		Eventually(func(g Gomega) {
 			var gsList mpsv1alpha1.GameServerList
-			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{"BuildName": testBuildSleepBeforeReadyForPlayersName})
+			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{LabelBuildName: testBuildSleepBeforeReadyForPlayersName})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(gsList.Items)).To(Equal(3))
 			gs := gsList.Items[0]
