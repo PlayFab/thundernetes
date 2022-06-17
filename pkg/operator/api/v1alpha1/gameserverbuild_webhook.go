@@ -38,6 +38,9 @@ var (
 )
 
 func (r *GameServerBuild) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	// this should be a live API reader but this won't in this case since we're querying the GameServerBuild via spec.buildID
+	// and arbitrary field CRD selectors are not working at this time
+	// https://github.com/kubernetes/kubernetes/issues/53459
 	c = mgr.GetClient()
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
