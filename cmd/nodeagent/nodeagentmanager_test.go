@@ -33,6 +33,8 @@ const (
 	numberOfAttemps         = 3
 )
 
+// most tests here are marked as Flakey because of https://github.com/PlayFab/thundernetes/issues/238
+
 var _ = Describe("nodeagent tests", func() {
 	It("heartbeat with empty body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", nil)
