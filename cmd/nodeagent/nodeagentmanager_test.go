@@ -214,7 +214,7 @@ var _ = Describe("nodeagent tests", func() {
 		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 
 	})
-	It("should delete the GameServer from the cache when it's delete on K8s", FlakeAttempts(numberOfAttemps), func() {
+	It("should delete the GameServer from the cache when it's deleted from Kubernetes", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
@@ -238,6 +238,99 @@ var _ = Describe("nodeagent tests", func() {
 			_, ok = n.gameServerMap.Load(testGameServerName)
 			return ok
 		}).Should(BeTrue())
+	})
+	It("should create a GameServerDetail when the GameServer transitions to Active", FlakeAttempts(numberOfAttemps), func() {
+		dynamicClient := newDynamicInterface()
+
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
+		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
+
+		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the create trigger on the watch
+		var gsinfo interface{}
+		Eventually(func() bool {
+			var ok bool
+			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
+			return ok
+		}).Should(BeTrue())
+
+		// simulate subsequent updates by GSDK
+		gsinfo.(*GameServerInfo).PreviousGameState = GameStateStandingBy
+		gsinfo.(*GameServerInfo).PreviousGameHealth = "Healthy"
+
+		// update GameServer CR to active
+		gs.Object["status"].(map[string]interface{})["state"] = "Active"
+		gs.Object["status"].(map[string]interface{})["health"] = "Healthy"
+		_, err = dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Update(context.Background(), gs, metav1.UpdateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the update trigger on the watch
+		Eventually(func() bool {
+			tempgs, ok := n.gameServerMap.Load(testGameServerName)
+			if !ok {
+				return false
+			}
+			tempgs.(*GameServerInfo).Mutex.RLock()
+			gsd := *tempgs.(*GameServerInfo)
+			tempgs.(*GameServerInfo).Mutex.RUnlock()
+			return gsd.IsActive && gsd.PreviousGameState == GameStateStandingBy
+		}).Should(BeTrue())
+
+		// wait till the GameServerDetail CR has been created
+		Eventually(func(g Gomega) {
+			u, err := dynamicClient.Resource(gameserverDetailGVR).Namespace(testGameServerNamespace).Get(context.Background(), gs.GetName(), metav1.GetOptions{})
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(u.GetName()).To(Equal(gs.GetName()))
+		}).Should(Succeed())
+	})
+	It("should not create a GameServerDetail when an Unhealthy GameServer transitions to Active", FlakeAttempts(numberOfAttemps), func() {
+		dynamicClient := newDynamicInterface()
+
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
+		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
+
+		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the create trigger on the watch
+		var gsinfo interface{}
+		Eventually(func() bool {
+			var ok bool
+			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
+			return ok
+		}).Should(BeTrue())
+
+		// simulate subsequent updates by GSDK
+		gsinfo.(*GameServerInfo).PreviousGameState = GameStateStandingBy
+		gsinfo.(*GameServerInfo).PreviousGameHealth = "Healthy"
+
+		// update GameServer CR to active and unhealthy
+		gs.Object["status"].(map[string]interface{})["state"] = "Active"
+		gs.Object["status"].(map[string]interface{})["health"] = "Unhealthy"
+		_, err = dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Update(context.Background(), gs, metav1.UpdateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the update trigger on the watch
+		// making sure that the Active signal is not sent to the GameServer
+		Eventually(func() bool {
+			tempgs, ok := n.gameServerMap.Load(testGameServerName)
+			if !ok {
+				return false
+			}
+			tempgs.(*GameServerInfo).Mutex.RLock()
+			gsd := *tempgs.(*GameServerInfo)
+			tempgs.(*GameServerInfo).Mutex.RUnlock()
+			return gsd.IsActive == false && gsd.PreviousGameState == GameStateStandingBy
+		}).Should(BeTrue())
+
+		// and making sure that GameServerDetail has not been created
+		Consistently(func(g Gomega) {
+			_, err = dynamicClient.Resource(gameserverDetailGVR).Namespace(testGameServerNamespace).Get(context.Background(), gs.GetName(), metav1.GetOptions{})
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		}).Should(Succeed())
 	})
 	It("should create a GameServerDetail on subsequent heartbeats, if it fails on the first time", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
