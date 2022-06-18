@@ -54,6 +54,7 @@ var _ = Describe("GameServer webhook tests", func() {
 func createTestGameServer(name, buildID string, hostNetwork bool) GameServer {
 	return GameServer{
 		Spec: GameServerSpec{
+			TitleID:       "test-title-id",
 			BuildID:       buildID,
 			PortsToExpose: []int32{80},
 			Template: corev1.PodTemplateSpec{

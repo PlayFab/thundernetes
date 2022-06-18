@@ -182,9 +182,11 @@ func testUpdateInitializingGameServersToStandingBy(ctx context.Context, buildID 
 func testGenerateGameServerBuild(buildName, buildNamespace, buildID string, standingBy, max int, hostNetwork bool) mpsv1alpha1.GameServerBuild {
 	return mpsv1alpha1.GameServerBuild{
 		Spec: mpsv1alpha1.GameServerBuildSpec{
-			BuildID:    buildID,
-			StandingBy: standingBy,
-			Max:        max,
+			PortsToExpose: []int32{80},
+			TitleID:       "test-title-id",
+			BuildID:       buildID,
+			StandingBy:    standingBy,
+			Max:           max,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
@@ -213,7 +215,9 @@ func testGenerateGameServerBuild(buildName, buildNamespace, buildID string, stan
 func testGenerateGameServer(buildName, buildID, gsNamespace, gsName string) *mpsv1alpha1.GameServer {
 	return &mpsv1alpha1.GameServer{
 		Spec: mpsv1alpha1.GameServerSpec{
-			BuildID: buildID,
+			TitleID:       "testtitleid",
+			PortsToExpose: []int32{80},
+			BuildID:       buildID,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      map[string]string{"label1": "value1", "label2": "value2"},

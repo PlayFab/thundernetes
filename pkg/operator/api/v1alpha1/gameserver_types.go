@@ -51,17 +51,25 @@ type GameServerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	//+kubebuilder:validation:Required
 	// Template describes the pod template specification of the game server
-	Template corev1.PodTemplateSpec `json:"template,omitempty"`
+	Template corev1.PodTemplateSpec `json:"template"`
+
 	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:Format=string
+	//+kubebuilder:validation:MinLength=1
 	// TitleID is the TitleID this GameServer belongs to
-	TitleID string `json:"titleID,omitempty"`
+	TitleID string `json:"titleID"`
+
 	//+kubebuilder:validation:Required
-	// Build is the BuildID for this GameServer
-	BuildID string `json:"buildID,omitempty"`
+	//+kubebuilder:validation:Format=uuid
+	// BuildID is the BuildID for this GameServer
+	BuildID string `json:"buildID"`
+
 	//+kubebuilder:validation:Required
 	// PortsToExpose is an array of ports that will be exposed on the VM
-	PortsToExpose []int32 `json:"portsToExpose,omitempty"`
+	PortsToExpose []int32 `json:"portsToExpose"`
+
 	// BuildMetadata is the metadata for the GameServerBuild this GameServer belongs to
 	BuildMetadata []BuildMetadataItem `json:"buildMetadata,omitempty"`
 }
