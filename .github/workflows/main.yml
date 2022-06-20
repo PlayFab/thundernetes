@@ -41,8 +41,6 @@ jobs:
             echo "install files are modified"
             exit 1
           fi
-      - name: build Docker images
-        run: make builddockerlocal
       - name: GameServer API service unit tests
         run: cd cmd/gameserverapi && GIN_MODE=release go test -race
       - name: initcontainer unit tests
@@ -53,6 +51,8 @@ jobs:
         run: cd cmd/qosserver && go test -race
       - name: operator unit tests
         run: IMAGE_NAME_SAMPLE=thundernetes-netcore IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer TAG=$(git rev-list HEAD --max-count=1 --abbrev-commit) make -C pkg/operator test
+      - name: build Docker images
+        run: make builddockerlocal
       - name: install kind binaries
         run: make installkind
       - name: create kind cluster
