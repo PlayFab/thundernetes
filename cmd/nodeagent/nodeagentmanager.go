@@ -128,9 +128,15 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 			gsd.PreviousGameHealth != unhealthyStatus {
 			state = noHeartbeatSince
 		}
+		markedUnhealthy := gsd.MarkedUnhealthy
 		gsd.Mutex.RUnlock()
-		if state != gotHeartbeat {
-			n.markGameServerUnhealthy(gameServerName, gameServerNamespace, state)
+		if !markedUnhealthy && state != gotHeartbeat {
+			err := n.markGameServerUnhealthy(gameServerName, gameServerNamespace, state)
+			if err == nil {
+				gsd.Mutex.Lock()
+				gsd.MarkedUnhealthy = true
+				gsd.Mutex.Unlock()
+			}
 		}
 		return true
 	})
@@ -138,7 +144,7 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 
 // markGameServerUnhealthy sends a patch to mark the GameServer, described by its name
 // and namespace, as Unhealthy
-func (n *NodeAgentManager) markGameServerUnhealthy(gameServerName, gameServerNamespace string, state HeartbeatState) {
+func (n *NodeAgentManager) markGameServerUnhealthy(gameServerName, gameServerNamespace string, state HeartbeatState) error {
 	logger := getLogger(gameServerName, gameServerNamespace)
 	if state == noHeartbeatEver {
 		logger.Infof("GameServer has not sent any heartbeats in %d seconds since creation, marking Unhealthy", n.firstHeartbeatTimeout/1000)
@@ -156,13 +162,16 @@ func (n *NodeAgentManager) markGameServerUnhealthy(gameServerName, gameServerNam
 	payloadBytes, err := json.Marshal(u)
 	if err != nil {
 		logger.Errorf("marshaling %s", err.Error())
+		return err
 	}
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Second*defaultTimeout)
 	defer cancel()
 	_, err = n.dynamicClient.Resource(gameserverGVR).Namespace(gameServerNamespace).Patch(ctxWithTimeout, gameServerName, types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
 	if err != nil {
 		logger.Errorf("updating health %s", err.Error())
+		return err
 	}
+	return nil
 }
 
 // gameServerCreated is called when a GameServer CR is created
@@ -212,6 +221,7 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 			GsUid:               obj.GetUID(),
 			CreationTime:        n.nowFunc().UnixMilli(),
 			BuildName:           gameServerBuildName,
+			MarkedUnhealthy:     false,
 			// we're not adding details about health/state since the NodeAgent might have crashed
 			// and the health/state might have changed during the crash
 		}
