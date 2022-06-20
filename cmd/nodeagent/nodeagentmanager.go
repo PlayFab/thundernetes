@@ -218,13 +218,19 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 		n.gameServerMap.Store(gameServerName, gsdi)
 	}
 
-	gameServerState, _, err := parseStateHealth(obj)
+	gameServerState, gameServerHealth, err := parseStateHealth(obj)
 	if err != nil {
-		logger.Warnf("parsing state/health: %s. This is OK if the GameServer was just created", err.Error())
+		if err.Error() == ErrHealthNotExists || err.Error() == ErrStateNotExists {
+			logger.Debugf("parsing state/health: %s. This is OK since the server was probably just created", err.Error())
+		} else {
+			logger.Errorf("parsing state/health: %s", err.Error())
+		}
+
 	}
 
-	// we only care to continue if the state is Active
-	if gameServerState != string(GameStateActive) {
+	// we only care to continue if the state is Active and the GameServer is healthy
+	if gameServerState != string(GameStateActive) || gameServerHealth != string(mpsv1alpha1.GameServerHealthy) {
+		logger.Debugf("skipping create/update handler since GameServer %s/%s has state %s and health %s", gameServerNamespace, gameServerName, gameServerState, gameServerHealth)
 		return
 	}
 
