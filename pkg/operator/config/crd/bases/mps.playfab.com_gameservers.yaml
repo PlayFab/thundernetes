@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.9.0
   creationTimestamp: null
   name: gameservers.mps.playfab.com
 spec:
@@ -54,7 +54,8 @@ spec:
             description: GameServerSpec defines the desired state of GameServer
             properties:
               buildID:
-                description: Build is the BuildID for this GameServer
+                description: BuildID is the BuildID for this GameServer
+                format: uuid
                 type: string
               buildMetadata:
                 description: BuildMetadata is the metadata for the GameServerBuild
@@ -7199,7 +7200,14 @@ spec:
                 type: object
               titleID:
                 description: TitleID is the TitleID this GameServer belongs to
+                format: string
+                minLength: 1
                 type: string
+            required:
+            - buildID
+            - portsToExpose
+            - template
+            - titleID
             type: object
           status:
             description: GameServerStatus defines the observed state of GameServer
@@ -7256,9 +7264,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

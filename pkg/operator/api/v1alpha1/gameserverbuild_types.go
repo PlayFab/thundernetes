@@ -39,27 +39,33 @@ type GameServerBuildSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Minimum=0
 	// StandingBy is the requested number of standingBy servers
-	StandingBy int `json:"standingBy,omitempty"`
+	StandingBy int `json:"standingBy"`
+	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Minimum=0
 	// Max is the maximum number of servers in any state
-	Max int `json:"max,omitempty"`
+	Max int `json:"max"`
 
+	//+kubebuilder:validation:Required
 	// Template describes the pod template specification of the game server
 	Template corev1.PodTemplateSpec `json:"template,omitempty"`
 
 	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:Format=string
+	//+kubebuilder:validation:MinLength=1
 	// TitleID is the TitleID this Build belongs to
-	TitleID string `json:"titleID,omitempty"`
+	TitleID string `json:"titleID"`
 
 	//+kubebuilder:validation:Required
-	// Build is is the BuildID for this Build
-	BuildID string `json:"buildID,omitempty"`
+	//+kubebuilder:validation:Format=uuid
+	// BuildID is is the BuildID for this Build
+	BuildID string `json:"buildID"`
 
 	//+kubebuilder:validation:Required
 	// PortsToExpose is an array of ports that will be exposed on the VM
-	PortsToExpose []int32 `json:"portsToExpose,omitempty"`
+	PortsToExpose []int32 `json:"portsToExpose"`
 
 	//+kubebuilder:default=5
 	//+kubebuilder:validation:Minimum=0

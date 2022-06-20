@@ -95,6 +95,7 @@ func randString(n int) string {
 func createTestGameServerBuild(buildName, buildID string, standingBy, max int, hostNetwork bool) GameServerBuild {
 	return GameServerBuild{
 		Spec: GameServerBuildSpec{
+			TitleID:       "test-title-id",
 			BuildID:       buildID,
 			StandingBy:    standingBy,
 			Max:           max,

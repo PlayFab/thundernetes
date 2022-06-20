@@ -180,5 +180,27 @@ var _ = Describe("GameServerBuild controller tests", func() {
 			testVerifyTotalGameServerCount(ctx, buildID, 2)
 			verifyContainerPortIsTheSameAsHostPort(ctx, buildName)
 		})
+
+		It("should fail to create a GameServerBuild without a titleID", func() {
+			buildName, buildID := getNewBuildNameAndID()
+			gsb := testGenerateGameServerBuild(buildName, testnamespace, buildID, 2, 4, true)
+			gsb.Spec.TitleID = ""
+			err := testk8sClient.Create(ctx, &gsb)
+			Expect(err).ToNot(BeNil())
+		})
+
+		It("should fail to create a GameServerBuild without a buildID", func() {
+			buildName, buildID := getNewBuildNameAndID()
+			gsb := testGenerateGameServerBuild(buildName, testnamespace, buildID, 2, 4, true)
+			gsb.Spec.BuildID = ""
+			Expect(testk8sClient.Create(ctx, &gsb)).Should(Not(Succeed()))
+		})
+
+		It("should fail to create a GameServerBuild with a non-GUID buildID", func() {
+			buildName, buildID := getNewBuildNameAndID()
+			gsb := testGenerateGameServerBuild(buildName, testnamespace, buildID, 2, 4, true)
+			gsb.Spec.BuildID = "1234"
+			Expect(testk8sClient.Create(ctx, &gsb)).Should(Not(Succeed()))
+		})
 	})
 })
