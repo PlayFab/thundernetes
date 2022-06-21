@@ -44,10 +44,12 @@ export FAKE_TLS_PUBLIC=/tmp/${RANDOM}.pem
 openssl req -x509 -newkey rsa:4096 -nodes -keyout ${FAKE_TLS_PRIVATE} -out ${FAKE_TLS_PUBLIC} -days 365 -subj '/CN=localhost'
 
 echo "-----Compiling, building and deploying the operator to local Kubernetes cluster-----"
-IMG=${IMAGE_NAME_OPERATOR}:${IMAGE_TAG} API_SERVICE_SECURITY=usetls make -C "${DIR}"/../pkg/operator deploy
+IMG=${IMAGE_NAME_OPERATOR}:${IMAGE_TAG} API_SERVICE_SECURITY=usetls make -C "${DIR}"/../pkg/operator deploye2e
 
 echo "-----Deploying GameServer API-----"
-IMAGE_TAG=${IMAGE_TAG} envsubst < cmd/gameserverapi/deploy.yaml | kubectl apply -f -
+cd cmd/gameserverapi/deploy/default
+"${DIR}"/../pkg/operator/bin/kustomize edit set image thundernetes-gameserverapi=thundernetes-gameserverapi:${IMAGE_TAG}
+"${DIR}"/../pkg/operator/bin/kustomize build ../e2e | kubectl apply -f -
 
 echo "-----Waiting for Controller deployment-----"
 kubectl wait --for=condition=available --timeout=300s deployment/thundernetes-controller-manager -n thundernetes-system
@@ -56,7 +58,7 @@ echo "-----Waiting for GameServer API deployment-----"
 kubectl wait --for=condition=ready --timeout=300s pod -n thundernetes-system -l app=thundernetes-gameserverapi
 
 echo "-----Running end to end tests-----"
-cd cmd/e2e
+cd "${DIR}"/../cmd/e2e
 # create the test namespaces
 kubectl create namespace gameserverapi
 kubectl create namespace e2e

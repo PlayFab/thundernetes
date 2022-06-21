@@ -1,0 +1,4 @@
+bases:
+  - ../default
+patchesStrategicMerge:
+  - nodeselector.yaml
