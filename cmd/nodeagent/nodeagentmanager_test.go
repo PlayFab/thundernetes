@@ -715,7 +715,11 @@ var _ = Describe("nodeagent tests", func() {
 			g.Expect(gameServerHealth).To(Equal("Unhealthy"))
 		}).Should(Succeed())
 	})
-	It("should not mark the game server as Unhealthy a second time", FlakeAttempts(numberOfAttemps), func() {
+	It("should not mark the game server as Unhealthy more than once", FlakeAttempts(numberOfAttemps), func() {
+		// this test is a bit hacky because if more than one patch to mark Unhealthy are sent
+		// the behavior doesn't really change and the code still works, to be able to test
+		// this we change an Unhealthy game server back to Healthy and expect that it doesn't
+		// go back to Unhealthy
 		dynamicClient := newDynamicInterface()
 		// set initial time
 		customNow := func() time.Time {
