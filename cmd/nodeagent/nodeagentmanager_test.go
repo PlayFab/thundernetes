@@ -825,7 +825,7 @@ var _ = Describe("nodeagent tests", func() {
 			_, gameServerHealth, err := parseStateHealth(u)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gameServerHealth).To(Equal("Healthy"))
-		}, "1s").Should(Succeed())
+		}, "3s").Should(Succeed())
 	})
 })
 

@@ -130,6 +130,7 @@ func (n *NodeAgentManager) HeartbeatTimeChecker() {
 		}
 		markedUnhealthy := gsd.MarkedUnhealthy
 		gsd.Mutex.RUnlock()
+		// the first part of this if is to avoid sending a patch more than once
 		if !markedUnhealthy && state != gotHeartbeat {
 			err := n.markGameServerUnhealthy(gameServerName, gameServerNamespace, state)
 			if err == nil {
