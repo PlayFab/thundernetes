@@ -104,5 +104,6 @@ type GameServerInfo struct {
 	GsUid                 types.UID // UID of the GameServer object
 	CreationTime          int64     // time when this GameServerInfo was created in the nodeagent
 	LastHeartbeatTime     int64     // time since the nodeagent received a heartbeat from this GameServer
+	MarkedUnhealthy       bool      // if the GameServer was marked unhealthy by a heartbeat condition, used to avoid repeating the patch
 	BuildName             string    // the name of the GameServerBuild that this GameServer belongs to
 }
