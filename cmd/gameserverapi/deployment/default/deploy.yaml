@@ -16,7 +16,7 @@ spec:
         app: thundernetes-gameserverapi
     spec:
       containers:
-        - image: thundernetes-gameserverapi
+        - image: thundernetes-gameserverapi:${IMAGE_TAG}
           name: gameserverapi
           imagePullPolicy: IfNotPresent
           resources:

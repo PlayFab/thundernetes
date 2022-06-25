@@ -47,9 +47,8 @@ echo "-----Compiling, building and deploying the operator to local Kubernetes cl
 IMG=${IMAGE_NAME_OPERATOR}:${IMAGE_TAG} API_SERVICE_SECURITY=usetls make -C "${DIR}"/../pkg/operator deploye2e
 
 echo "-----Deploying GameServer API-----"
-cd cmd/gameserverapi/deploy/default
-"${DIR}"/../pkg/operator/bin/kustomize edit set image thundernetes-gameserverapi=thundernetes-gameserverapi:${IMAGE_TAG}
-"${DIR}"/../pkg/operator/bin/kustomize build ../e2e | kubectl apply -f -
+cd cmd/gameserverapi/deployment/default
+"${DIR}"/../pkg/operator/bin/kustomize build ../e2e | IMAGE_TAG=${IMAGE_TAG} envsubst | kubectl apply -f -
 
 echo "-----Waiting for Controller deployment-----"
 kubectl wait --for=condition=available --timeout=300s deployment/thundernetes-controller-manager -n thundernetes-system

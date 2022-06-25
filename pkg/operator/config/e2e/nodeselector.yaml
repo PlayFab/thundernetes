@@ -1,5 +1,6 @@
-# this YAML file, when used with kustomize, it adds the nodeSelector field to the controller deployment
-# it's used in e2e tests, so that the controller is scheduled on a different Node than the GameServer Pods
+# When this YAML file is used with kustomize, it adds the nodeSelector field to the controller deployment
+# It's used in e2e tests, so that the controller is scheduled on a specific Node, so that we can do the 
+# allocation API service port forwarding (5000) correctly
 apiVersion: apps/v1
 kind: Deployment
 metadata:

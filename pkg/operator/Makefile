@@ -84,7 +84,6 @@ docker-push: ## Push docker image with the manager.
 
 .PHONY: create-install-files
 create-install-files:
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 ## Create install files for thundernetes installed without API security
 	$(KUSTOMIZE) build config/default | API_SERVICE_SECURITY=none envsubst > ${INSTALL_FILES_FOLDER}/operator.yaml
 ## Create install files for thundernetes installed with API security	
@@ -111,12 +110,10 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | envsubst | kubectl apply -f -
 
 .PHONY: deploye2e
 deploye2e: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/e2e | envsubst | kubectl apply -f -
 
 .PHONY: undeploy

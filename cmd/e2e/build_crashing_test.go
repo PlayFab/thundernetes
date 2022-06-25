@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"net"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -40,13 +39,12 @@ var _ = Describe("Crashing Build", func() {
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
 		}, 45*time.Second, interval).Should(Succeed()) // bigger timeout because of the time crashes take to occur and captured by the controller
 
-		// we are updating the GameServerBuild to be able to have more crashes for it to become Unhealthy
+		// we are updating the GameServerBuild with a big CrashesToMarkUnhealthy to give time to the GameServerBuild to become Healthy
 		gsb := &mpsv1alpha1.GameServerBuild{}
 		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildCrashingName, Namespace: testNamespace}, gsb)
 		Expect(err).ToNot(HaveOccurred())
 		patch := client.MergeFrom(gsb.DeepCopy())
-		gsb.Spec.CrashesToMarkUnhealthy = 10
-
+		gsb.Spec.CrashesToMarkUnhealthy = 1000
 		err = kubeClient.Patch(ctx, gsb, patch)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -66,7 +64,16 @@ var _ = Describe("Crashing Build", func() {
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
 		}, 10*time.Second, interval).Should(Succeed())
 
-		// but only temporarily, since the game servers will continue to crash
+		// we're decreasing the CrashesToMarkUnhealthy to 10 so that the
+		// GameServerBuild will eventually become Unhealthy
+		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildCrashingName, Namespace: testNamespace}, gsb)
+		Expect(err).ToNot(HaveOccurred())
+		patch = client.MergeFrom(gsb.DeepCopy())
+		gsb.Spec.CrashesToMarkUnhealthy = 10
+		err = kubeClient.Patch(ctx, gsb, patch)
+		Expect(err).ToNot(HaveOccurred())
+
+		// now, let's make sure that GameServerBuild is Unhealthy
 		Eventually(func(g Gomega) {
 			gsb := &mpsv1alpha1.GameServerBuild{}
 			err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildCrashingName, Namespace: testNamespace}, gsb)
@@ -83,16 +90,6 @@ var _ = Describe("Crashing Build", func() {
 			}
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
 		}, 40*time.Second, interval).Should(Succeed())
-
-		Eventually(func(g Gomega) {
-			var gsList mpsv1alpha1.GameServerList
-			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{LabelBuildName: testBuildCrashingName})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(gsList.Items)).To(Equal(2))
-			gs := gsList.Items[0]
-			g.Expect(gs.Status.NodeName).ToNot(BeEmpty())
-			g.Expect(net.ParseIP(gs.Status.PublicIP)).ToNot(BeNil())
-		}, 10*time.Second, interval).Should(Succeed())
 	})
 })
 

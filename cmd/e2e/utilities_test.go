@@ -40,8 +40,9 @@ const (
 	portKey                     string = "gameport"
 	safeToEvictPodAttribute     string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
 	timeout                            = time.Second * 30
-	interval                           = time.Millisecond * 250
+	interval                           = time.Second * 1
 	thundernetesSystemNamespace        = "thundernetes-system"
+	testNodeCount                      = 3
 )
 
 type AllocationResult struct {
@@ -97,8 +98,8 @@ func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Contex
 		return err
 	}
 
-	if len(nodeAgentPodList.Items) != 3 {
-		return fmt.Errorf("expected 3 NodeAgent Pods, got %d", len(nodeAgentPodList.Items))
+	if len(nodeAgentPodList.Items) != testNodeCount {
+		return fmt.Errorf("expected %d NodeAgent Pods, got %d", testNodeCount, len(nodeAgentPodList.Items))
 	}
 
 	for _, gameServer := range activeGameServers {

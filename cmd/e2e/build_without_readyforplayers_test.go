@@ -13,22 +13,22 @@ import (
 )
 
 var _ = Describe("GameServerBuild without ReadyForPlayers GSDK call", func() {
-	testBuildWithoutReadyForPlayers := "withoutreadyforplayers"
+	testBuildWithoutReadyForPlayersName := "withoutreadyforplayers"
 	testWithoutReadyForPlayersBuildID := "85ffe8da-c82f-4035-86c5-9d2b5f42d6f8"
 	It("should have GameServers stuck in Initializing", func() {
 		ctx := context.Background()
 		kubeConfig := ctrl.GetConfigOrDie()
 		kubeClient, err := createKubeClient(kubeConfig)
 		Expect(err).ToNot(HaveOccurred())
-		err = kubeClient.Create(ctx, createBuildWithoutReadyForPlayers(testBuildWithoutReadyForPlayers, testWithoutReadyForPlayersBuildID, img))
+		err = kubeClient.Create(ctx, createBuildWithoutReadyForPlayers(testBuildWithoutReadyForPlayersName, testWithoutReadyForPlayersBuildID, img))
 		Expect(err).ToNot(HaveOccurred())
 
 		Eventually(func(g Gomega) {
 			gsb := &mpsv1alpha1.GameServerBuild{}
-			err := kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayers, Namespace: testNamespace}, gsb)
+			err := kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayersName, Namespace: testNamespace}, gsb)
 			g.Expect(err).ToNot(HaveOccurred())
 			state := buildState{
-				buildName:         testBuildWithoutReadyForPlayers,
+				buildName:         testBuildWithoutReadyForPlayersName,
 				buildID:           testWithoutReadyForPlayersBuildID,
 				initializingCount: 2,
 				standingByCount:   0,
@@ -40,7 +40,7 @@ var _ = Describe("GameServerBuild without ReadyForPlayers GSDK call", func() {
 
 		// update the GameServerBuild to 4 standingBy
 		gsb := &mpsv1alpha1.GameServerBuild{}
-		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayers, Namespace: testNamespace}, gsb)
+		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayersName, Namespace: testNamespace}, gsb)
 		Expect(err).ToNot(HaveOccurred())
 		patch := client.MergeFrom(gsb.DeepCopy())
 		gsb.Spec.StandingBy = 4
@@ -49,10 +49,10 @@ var _ = Describe("GameServerBuild without ReadyForPlayers GSDK call", func() {
 
 		Eventually(func(g Gomega) {
 			gsb := &mpsv1alpha1.GameServerBuild{}
-			err := kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayers, Namespace: testNamespace}, gsb)
+			err := kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayersName, Namespace: testNamespace}, gsb)
 			g.Expect(err).ToNot(HaveOccurred())
 			state := buildState{
-				buildName:         testBuildWithoutReadyForPlayers,
+				buildName:         testBuildWithoutReadyForPlayersName,
 				buildID:           testWithoutReadyForPlayersBuildID,
 				initializingCount: 4,
 				standingByCount:   0,
@@ -64,7 +64,7 @@ var _ = Describe("GameServerBuild without ReadyForPlayers GSDK call", func() {
 
 		// update the GameServerBuild to 0 standingBy
 		gsb = &mpsv1alpha1.GameServerBuild{}
-		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayers, Namespace: testNamespace}, gsb)
+		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayersName, Namespace: testNamespace}, gsb)
 		Expect(err).ToNot(HaveOccurred())
 		patch = client.MergeFrom(gsb.DeepCopy())
 		gsb.Spec.StandingBy = 0
@@ -73,10 +73,10 @@ var _ = Describe("GameServerBuild without ReadyForPlayers GSDK call", func() {
 
 		Eventually(func(g Gomega) {
 			gsb := &mpsv1alpha1.GameServerBuild{}
-			err := kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayers, Namespace: testNamespace}, gsb)
+			err := kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayersName, Namespace: testNamespace}, gsb)
 			g.Expect(err).ToNot(HaveOccurred())
 			state := buildState{
-				buildName:         testBuildWithoutReadyForPlayers,
+				buildName:         testBuildWithoutReadyForPlayersName,
 				buildID:           testWithoutReadyForPlayersBuildID,
 				initializingCount: 0,
 				standingByCount:   0,
@@ -88,7 +88,7 @@ var _ = Describe("GameServerBuild without ReadyForPlayers GSDK call", func() {
 
 		// update the GameServerBuild to 2 standingBy again
 		gsb = &mpsv1alpha1.GameServerBuild{}
-		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayers, Namespace: testNamespace}, gsb)
+		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayersName, Namespace: testNamespace}, gsb)
 		Expect(err).ToNot(HaveOccurred())
 		patch = client.MergeFrom(gsb.DeepCopy())
 		gsb.Spec.StandingBy = 2
@@ -97,10 +97,10 @@ var _ = Describe("GameServerBuild without ReadyForPlayers GSDK call", func() {
 
 		Eventually(func(g Gomega) {
 			gsb := &mpsv1alpha1.GameServerBuild{}
-			err := kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayers, Namespace: testNamespace}, gsb)
+			err := kubeClient.Get(ctx, client.ObjectKey{Name: testBuildWithoutReadyForPlayersName, Namespace: testNamespace}, gsb)
 			g.Expect(err).ToNot(HaveOccurred())
 			state := buildState{
-				buildName:         testBuildWithoutReadyForPlayers,
+				buildName:         testBuildWithoutReadyForPlayersName,
 				buildID:           testWithoutReadyForPlayersBuildID,
 				initializingCount: 2,
 				standingByCount:   0,
@@ -110,14 +110,16 @@ var _ = Describe("GameServerBuild without ReadyForPlayers GSDK call", func() {
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
 		}, timeout, interval).Should(Succeed())
 
+		// make sure all GameServers have a Public IP and NodeName
 		Eventually(func(g Gomega) {
 			var gsList mpsv1alpha1.GameServerList
-			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{LabelBuildName: testBuildWithoutReadyForPlayers})
+			err := kubeClient.List(ctx, &gsList, client.MatchingLabels{LabelBuildName: testBuildWithoutReadyForPlayersName})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(gsList.Items)).To(Equal(2))
-			gs := gsList.Items[0]
-			g.Expect(gs.Status.NodeName).ToNot(BeEmpty())
-			g.Expect(net.ParseIP(gs.Status.PublicIP)).ToNot(BeNil())
+			for _, gs := range gsList.Items {
+				g.Expect(gs.Status.NodeName).ToNot(BeEmpty())
+				g.Expect(net.ParseIP(gs.Status.PublicIP)).ToNot(BeNil())
+			}
 		}, timeout, interval).Should(Succeed())
 
 	})
