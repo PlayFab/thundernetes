@@ -72,11 +72,7 @@ var _ = Describe("Port registry tests", func() {
 
 	It("should increase/decrease NodeCount when we add/delete Nodes from the cluster", func() {
 		portRegistry, kubeClient := getPortRegistryKubeClientForTesting(testMinPort, testMaxPort)
-		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "node2",
-			},
-		}
+		node := getNewNodeForTest("node2")
 		err := kubeClient.Create(context.Background(), node)
 		Expect(err).ToNot(HaveOccurred())
 		// do a manual reconcile since we haven't added the controller to the manager
@@ -95,11 +91,7 @@ var _ = Describe("Port registry tests", func() {
 
 	It("should successfully allocate ports on two Nodes", func() {
 		portRegistry, kubeClient := getPortRegistryKubeClientForTesting(testMinPort, testMaxPort)
-		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "node2",
-			},
-		}
+		node := getNewNodeForTest("node2")
 		err := kubeClient.Create(context.Background(), node)
 		Expect(err).ToNot(HaveOccurred())
 		// do a manual reconcile since we haven't added the controller to the manager
@@ -169,11 +161,7 @@ var _ = Describe("Port registry tests", func() {
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 8)
 
 		// add a second Node
-		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "node2",
-			},
-		}
+		node := getNewNodeForTest("node2")
 		err = kubeClient.Create(context.Background(), node)
 		Expect(err).ToNot(HaveOccurred())
 		// do a manual reconcile since we haven't added the controller to the manager
@@ -236,11 +224,7 @@ var _ = Describe("Port registry with two thousand ports, five hundred on four no
 
 	// add three nodes
 	for i := 0; i < 3; i++ {
-		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: fmt.Sprintf("node%d", i+2),
-			},
-		}
+		node := getNewNodeForTest(fmt.Sprintf("node%d", i+2))
 		err := kubeClient.Create(context.Background(), node)
 		Expect(err).ToNot(HaveOccurred())
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
@@ -380,11 +364,7 @@ func verifyHostPortsPerNode(portRegistry *PortRegistry, expectedNodeCount int) e
 // getPortRegistryKubeClientForTesting returns a PortRegistry and a fake Kubernetes client for testing
 func getPortRegistryKubeClientForTesting(min, max int32) (*PortRegistry, client.Client) {
 	log := logr.FromContextOrDiscard(context.Background())
-	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "node1",
-		},
-	}
+	node := getNewNodeForTest("node1")
 	clientBuilder := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(node)
 	kubeClient := clientBuilder.Build()
 	Expect(kubeClient).NotTo(BeNil())
@@ -402,4 +382,18 @@ func syncMapToMapInt32Int(sm *sync.Map) map[int32]int {
 		return true
 	})
 	return m
+}
+
+// getNewNodeForTest returns a new Node for testing
+func getNewNodeForTest(name string) *corev1.Node {
+	return &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionTrue},
+			},
+		},
+	}
 }

@@ -40,8 +40,9 @@ const (
 	portKey                     string = "gameport"
 	safeToEvictPodAttribute     string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
 	timeout                            = time.Second * 30
-	interval                           = time.Millisecond * 250
+	interval                           = time.Second * 1
 	thundernetesSystemNamespace        = "thundernetes-system"
+	testNodeCount                      = 3
 )
 
 type AllocationResult struct {
@@ -97,20 +98,30 @@ func validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx context.Contex
 		return err
 	}
 
-	if len(nodeAgentPodList.Items) != 1 {
-		return fmt.Errorf("expected 1 node agent pod, got %d", len(nodeAgentPodList.Items))
-	}
-	nodeAgentPod := nodeAgentPodList.Items[0]
-
-	nodeAgentLogs, err := getContainerLogs(ctx, coreClient, nodeAgentPod.Name, nodeAgentName, thundernetesSystemNamespace)
-	if err != nil {
-		return err
+	if len(nodeAgentPodList.Items) != testNodeCount {
+		return fmt.Errorf("expected %d NodeAgent Pods, got %d", testNodeCount, len(nodeAgentPodList.Items))
 	}
 
 	for _, gameServer := range activeGameServers {
+		// find the NodeAgent Pod for this GameServer (they have been scheduled in the same Node)
+		var nodeAgentLogs string
+		var err error
+		for _, nodeAgentPod := range nodeAgentPodList.Items {
+			// when running on kind, the GameServer.Status.PublicIP is equal to the private IP of the Node
+			if nodeAgentPod.Status.HostIP == gameServer.Status.PublicIP {
+				nodeAgentLogs, err = getContainerLogs(ctx, coreClient, nodeAgentPod.Name, nodeAgentName, thundernetesSystemNamespace)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		if nodeAgentLogs == "" {
+			return fmt.Errorf("could not find NodeAgent Pod for GameServer %s", gameServer.Name)
+		}
+
 		Eventually(func() error {
 			if !strings.Contains(nodeAgentLogs, "sessionCookie:randomCookie") {
-				return fmt.Errorf("expected to find 'sessionCookie:randomCookie' in nodeAgent logs, got %s", nodeAgentLogs)
+				return fmt.Errorf("expected to find 'sessionCookie:randomCookie' in NodeAgent logs, got %s", nodeAgentLogs)
 			}
 
 			containerLogs, err := getContainerLogs(ctx, coreClient, gameServer.Name, containerName, gameServer.Namespace)

@@ -247,6 +247,7 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 
 	// server is Active, so get session details as well initial players details
 	sessionID, sessionCookie, initialPlayers := parseSessionDetails(obj, gameServerName, gameServerNamespace)
+	// sessionCookie:<valueOfCookie> string is looked for in the e2e tests, be careful not to modify it!
 	logger.Infof("getting values from allocation - GameServer CR, sessionID:%s, sessionCookie:%s, initialPlayers: %v", sessionID, sessionCookie, initialPlayers)
 
 	// create the GameServerDetails CR
