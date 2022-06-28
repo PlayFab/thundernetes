@@ -14,7 +14,7 @@ import (
 var _ = Describe("Crashing Build", func() {
 	testBuildCrashingName := "crashing"
 	testCrashingBuildID := "85ffe8da-c82f-4035-86c5-9d2b5f42d6f7"
-	It("should become unhealthy", func() {
+	It("should become Unhealthy, then transition to Healthy and then Unhealthy again", func() {
 		ctx := context.Background()
 		kubeConfig := ctrl.GetConfigOrDie()
 		kubeClient, err := createKubeClient(kubeConfig)
@@ -22,6 +22,10 @@ var _ = Describe("Crashing Build", func() {
 		err = kubeClient.Create(ctx, createCrashingBuild(testBuildCrashingName, testCrashingBuildID, img))
 		Expect(err).ToNot(HaveOccurred())
 
+		// this test simulates the scenario where
+		// a GameServerBuild becomes Unhealthy because of multiple crashes
+		// user manually increases the CrashesToMarkUnhealthy so GameServerBuild transitions to Healthy again
+		// multiple crashes occur, so the GameServerBuild becomes Unhealthy again
 		Eventually(func(g Gomega) {
 			gsb := &mpsv1alpha1.GameServerBuild{}
 			err := kubeClient.Get(ctx, client.ObjectKey{Name: testBuildCrashingName, Namespace: testNamespace}, gsb)
@@ -40,6 +44,10 @@ var _ = Describe("Crashing Build", func() {
 		}, 45*time.Second, interval).Should(Succeed()) // bigger timeout because of the time crashes take to occur and captured by the controller
 
 		// we are updating the GameServerBuild with a big CrashesToMarkUnhealthy to give time to the GameServerBuild to become Healthy
+		// Reasoning: At one point during running the e2e tests, we noticed that this test failed.
+		// This is because the GameServers crashed multiple (10) times so the GameServerBuild stayed Unhealthy,
+		// before having the chance to transition (temporarily) to Healthy. So, by setting it to 1000 we give it more chance to transition to Healthy,
+		// before decreasing it to 10 (in the next step) so that it can become Unhealthy again.
 		gsb := &mpsv1alpha1.GameServerBuild{}
 		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildCrashingName, Namespace: testNamespace}, gsb)
 		Expect(err).ToNot(HaveOccurred())
