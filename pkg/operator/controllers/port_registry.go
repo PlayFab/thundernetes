@@ -26,6 +26,7 @@ type PortRegistry struct {
 	lockMutex           sync.Mutex    // lock for the map
 	useSpecificNodePool bool          // if true, we only take into account Nodes that have the Label "mps.playfab.com/gameservernode"=true
 	nextPortNumber      int32         // the next port to be assigned
+	logger              logr.Logger
 }
 
 // NewPortRegistry initializes the map[port]counter that holds the port registry
@@ -51,6 +52,7 @@ func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerLi
 		useSpecificNodePool: useSpecificNodePool,
 		nextPortNumber:      min,
 		NodeCount:           nodeCount,
+		logger:              log.Log.WithName("portregistry"),
 	}
 
 	// initialize the ports
@@ -174,6 +176,8 @@ func (pr *PortRegistry) DeregisterServerPorts(ports []int32) error {
 	pr.lockMutex.Lock()
 	for i := 0; i < len(ports); i++ {
 		if pr.HostPortsPerNode[ports[i]] > 0 {
+			// following log should NOT be changed since an e2e test depends on it
+			pr.logger.V(1).Info("Deregistering port", "port", ports[i])
 			pr.HostPortsPerNode[ports[i]]--
 		} else {
 			return fmt.Errorf("cannot deregister port %d, it is not registered", ports[i])
@@ -188,6 +192,7 @@ func (pr *PortRegistry) assignRegisteredPorts(ports []int32) {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
 	for i := 0; i < len(ports); i++ {
+		pr.logger.V(1).Info("Assigning port", "port", ports[i])
 		pr.HostPortsPerNode[ports[i]]++
 	}
 }

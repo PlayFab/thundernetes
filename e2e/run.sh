@@ -61,5 +61,11 @@ cd "${DIR}"/../cmd/e2e
 # create the test namespaces
 kubectl create namespace gameserverapi
 kubectl create namespace e2e
-# https://onsi.github.io/ginkgo/#recommended-continuous-integration-configuration
-IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go run github.com/onsi/ginkgo/v2/ginkgo -r --procs=4 --compilers=4 --randomize-all --randomize-suites --fail-on-pending --keep-going --race --trace
+
+GINKGO=github.com/onsi/ginkgo/v2/ginkgo
+# we are using description based filtering to first run only the test that modifies the number of Nodes in the cluster
+# Reason is that if we ran it together with the other tests, it would have an impact on the number of Actives
+# https://onsi.github.io/ginkgo/#description-based-filtering
+IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go run ${GINKGO} --focus "Cluster with variable number of Nodes" --fail-on-pending --keep-going --race --trace
+# check here for flags explanation: https://onsi.github.io/ginkgo/#recommended-continuous-integration-configuration
+IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go run ${GINKGO} --skip "Cluster with variable number of Nodes" -r --procs=4 --compilers=4 --randomize-all --randomize-suites --fail-on-pending --keep-going --race --trace
