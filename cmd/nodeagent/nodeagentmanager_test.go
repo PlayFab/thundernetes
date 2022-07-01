@@ -17,8 +17,10 @@ import (
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
 	scheme2 "k8s.io/client-go/kubernetes/scheme"
@@ -712,6 +714,118 @@ var _ = Describe("nodeagent tests", func() {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gameServerHealth).To(Equal("Unhealthy"))
 		}).Should(Succeed())
+	})
+	It("should not mark the game server as Unhealthy more than once", FlakeAttempts(numberOfAttemps), func() {
+		// this test is a bit hacky because if more than one patch to mark Unhealthy are sent
+		// the behavior doesn't really change and the code still works, to be able to test
+		// this we change an Unhealthy game server back to Healthy and expect that it doesn't
+		// go back to Unhealthy
+		dynamicClient := newDynamicInterface()
+		// set initial time
+		customNow := func() time.Time {
+			layout := "Mon, 02 Jan 2006 15:04:05 MST"
+			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:00:00 PST")
+			return value
+		}
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, customNow)
+		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
+
+		// create the game server
+		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// wait for the create trigger on the watch
+		Eventually(func() bool {
+			_, ok := n.gameServerMap.Load(testGameServerName)
+			return ok
+		}).Should(BeTrue())
+
+		// we send a heartbeat
+		hb := &HeartbeatRequest{
+			CurrentGameState:  GameStateStandingBy,
+			CurrentGameHealth: "Healthy",
+		}
+		b, _ := json.Marshal(hb)
+		req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/sessionHosts/%s", testGameServerName), bytes.NewReader(b))
+		w := httptest.NewRecorder()
+
+		n.heartbeatHandler(w, req)
+
+		// wait for LastHeartbeatTime value to be eventually initialized
+		Eventually(func() int64 {
+			var ok bool
+			var gsinfo interface{}
+			gsinfo, ok = n.gameServerMap.Load(testGameServerName)
+			if !ok {
+				return 0
+			}
+			return gsinfo.(*GameServerInfo).LastHeartbeatTime
+		}).ShouldNot(Equal(int64(0)))
+
+		// change time to be 6 seconds later
+		customNow = func() time.Time {
+			layout := "Mon, 02 Jan 2006 15:04:05 MST"
+			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:00:06 PST")
+			return value
+		}
+		n.nowFunc = customNow
+
+		// we run the check
+		n.HeartbeatTimeChecker()
+
+		// the game server health status should eventually be Unhealthy
+		Eventually(func(g Gomega) {
+			u, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Get(context.Background(), gs.GetName(), metav1.GetOptions{})
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(u.GetName()).To(Equal(gs.GetName()))
+			_, gameServerHealth, err := parseStateHealth(u)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gameServerHealth).To(Equal("Unhealthy"))
+		}).Should(Succeed())
+
+		// we patch the game server to be Healthy again
+		patch := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"status": mpsv1alpha1.GameServerStatus{
+					Health: mpsv1alpha1.GameServerHealth(healthyStatus),
+				},
+			},
+		}
+		payloadBytes, err := json.Marshal(patch)
+		Expect(err).ToNot(HaveOccurred())
+		_, err = dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Patch(context.Background(), gs.GetName(), types.MergePatchType, payloadBytes, metav1.PatchOptions{}, "status")
+		Expect(err).ToNot(HaveOccurred())
+
+		// the game server health status should eventually be Healthy
+		Eventually(func(g Gomega) {
+			u, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Get(context.Background(), gs.GetName(), metav1.GetOptions{})
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(u.GetName()).To(Equal(gs.GetName()))
+			_, gameServerHealth, err := parseStateHealth(u)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gameServerHealth).To(Equal("Healthy"))
+		}).Should(Succeed())
+
+		// change time to be 6 seconds later again
+		customNow = func() time.Time {
+			layout := "Mon, 02 Jan 2006 15:04:05 MST"
+			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:00:06 PST")
+			return value
+		}
+		n.nowFunc = customNow
+
+		// we run the check again
+		n.HeartbeatTimeChecker()
+
+		// the game server health status should stay Healthy
+		Consistently(func(g Gomega) {
+			u, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Get(context.Background(), gs.GetName(), metav1.GetOptions{})
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(u.GetName()).To(Equal(gs.GetName()))
+			_, gameServerHealth, err := parseStateHealth(u)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gameServerHealth).To(Equal("Healthy"))
+		}, "3s").Should(Succeed())
 	})
 })
 

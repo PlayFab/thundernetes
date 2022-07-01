@@ -33,7 +33,7 @@ spec:
             - /manager
           args:
             - --leader-elect
-          image: controller:latest
+          image: ${IMG}
           imagePullPolicy: IfNotPresent
           env:
             - name: MIN_PORT

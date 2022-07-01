@@ -1,0 +1,15 @@
+# When this YAML file is used with kustomize, it adds the nodeSelector field to the controller deployment
+# It's used in e2e tests, so that the controller is scheduled on a specific Node, so that we can do the 
+# allocation API service port forwarding (5000) correctly
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+  labels:
+    control-plane: controller-manager
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: kind-worker

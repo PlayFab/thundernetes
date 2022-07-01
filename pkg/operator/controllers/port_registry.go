@@ -107,7 +107,7 @@ func (pr *PortRegistry) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	// calculate how many nodes are ready and schedulable
 	schedulableNodesCount := 0
 	for i := 0; i < len(nodeList.Items); i++ {
-		if !nodeList.Items[i].Spec.Unschedulable {
+		if IsNodeReadyAndSchedulable(&nodeList.Items[i]) {
 			schedulableNodesCount++
 		}
 	}
