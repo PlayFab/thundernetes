@@ -39,7 +39,7 @@ kubectl create secret generic -n thundernetes-system tls-certs --from-file=tls.c
 ### Step 5: Deploy the Game Server API and an Ingress with your keys
 We have bundled the definitions for the GameServer Deployment, Service, and Ingress in the ```deployment/secured/deploy_mtls.yaml``` file. You have to change the image inside the deployment and check the name of the Secret referenced in the Ingress matches the one you created. Then you just run:
 ```
-kubectl apply -f [path to deploy_mtls.yaml]
+kubectl apply -f {path to deploy_mtls.yaml}
 ```
 
 ### Connect to the Game Server API
