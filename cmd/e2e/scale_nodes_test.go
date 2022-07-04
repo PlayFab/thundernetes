@@ -96,7 +96,7 @@ var _ = Describe("Cluster with variable number of Nodes", Ordered, func() {
 				})
 			}
 		}
-		// make sure that all evicted Pods have been gone
+		// make sure that all evicted Pods have been deleted
 		for _, pod := range evictedPodsNames {
 			Eventually(func(g Gomega) {
 				tempPod := &corev1.Pod{}
@@ -167,6 +167,8 @@ var _ = Describe("Cluster with variable number of Nodes", Ordered, func() {
 		}, timeout, interval).Should(Succeed())
 	})
 	It("should have at least one Pod on Node 3", func() {
+		// for this test, we're relying on the kube scheduler trying to balance the load among the Nodes
+		// so it will definitely schedule a Pod on Node 3
 		pods := &corev1.PodList{}
 		err = kubeClient.List(ctx, pods, client.InNamespace(testNamespace))
 		Expect(err).ToNot(HaveOccurred())
