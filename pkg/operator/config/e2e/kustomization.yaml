@@ -2,4 +2,4 @@ bases:
 - ../default
 
 patchesStrategicMerge:
-- nodeselector.yaml
+- manager_e2e.yaml

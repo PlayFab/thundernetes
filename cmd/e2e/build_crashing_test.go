@@ -61,15 +61,7 @@ var _ = Describe("Crashing Build", func() {
 			gsb := &mpsv1alpha1.GameServerBuild{}
 			err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildCrashingName, Namespace: testNamespace}, gsb)
 			Expect(err).ToNot(HaveOccurred())
-			state := buildState{
-				buildName:         testBuildCrashingName,
-				buildID:           testCrashingBuildID,
-				initializingCount: 0,
-				standingByCount:   0,
-				podRunningCount:   0,
-				gsbHealth:         mpsv1alpha1.BuildHealthy,
-			}
-			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
+			g.Expect(gsb.Status.Health).To(Equal(mpsv1alpha1.BuildHealthy))
 		}, 10*time.Second, interval).Should(Succeed())
 
 		// we're decreasing the CrashesToMarkUnhealthy to 10 so that the

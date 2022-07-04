@@ -76,6 +76,7 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	opts := zap.Options{
 		Development: true,
+		Level:       getLogLevel(),
 		// https://github.com/uber-go/zap/issues/661#issuecomment-520686037 and https://github.com/uber-go/zap/issues/485#issuecomment-834021392
 		TimeEncoder: zapcore.TimeEncoderOfLayout(time.RFC3339),
 	}
@@ -275,6 +276,27 @@ func getMinMaxPortFromEnv() (int32, int32, error) {
 	}
 
 	return minPort, maxPort, nil
+}
+
+// getLogLevel returns the log level based on the LOG_LEVEL environment variable
+func getLogLevel() zapcore.LevelEnabler {
+	logLevel := os.Getenv("LOG_LEVEL")
+	switch logLevel {
+	case "debug":
+		return zapcore.DebugLevel
+	case "info":
+		return zapcore.InfoLevel
+	case "warn":
+		return zapcore.WarnLevel
+	case "error":
+		return zapcore.ErrorLevel
+	case "fatal":
+		return zapcore.FatalLevel
+	case "panic":
+		return zapcore.PanicLevel
+	default:
+		return zapcore.InfoLevel
+	}
 }
 
 func useExclusivelyGameServerNodesForPortRegistry() bool {

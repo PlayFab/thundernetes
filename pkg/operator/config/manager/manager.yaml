@@ -40,6 +40,8 @@ spec:
               value: "10000"
             - name: MAX_PORT
               value: "12000"
+            - name: LOG_LEVEL
+              value: info
             - name: API_SERVICE_SECURITY
               value: ${API_SERVICE_SECURITY}
             - name: THUNDERNETES_INIT_CONTAINER_IMAGE

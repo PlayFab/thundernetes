@@ -8903,6 +8903,8 @@ spec:
           value: "10000"
         - name: MAX_PORT
           value: "12000"
+        - name: LOG_LEVEL
+          value: info
         - name: API_SERVICE_SECURITY
           value: none
         - name: THUNDERNETES_INIT_CONTAINER_IMAGE
