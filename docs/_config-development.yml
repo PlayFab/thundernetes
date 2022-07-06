@@ -71,10 +71,7 @@ aux_links:
 # Makes Aux links open in a new tab. Default is false
 aux_links_new_tab: true
 
-# Google Analytics Tracking (optional)
-# e.g, UA-1234567-89
-ga_tracking: G-1MY0MFCQR4
-ga_tracking_anonymize_ip: true # Use GDPR compliant Google Analytics settings (true by default)
+# Don't use Google Analytics when developing locally
 
 plugins:
   - jekyll-seo-tag
