@@ -50,26 +50,26 @@ const (
 // The game server process tells the NodeAgent about its state (if it's Initializing or StandingBy)
 // and NodeAgent tells the game server if it has been allocated (its state having been converted to Active)
 type NodeAgentManager struct {
-	gameServerMap          *sync.Map // we use a sync map instead of a regular map since this will be updated by multiple goroutines
-	dynamicClient          dynamic.Interface
-	watchStopper           chan struct{}
-	nodeName               string
-	logEveryHeartbeat      bool
-	ignoreGameServerHealth bool // health state in heartbeat always comes Healthy
-	nowFunc                func() time.Time
-	heartbeatTimeout       int64 // timeouts for not receiving a heartbeat in milliseconds
-	firstHeartbeatTimeout  int64 // the first heartbeat gets a longer window considering initialization time
+	gameServerMap             *sync.Map // we use a sync map instead of a regular map since this will be updated by multiple goroutines
+	dynamicClient             dynamic.Interface
+	watchStopper              chan struct{}
+	nodeName                  string
+	logEveryHeartbeat         bool
+	ignoreHealthFromHeartbeat bool // treat every heartbeat's health state as Healthy. This is to handle GSDK clients that may send invalid heartbeat
+	nowFunc                   func() time.Time
+	heartbeatTimeout          int64 // timeouts for not receiving a heartbeat in milliseconds
+	firstHeartbeatTimeout     int64 // the first heartbeat gets a longer window considering initialization time
 }
 
-func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEveryHeartbeat bool, ignoreGameServerHealth bool, now func() time.Time) *NodeAgentManager {
+func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEveryHeartbeat bool, ignoreHealthFromHeartbeat bool, now func() time.Time) *NodeAgentManager {
 	n := &NodeAgentManager{
-		dynamicClient:          dynamicClient,
-		watchStopper:           make(chan struct{}),
-		gameServerMap:          &sync.Map{},
-		nodeName:               nodeName,
-		logEveryHeartbeat:      logEveryHeartbeat,
-		ignoreGameServerHealth: ignoreGameServerHealth,
-		nowFunc:                now,
+		dynamicClient:             dynamicClient,
+		watchStopper:              make(chan struct{}),
+		gameServerMap:             &sync.Map{},
+		nodeName:                  nodeName,
+		logEveryHeartbeat:         logEveryHeartbeat,
+		ignoreHealthFromHeartbeat: ignoreHealthFromHeartbeat,
+		nowFunc:                   now,
 	}
 	n.runWatch()
 	n.runHeartbeatTimeCheckerLoop()
@@ -337,7 +337,7 @@ func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Reque
 		logger.Infof("heartbeat received from sessionHostId %s, data %s", gameServerName, heartbeatString)
 	}
 
-	if n.ignoreGameServerHealth {
+	if n.ignoreHealthFromHeartbeat {
 		hb.CurrentGameHealth = string(mpsv1alpha1.GameServerHealthy)
 	}
 

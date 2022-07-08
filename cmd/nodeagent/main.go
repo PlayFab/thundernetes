@@ -19,7 +19,7 @@ func main() {
 	port := getNumericEnv("AGENT_PORT", 56001)
 	nodeName := getEnv("NODE_NAME", true)
 	logEveryHeartbeat := getBooleanEnv("LOG_EVERY_HEARTBEAT", false)
-	ignoreGameServerHealth := getBooleanEnv("IGNORE_GAME_SERVER_HEALTH", false)
+	ignoreHealthFromHeartbeat := getBooleanEnv("IGNORE_HEALTH_FROM_HEARTBEAT", false)
 
 	setLogLevel()
 
@@ -28,7 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	n := NewNodeAgentManager(dynamicClient, nodeName, logEveryHeartbeat, ignoreGameServerHealth, time.Now)
+	n := NewNodeAgentManager(dynamicClient, nodeName, logEveryHeartbeat, ignoreHealthFromHeartbeat, time.Now)
 	log.Debug("Starting HTTP server")
 	http.HandleFunc("/v1/sessionHosts/", n.heartbeatHandler)
 	http.HandleFunc("/healthz", healthzHandler)
