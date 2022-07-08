@@ -15,9 +15,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -41,7 +41,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("heartbeat with empty body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", nil)
 		w := httptest.NewRecorder()
-		n := NewNodeAgentManager(newDynamicInterface(), testNodeName, false, time.Now)
+		n := NewNodeAgentManager(newDynamicInterface(), testNodeName, false, false, time.Now)
 		n.heartbeatHandler(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -54,7 +54,7 @@ var _ = Describe("nodeagent tests", func() {
 		b, _ := json.Marshal(hb)
 		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", bytes.NewReader(b))
 		w := httptest.NewRecorder()
-		n := NewNodeAgentManager(newDynamicInterface(), testNodeName, false, time.Now)
+		n := NewNodeAgentManager(newDynamicInterface(), testNodeName, false, false, time.Now)
 		n.heartbeatHandler(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -72,7 +72,7 @@ var _ = Describe("nodeagent tests", func() {
 		w := httptest.NewRecorder()
 		dynamicClient := newDynamicInterface()
 
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, time.Now)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
@@ -99,7 +99,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("should transition properly from standingBy to Active", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, time.Now)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
@@ -177,7 +177,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("should not create a GameServerDetail if the server is not Active", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, time.Now)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
@@ -219,7 +219,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("should delete the GameServer from the cache when it's deleted from Kubernetes", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, time.Now)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
@@ -244,7 +244,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("should create a GameServerDetail when the GameServer transitions to Active", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, time.Now)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
@@ -290,7 +290,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("should not create a GameServerDetail when an Unhealthy GameServer transitions to Active", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, time.Now)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
@@ -337,7 +337,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("should create a GameServerDetail on subsequent heartbeats, if it fails on the first time", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, time.Now)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
@@ -454,7 +454,7 @@ var _ = Describe("nodeagent tests", func() {
 
 		var wg sync.WaitGroup
 		dynamicClient := newDynamicInterface()
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, time.Now)
 		for i := 0; i < 100; i++ {
 			wg.Add(1)
 			go func(randomGameServerName string) {
@@ -551,7 +551,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("should set CreationTime value when registering a new game server", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, time.Now)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
@@ -571,7 +571,7 @@ var _ = Describe("nodeagent tests", func() {
 	It("should set LastHeartbeatTime value when receiving a heartbeat from a game server", FlakeAttempts(numberOfAttemps), func() {
 		dynamicClient := newDynamicInterface()
 
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, time.Now)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, time.Now)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		_, err := dynamicClient.Resource(gameserverGVR).Namespace(testGameServerNamespace).Create(context.Background(), gs, metav1.CreateOptions{})
@@ -617,7 +617,7 @@ var _ = Describe("nodeagent tests", func() {
 			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:00:00 PST")
 			return value
 		}
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, customNow)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, customNow)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		// create the game server
@@ -659,7 +659,7 @@ var _ = Describe("nodeagent tests", func() {
 			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:00:00 PST")
 			return value
 		}
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, customNow)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, customNow)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		// create the game server
@@ -727,7 +727,7 @@ var _ = Describe("nodeagent tests", func() {
 			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:00:00 PST")
 			return value
 		}
-		n := NewNodeAgentManager(dynamicClient, testNodeName, false, customNow)
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, customNow)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
 		// create the game server
