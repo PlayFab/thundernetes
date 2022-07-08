@@ -16,7 +16,7 @@ spec:
         app: thundernetes-gameserverapi
     spec:
       containers:
-        - image: thundernetes-gameserverapi:${IMAGE_TAG}
+        - image: ghcr.io/playfab/thundernetes-gameserverapi:0.4.1
           name: gameserverapi
           imagePullPolicy: IfNotPresent
           resources:
@@ -64,12 +64,17 @@ metadata:
   name: thundernetes-gameserverapi-ingress
   namespace: thundernetes-system
   annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
-    nginx.ingress.kubernetes.io/auth-tls-secret: "thundernetes-system/tls-certs"
+    nginx.ingress.kubernetes.io/auth-tls-secret: "thundernetes-system/ca-secret"
+    # nginx.ingress.kubernetes.io/enable-cors: "true"
+    # nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
 spec:
   ingressClassName: nginx
   tls:
-  - secretName: tls-certs
+  - secretName: tls-secret
   rules:
   - http:
       paths:
