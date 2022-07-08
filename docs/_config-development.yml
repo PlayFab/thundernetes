@@ -1,0 +1,92 @@
+theme: just-the-docs
+
+title: Thundernetes
+description: Thundernetes makes it easy to host game servers on Kubernetes
+baseurl: "/thundernetes" # the subpath of your site, e.g. /blog
+url: "https://playfab.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+
+# permalink: pretty
+# exclude: ["node_modules/", "*.gemspec", "*.gem", "Gemfile", "Gemfile.lock", "package.json", "package-lock.json",  "script/", "LICENSE.txt", "lib/", "bin/", "README.md", "Makefile", "docs/tests/"]
+
+# Enable or disable the site search
+# Supports true (default) or false
+search_enabled: true
+search:
+  # Split pages into sections that can be searched individually
+  # Supports 1 - 6, default: 2
+  heading_level: 2
+  # Maximum amount of previews per search result
+  # Default: 3
+  previews: 3
+  # Maximum amount of words to display before a matched word in the preview
+  # Default: 5
+  preview_words_before: 5
+  # Maximum amount of words to display after a matched word in the preview
+  # Default: 10
+  preview_words_after: 10
+  # Set the search token separator
+  # Default: /[\s\-/]+/
+  # Example: enable support for hyphenated search words
+  tokenizer_separator: /[\s/]+/
+  # Display the relative url in search results
+  # Supports true (default) or false
+  rel_url: true
+  # Enable or disable the search button that appears in the bottom right corner of every page
+  # Supports true or false (default)
+  button: false
+
+# Footer content
+# appears at the bottom of every page's main content
+footer_content: "Copyright &copy; 2022 Microsoft. Distributed with <a href=\"https://github.com/PlayFab/thundernetes/tree/main/LICENSE\">Apache license.</a>"
+
+# Back to top link
+back_to_top: true
+back_to_top_text: "Back to top"
+
+# Footer last edited timestamp
+last_edit_timestamp: true # show or hide edit time - page must have `last_modified_date` defined in the frontmatter
+last_edit_time_format: "%b %e %Y at %I:%M %p" # uses ruby's time format: https://ruby-doc.org/stdlib-2.7.0/libdoc/time/rdoc/Time.html
+
+# Footer "Edit this page on GitHub" link text
+gh_edit_link: true # show or hide edit this page link
+gh_edit_link_text: "Edit this page on GitHub."
+gh_edit_repository: "https://github.com/PlayFab/thundernetes" # the github URL for your repo
+gh_edit_branch: "main" # the branch that your docs is served from
+gh_edit_source: "docs" # the source that your files originate from
+gh_edit_view_mode: "tree" # "tree" or "edit" if you want the user to jump into the editor immediately
+
+# Heading anchor links appear on hover over h1-h6 tags in page content
+# allowing users to deep link to a particular heading on a page.
+#
+# Supports true (default) or false
+heading_anchors: true
+
+# Aux links for the upper right navigation
+aux_links:
+  "Thundernetes on GitHub":
+    - "//github.com/playfab/thundernetes"
+  "Microsoft Game Dev on Discord":
+    - "https://aka.ms/msftgamedevdiscord"
+
+# Makes Aux links open in a new tab. Default is false
+aux_links_new_tab: true
+
+# Don't use Google Analytics when developing locally
+
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jemoji
+
+kramdown:
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
+
+compress_html:
+  clippings: all
+  comments: all
+  endings: all
+  startings: []
+  blanklines: false
+  profile: false

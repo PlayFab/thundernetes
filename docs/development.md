@@ -300,4 +300,13 @@ spec:
           kubernetes.io/os: windows
     ...
 ```
- 
+## Running docs locally
+
+We use [GitHub Pages](https://docs.github.com/en/pages) to host Thundernetes documentation. To preview your changes locally:
+
+- [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) is recommended
+- Follow the instructions [here](https://docs.github.com/en/pages/setting-up-a-github-pages-site-with-jekyll/testing-your-github-pages-site-locally-with-jekyll). Specifically, install `Ruby` and `Bundler`. `Jekyll` needs to be installed as well but it's already in the Gemfile so it should be installed automatically.
+- Switch to the `docs` directory
+- Run `bundle install` to install the necessary prerequisites
+- Run `bundle exec jekyll serve --config _config-development.yml`
+- Browse the site on http://localhost:4000/thundernetes
