@@ -421,20 +421,30 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 	if !(gsd.PreviousGameState == GameStateStandingBy && hb.CurrentGameState == GameStateActive && gsd.PreviousGameHealth == hb.CurrentGameHealth) {
 		logger.Debugf("Health or state is different than before, updating. Old health: %s, new health: %s, old state: %s, new state: %s", sanitize(gsd.PreviousGameHealth), sanitize(hb.CurrentGameHealth), sanitize(string(gsd.PreviousGameState)), sanitize(string(hb.CurrentGameState)))
 
+		status := mpsv1alpha1.GameServerStatus{
+			State:  mpsv1alpha1.GameServerState(hb.CurrentGameState),
+			Health: mpsv1alpha1.GameServerHealth(hb.CurrentGameHealth),
+		}
+		// if the GameServer is Healthy, update the timestamps of the corresponding state transition
+		if hb.CurrentGameHealth == string(mpsv1alpha1.GameServerHealthy) {
+			now := metav1.Time{Time: n.nowFunc()}
+			if hb.CurrentGameState == GameStateInitializing {
+				status.ReachedInitializingOn = &now
+			} else if hb.CurrentGameState == GameStateStandingBy {
+				status.ReachedStandingByOn = &now
+			}
+		}
+
 		// the reason we're using unstructured to serialize the GameServerStatus instead of the entire GameServer object
 		// is that we don't want extra fields (.Spec, .ObjectMeta) to be serialized
 		u := &unstructured.Unstructured{
 			Object: map[string]interface{}{
-				"status": mpsv1alpha1.GameServerStatus{
-					State:  mpsv1alpha1.GameServerState(hb.CurrentGameState),
-					Health: mpsv1alpha1.GameServerHealth(hb.CurrentGameHealth),
-				},
+				"status": status,
 			},
 		}
 
 		// this will be marshaled as payload := fmt.Sprintf("{\"status\":{\"health\":\"%s\",\"state\":\"%s\"}}", hb.CurrentGameHealth, hb.CurrentGameState)
 		payloadBytes, err := json.Marshal(u)
-
 		if err != nil {
 			return err
 		}

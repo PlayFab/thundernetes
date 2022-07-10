@@ -37,6 +37,8 @@ jobs:
         run: |
           make -C pkg/operator kustomize
           make create-install-files
+          git status
+          git diff
           if ! [ -z "$(git status --porcelain)" ]; then
             echo "install files are modified"
             exit 1

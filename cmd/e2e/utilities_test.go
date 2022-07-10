@@ -414,11 +414,22 @@ func verifyGameServers(ctx context.Context, kubeClient client.Client, state buil
 			if err := verifyGameServerPodEvictionAnnotation(ctx, kubeClient, gameServer, "true"); err != nil {
 				return err
 			}
+			// we're only checking if the ReachedStandingByOn timestamp has been set and not the ReachedInitializingOn
+			// sometimes the transition from "" to Initializing to StandingBy happens too fast so the event is missed
+			if gameServer.Status.ReachedStandingByOn == nil {
+				return fmt.Errorf("GameServer %s has nil ReachedStandingByOn", gameServer.Name)
+			}
 
 		} else if gameServer.Status.State == mpsv1alpha1.GameServerStateActive {
 			observedActiveCount++
 			if err := verifyGameServerPodEvictionAnnotation(ctx, kubeClient, gameServer, "false"); err != nil {
 				return err
+			}
+			if gameServer.Status.ReachedStandingByOn == nil {
+				return fmt.Errorf("GameServer %s has nil ReachedStandingByOn", gameServer.Name)
+			}
+			if gameServer.Status.ReachedActiveOn == nil {
+				return fmt.Errorf("GameServer %s has nil ReachedActiveOn", gameServer.Name)
 			}
 		}
 	}
