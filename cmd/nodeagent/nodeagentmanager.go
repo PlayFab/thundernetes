@@ -116,29 +116,29 @@ func (n *NodeAgentManager) runHeartbeatTimeCheckerLoop() {
 func (n *NodeAgentManager) HeartbeatTimeChecker() {
 	n.gameServerMap.Range(func(key interface{}, value interface{}) bool {
 		currentTime := n.nowFunc().UnixMilli()
-		gsd := value.(*GameServerInfo)
+		gsi := value.(*GameServerInfo)
 		state := gotHeartbeat
-		gsd.Mutex.RLock()
+		gsi.Mutex.RLock()
 		gameServerName := key.(string)
-		gameServerNamespace := gsd.GameServerNamespace
-		if gsd.LastHeartbeatTime == 0 && gsd.CreationTime != 0 &&
-			(currentTime-gsd.CreationTime) > n.firstHeartbeatTimeout &&
-			gsd.PreviousGameHealth != unhealthyStatus {
+		gameServerNamespace := gsi.GameServerNamespace
+		if gsi.LastHeartbeatTime == 0 && gsi.CreationTime != 0 &&
+			(currentTime-gsi.CreationTime) > n.firstHeartbeatTimeout &&
+			gsi.PreviousGameHealth != unhealthyStatus {
 			state = noHeartbeatEver
-		} else if gsd.LastHeartbeatTime != 0 &&
-			(currentTime-gsd.LastHeartbeatTime) > n.heartbeatTimeout &&
-			gsd.PreviousGameHealth != unhealthyStatus {
+		} else if gsi.LastHeartbeatTime != 0 &&
+			(currentTime-gsi.LastHeartbeatTime) > n.heartbeatTimeout &&
+			gsi.PreviousGameHealth != unhealthyStatus {
 			state = noHeartbeatSince
 		}
-		markedUnhealthy := gsd.MarkedUnhealthy
-		gsd.Mutex.RUnlock()
+		markedUnhealthy := gsi.MarkedUnhealthy
+		gsi.Mutex.RUnlock()
 		// the first part of this if is to avoid sending a patch more than once
 		if !markedUnhealthy && state != gotHeartbeat {
 			err := n.markGameServerUnhealthy(gameServerName, gameServerNamespace, state)
 			if err == nil {
-				gsd.Mutex.Lock()
-				gsd.MarkedUnhealthy = true
-				gsd.Mutex.Unlock()
+				gsi.Mutex.Lock()
+				gsi.MarkedUnhealthy = true
+				gsi.Mutex.Unlock()
 			}
 		}
 		return true

@@ -28,9 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	n := NewNodeAgentManager(dynamicClient, nodeName, logEveryHeartbeat, ignoreHealthFromHeartbeat, func() time.Time {
-		return time.Now().UTC()
-	})
+	n := NewNodeAgentManager(dynamicClient, nodeName, logEveryHeartbeat, ignoreHealthFromHeartbeat, time.Now)
 	log.Debug("Starting HTTP server")
 	http.HandleFunc("/v1/sessionHosts/", n.heartbeatHandler)
 	http.HandleFunc("/healthz", healthzHandler)
