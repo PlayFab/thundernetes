@@ -8480,6 +8480,15 @@ spec:
           status:
             description: GameServerStatus defines the observed state of GameServer
             properties:
+              ReachedActiveOn:
+                format: date-time
+                type: string
+              ReachedInitializingOn:
+                format: date-time
+                type: string
+              ReachedStandingByOn:
+                format: date-time
+                type: string
               health:
                 description: Health defines the health of the game server
                 enum:

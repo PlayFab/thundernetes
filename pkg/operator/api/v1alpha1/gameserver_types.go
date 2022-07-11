@@ -93,7 +93,10 @@ type GameServerStatus struct {
 	// NodeAge is the age in days of the Node (VM) hosting this game server
 	NodeAge int `json:"nodeAge,omitempty"`
 	// NodeName is the name of the Node (VM) hosting this game server
-	NodeName string `json:"nodeName,omitempty"`
+	NodeName              string       `json:"nodeName,omitempty"`
+	ReachedInitializingOn *metav1.Time `json:"ReachedInitializingOn,omitempty"`
+	ReachedStandingByOn   *metav1.Time `json:"ReachedStandingByOn,omitempty"`
+	ReachedActiveOn       *metav1.Time `json:"ReachedActiveOn,omitempty"`
 }
 
 //+kubebuilder:object:root=true

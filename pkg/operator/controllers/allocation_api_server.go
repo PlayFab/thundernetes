@@ -309,6 +309,8 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 		gs2.Status.SessionID = args.SessionID
 		gs2.Status.SessionCookie = args.SessionCookie
 		gs2.Status.InitialPlayers = args.InitialPlayers
+		now := metav1.Now()
+		gs2.Status.ReachedActiveOn = &now
 
 		err = s.Client.Status().Patch(ctx, &gs2, patch)
 		if err != nil {
