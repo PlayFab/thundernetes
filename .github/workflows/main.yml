@@ -33,6 +33,15 @@ jobs:
         with:
           # The Go version to download (if necessary) and use. Supports semver spec and ranges.
           go-version: 1.18.x
+      - name: check if Go utils need to be executed
+        run: |
+          go fmt ./...
+          go vet ./...
+          go mod tidy
+          if ! [ -z "$(git status --porcelain)" ]; then
+            echo "go utils need to be executed"
+            exit 1
+          fi
       - name: check if install files are modified
         run: |
           make -C pkg/operator kustomize
