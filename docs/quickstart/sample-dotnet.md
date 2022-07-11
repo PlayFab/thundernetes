@@ -1,0 +1,37 @@
+---
+layout: default
+title: .NET Sample
+parent: Samples
+grand_parent: Quickstart
+nav_order: 1
+---
+
+# .NET Core game server
+
+This sample, located [here](https://github.com/playfab/thundernetes/samples/netcore), is a simple .NET Core Web API app that implements GSDK. You can install it on your Kubernetes cluster by runnning the following command:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/netcore/sample.yaml
+```
+
+> _**NOTE**_: To read about the fields that you need to specify for a GameServerBuild, you can check [this document](gameserverbuild.md).
+
+Try using `kubectl get gs` to see the running game servers, you should see something similar to this:
+
+```bash
+dgkanatsios@desktopdigkanat:thundernetes$ kubectl get gs
+NAME                                   HEALTH    STATE        PUBLICIP      PORTS      SESSIONID
+gameserverbuild-sample-netcore-ayxzh   Healthy   StandingBy   52.183.89.4   80:10001
+gameserverbuild-sample-netcore-mveex   Healthy   StandingBy   52.183.89.4   80:10000
+```
+
+and `kubectl get gsb` to see the status of the GameServerBuild:
+
+```bash
+NAME                             STANDBY   ACTIVE   CRASHES   HEALTH
+gameserverbuild-sample-netcore   2/2       0        0         Healthy
+```
+
+> _**NOTE**_: `gs` and `gsb` are just short names for GameServer and GameServerBuild, respectively. You could just type `kubectl get gameserver` or `kubectl get gameserverbuild` instead.
+
+To allocate a game server (convert its state to active) and scale your GameServerBuild, you can check [here](allocation-scaling.md).
