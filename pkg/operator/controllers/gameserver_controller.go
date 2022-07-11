@@ -18,17 +18,19 @@ package controllers
 
 import (
 	"context"
+	"runtime"
 	"strconv"
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -48,7 +50,7 @@ const finalizerName string = "gameservers.mps.playfab.com/finalizer"
 // GameServerReconciler reconciles a GameServer object
 type GameServerReconciler struct {
 	client.Client
-	Scheme                 *runtime.Scheme
+	Scheme                 *k8sruntime.Scheme
 	Recorder               record.EventRecorder
 	PortRegistry           *PortRegistry
 	GetNodeDetailsProvider func(ctx context.Context, r client.Reader, nodeName string) (string, string, int, error) // we abstract this for testing purposes
@@ -268,6 +270,9 @@ func (r *GameServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mpsv1alpha1.GameServer{}).
 		Owns(&corev1.Pod{}).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: runtime.NumCPU(),
+		}).
 		Complete(r)
 }
 
