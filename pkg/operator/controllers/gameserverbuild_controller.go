@@ -20,17 +20,19 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"runtime"
 	"sync"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -73,7 +75,7 @@ type MutexMap struct {
 // GameServerBuildReconciler reconciles a GameServerBuild object
 type GameServerBuildReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
+	Scheme       *k8sruntime.Scheme
 	PortRegistry *PortRegistry
 	Recorder     record.EventRecorder
 }
@@ -298,6 +300,9 @@ func (r *GameServerBuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mpsv1alpha1.GameServerBuild{}).
 		Owns(&mpsv1alpha1.GameServer{}).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: runtime.NumCPU(),
+		}).
 		Complete(r)
 }
 
