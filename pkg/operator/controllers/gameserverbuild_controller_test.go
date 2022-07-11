@@ -153,6 +153,8 @@ var _ = Describe("GameServerBuild controller tests", func() {
 			// create a Build with 6 standingBy
 			buildName, buildID := getNewBuildNameAndID()
 			gsb := testGenerateGameServerBuild(buildName, testnamespace, buildID, 6, 6, false)
+			crashes := 5
+			gsb.Spec.CrashesToMarkUnhealthy = &crashes
 			Expect(testk8sClient.Create(ctx, &gsb)).Should(Succeed())
 			testVerifyTotalGameServerCount(ctx, buildID, 6)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)

@@ -106,7 +106,9 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// if GameServerBuild is unhealthy and current crashes equal or more than CrashesToMarkUnhealthy, do nothing more
-	if gsb.Status.Health == mpsv1alpha1.BuildUnhealthy && gsb.Status.CrashesCount >= gsb.Spec.CrashesToMarkUnhealthy {
+	if gsb.Status.Health == mpsv1alpha1.BuildUnhealthy &&
+		gsb.Spec.CrashesToMarkUnhealthy != nil &&
+		gsb.Status.CrashesCount >= *gsb.Spec.CrashesToMarkUnhealthy {
 		log.Info("GameServerBuild is Unhealthy, do nothing")
 		r.Recorder.Event(&gsb, corev1.EventTypeNormal, "Unhealthy Build", "GameServerBuild is Unhealthy, stopping reconciliation")
 		return ctrl.Result{}, nil
@@ -256,7 +258,8 @@ func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1
 		gsb.Status.CrashesCount = existingCrashes + crashesCount
 		gsb.Status.CurrentStandingByReadyDesired = fmt.Sprintf("%d/%d", standingByCount, gsb.Spec.StandingBy)
 
-		if gsb.Status.CrashesCount >= gsb.Spec.CrashesToMarkUnhealthy {
+		// GameServerBuild can only be set as Unhealthy if CrashesToMarkUnhealthy has been explicitly been set by the user
+		if gsb.Spec.CrashesToMarkUnhealthy != nil && gsb.Status.CrashesCount >= *gsb.Spec.CrashesToMarkUnhealthy {
 			gsb.Status.Health = mpsv1alpha1.BuildUnhealthy
 		} else {
 			gsb.Status.Health = mpsv1alpha1.BuildHealthy

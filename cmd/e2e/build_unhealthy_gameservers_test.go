@@ -308,7 +308,7 @@ var _ = Describe("GameServerBuild with GameServers without Gsdk", func() {
 func createBuildWithoutGsdk(buildName, buildID, img string) *mpsv1alpha1.GameServerBuild {
 	gsb := createTestBuild(buildName, buildID, img)
 	gsb.Spec.Template.Spec.Containers[0].Command = []string{"/bin/sh", "-c", "sleep 3600"}
-	gsb.Spec.CrashesToMarkUnhealthy = 2
-
+	crashes := 2
+	gsb.Spec.CrashesToMarkUnhealthy = &crashes
 	return gsb
 }
