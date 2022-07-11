@@ -81,7 +81,6 @@ spec:
                   type: object
                 type: array
               crashesToMarkUnhealthy:
-                default: 5
                 description: CrashesToMarkUnhealthy is the number of crashes needed to mark the build unhealthy
                 minimum: 0
                 type: integer

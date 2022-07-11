@@ -67,10 +67,9 @@ type GameServerBuildSpec struct {
 	// PortsToExpose is an array of ports that will be exposed on the VM
 	PortsToExpose []int32 `json:"portsToExpose"`
 
-	//+kubebuilder:default=5
 	//+kubebuilder:validation:Minimum=0
 	// CrashesToMarkUnhealthy is the number of crashes needed to mark the build unhealthy
-	CrashesToMarkUnhealthy int `json:"crashesToMarkUnhealthy,omitempty"`
+	CrashesToMarkUnhealthy *int `json:"crashesToMarkUnhealthy,omitempty"`
 
 	// BuildMetadata is the metadata for this GameServerBuild
 	BuildMetadata []BuildMetadataItem `json:"buildMetadata,omitempty"`

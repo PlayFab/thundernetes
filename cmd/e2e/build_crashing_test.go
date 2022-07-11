@@ -43,16 +43,12 @@ var _ = Describe("Crashing Build", func() {
 			g.Expect(verifyGameServerBuildOverall(ctx, kubeClient, state)).To(Succeed())
 		}, 45*time.Second, interval).Should(Succeed()) // bigger timeout because of the time crashes take to occur and captured by the controller
 
-		// we are updating the GameServerBuild with a big CrashesToMarkUnhealthy to give time to the GameServerBuild to become Healthy
-		// Reasoning: At one point during running the e2e tests, we noticed that this test failed.
-		// This is because the GameServers crashed multiple (10) times so the GameServerBuild stayed Unhealthy,
-		// before having the chance to transition (temporarily) to Healthy. So, by setting it to 1000 we give it more chance to transition to Healthy,
-		// before decreasing it to 10 (in the next step) so that it can become Unhealthy again.
+		// we are updating the GameServerBuild with a nil CrashesToMarkUnhealthy so the GameServerBuild will become Healthy
 		gsb := &mpsv1alpha1.GameServerBuild{}
 		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildCrashingName, Namespace: testNamespace}, gsb)
 		Expect(err).ToNot(HaveOccurred())
 		patch := client.MergeFrom(gsb.DeepCopy())
-		gsb.Spec.CrashesToMarkUnhealthy = 1000
+		gsb.Spec.CrashesToMarkUnhealthy = nil
 		err = kubeClient.Patch(ctx, gsb, patch)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -64,12 +60,13 @@ var _ = Describe("Crashing Build", func() {
 			g.Expect(gsb.Status.Health).To(Equal(mpsv1alpha1.BuildHealthy))
 		}, 10*time.Second, interval).Should(Succeed())
 
-		// we're decreasing the CrashesToMarkUnhealthy to 10 so that the
+		// we're setting the CrashesToMarkUnhealthy to 10 so that the
 		// GameServerBuild will eventually become Unhealthy
 		err = kubeClient.Get(ctx, client.ObjectKey{Name: testBuildCrashingName, Namespace: testNamespace}, gsb)
 		Expect(err).ToNot(HaveOccurred())
 		patch = client.MergeFrom(gsb.DeepCopy())
-		gsb.Spec.CrashesToMarkUnhealthy = 10
+		crashes := 10
+		gsb.Spec.CrashesToMarkUnhealthy = &crashes
 		err = kubeClient.Patch(ctx, gsb, patch)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -97,6 +94,7 @@ var _ = Describe("Crashing Build", func() {
 func createCrashingBuild(buildName, buildID, img string) *mpsv1alpha1.GameServerBuild {
 	gsb := createTestBuild(buildName, buildID, img)
 	gsb.Spec.Template.Spec.Containers[0].Command = []string{"/bin/sh", "-c", "sleep 2 && command_that_does_not_exist"}
-	gsb.Spec.CrashesToMarkUnhealthy = 5
+	crashes := 5
+	gsb.Spec.CrashesToMarkUnhealthy = &crashes
 	return gsb
 }

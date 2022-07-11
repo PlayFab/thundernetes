@@ -135,6 +135,11 @@ func (in *GameServerBuildSpec) DeepCopyInto(out *GameServerBuildSpec) {
 		*out = make([]int32, len(*in))
 		copy(*out, *in)
 	}
+	if in.CrashesToMarkUnhealthy != nil {
+		in, out := &in.CrashesToMarkUnhealthy, &out.CrashesToMarkUnhealthy
+		*out = new(int)
+		**out = **in
+	}
 	if in.BuildMetadata != nil {
 		in, out := &in.BuildMetadata, &out.BuildMetadata
 		*out = make([]BuildMetadataItem, len(*in))
