@@ -22,7 +22,7 @@ spec:
   buildID: "85ffe8da-c82f-4035-86c5-9d2b5f42d6f5" # required, build ID of your game, must be GUID. Will be used for allocations, must be unique for each Build/version of your game server
   standingBy: 2 # required, number of standing by servers to create
   max: 4 # required, max number of servers to create. Sum of active+standingBy servers will never be larger than max
-  crashesToMarkUnhealthy: 5 # optional, default is 5. It is the number of crashes needed to mark the GameServerBuild unhealthy. Once this happens, no other operation will take place 
+  crashesToMarkUnhealthy: 5 # optional. It is the number of crashes needed to mark the GameServerBuild unhealthy. Once this happens, no other operation will take place. If it is not set, Thundernetes will keep creating new GameServers as the old ones crash
   buildMetadata: # optional. Retrievable via GSDK, used to customize your game server
     - key: "buildMetadataKey1"
       value: "buildMetadataValue1"

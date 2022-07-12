@@ -12,7 +12,7 @@ This document contains information about GSDK and how it affects the game server
 
 Game server lifecycle is dependent on the [GSDK](https://github.com/PlayFab/gsdk) calls as well as the state of the game server process. For more information on integrating your game server with GSDK, check the docs [here](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/integrating-game-servers-with-gsdk).
 
-Your game server can integrate GSDK and run great on Thundernetes just by calling the **ReadyForPlayers** method. However, we recommend calling **Start** as well when your game server process starts so thundernetes is aware that the game server is initializing.
+Your game server can integrate GSDK and run on Thundernetes just by calling the **ReadyForPlayers** GSDK method. However, we recommend calling **Start** as well when your game server process starts so thundernetes is aware that the game server is initializing.
 
 ## States of the game server
 
