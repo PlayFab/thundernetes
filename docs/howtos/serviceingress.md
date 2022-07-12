@@ -75,35 +75,3 @@ Or, you can also skip the validation on the client side and only check that the 
 ```
 curl https://{ingress_IP}/api/v1/gameserverbuilds --cert client.crt --key client.key -k
 ```
-
-### Extra: Using an IP instead of a domain
-
-Although it is not officially supported, you can use this configuration for an IP instead of a domain. The first thing to do is adding the IP of the ingress as a CN and SAN when you generate the server certificates:
-
-```
-# get the IP of the ingress, it's the EXTERNAL-IP of the LoadBalancer
-kubectl get service -n ingress-nginx
-```
-
-```
-# create and sign the server keys, using the IP
-openssl req -new -newkey rsa:4096 -keyout server.key -out server.csr -nodes -subj '/CN={the IP of your server}' -addext "subjectAltName=IP:{the IP of your server}"
-
-openssl x509 -req -sha256 -days 1000 -in server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt
-```
-
-Then, you have to remove the ```hosts``` and ```host``` fields on the deploy yaml located at [deployment/secured/deploy_mtls.yaml](https://github.com/PlayFab/thundernetes/blob/main/cmd/gameserverapi/deployment/secured/deploy_mtls.yaml) and then deploy. What will happen now is that the Ingress won't be able to resolve which TLS certificates are the from the server, because it uses the host fields for that, but you can bypass this by adding the ```default-ssl-certificate``` option with your certificates as a fallback, for this, you have edit the Ingress Controller with the following line:
-
-```
-kubectl edit -n ingress-nginx deployment.apps/ingress-nginx-controller
-```
-
-Then you have to add the option in under the following field, the value to add is the {namespace}/{secret} of the one you created:
-
-```yaml
-spec:
-  container:
-    args:
-    - ...
-    - --default-ssl-certificate=thundernetes-system/tls-secret
-```
