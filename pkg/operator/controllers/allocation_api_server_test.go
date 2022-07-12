@@ -126,7 +126,7 @@ var _ = Describe("allocation API service queue tests", func() {
 		Expect(testk8sClient.Create(context.Background(), &gsb)).Should(Succeed())
 		testVerifyTotalGameServerCount(context.Background(), buildID1, 2)
 		testUpdateInitializingGameServersToStandingBy(context.Background(), buildID1)
-		testVerifyStandingByActiveByCount(context.Background(), buildID1, 2, 0)
+		testVerifyInitializingStandingByActiveByCount(context.Background(), buildID1, 0, 2, 0)
 		// verify that references exist in queue
 		Eventually(func(g Gomega) {
 			testAllocationApiServer.gameServerQueue.mutex.RLock()
@@ -174,9 +174,9 @@ var _ = Describe("allocation API service queue tests", func() {
 
 		// downscale the Build to one standingBy
 		Eventually(func(g Gomega) {
-			testVerifyStandingByActiveByCount(context.Background(), buildID1, 2, 2)
+			testVerifyInitializingStandingByActiveByCount(context.Background(), buildID1, 0, 2, 2)
 			testUpdateGameServerBuild(context.Background(), 1, 4, buildName1)
-			testVerifyStandingByActiveByCount(context.Background(), buildID1, 1, 2)
+			testVerifyInitializingStandingByActiveByCount(context.Background(), buildID1, 0, 1, 2)
 		}).Should(Succeed())
 
 		// validate that there is one game server in the queue
@@ -192,7 +192,7 @@ var _ = Describe("allocation API service queue tests", func() {
 		// downscale the Build to zero standingBy
 		Eventually(func(g Gomega) {
 			testUpdateGameServerBuild(context.Background(), 0, 4, buildName1)
-			testVerifyStandingByActiveByCount(context.Background(), buildID1, 0, 2)
+			testVerifyInitializingStandingByActiveByCount(context.Background(), buildID1, 0, 0, 2)
 		}).Should(Succeed())
 
 		// validate that there are no more game servers in the queue

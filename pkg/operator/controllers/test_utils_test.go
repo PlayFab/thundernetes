@@ -53,22 +53,6 @@ func verifyThatBuildIsUnhealthy(ctx context.Context, buildName string) {
 	}, assertTimeout, assertPollingInterval).Should(BeTrue())
 }
 
-func testVerifyGameServersForBuildAreInitializing(ctx context.Context, buildID string, count int) {
-	Eventually(func() bool {
-		var gameServers mpsv1alpha1.GameServerList
-		err := testk8sClient.List(ctx, &gameServers, client.InNamespace(testnamespace), client.MatchingLabels{LabelBuildID: buildID})
-		Expect(err).ToNot(HaveOccurred())
-		var initializingCount int
-		for i := 0; i < len(gameServers.Items); i++ {
-			gs := gameServers.Items[i]
-			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
-				initializingCount++
-			}
-		}
-		return initializingCount == count
-	}, assertTimeout, assertPollingInterval).Should(BeTrue())
-}
-
 func testTerminateActiveGameServer(ctx context.Context, buildID string, gracefulTermination bool) {
 	var gameServers mpsv1alpha1.GameServerList
 	err := testk8sClient.List(ctx, &gameServers, client.InNamespace(testnamespace), client.MatchingLabels{LabelBuildID: buildID})
@@ -127,21 +111,23 @@ func testVerifyTotalGameServerCount(ctx context.Context, buildID string, total i
 }
 
 // verifyStandindByActiveCount verifies that the number of standingBy and active game servers is equal to the expected
-func testVerifyStandingByActiveByCount(ctx context.Context, buildID string, standingByCount, activeCount int) {
+func testVerifyInitializingStandingByActiveByCount(ctx context.Context, buildID string, initializingCount, standingByCount, activeCount int) {
 	Eventually(func() bool {
 		var gameServers mpsv1alpha1.GameServerList
 		err := testk8sClient.List(ctx, &gameServers, client.InNamespace(testnamespace), client.MatchingLabels{LabelBuildID: buildID})
 		Expect(err).ToNot(HaveOccurred())
-		var currentActive, currentStandingBy int
+		var currentInitializing, currentActive, currentStandingBy int
 		for i := 0; i < len(gameServers.Items); i++ {
 			gs := gameServers.Items[i]
-			if gs.Status.State == mpsv1alpha1.GameServerStateActive {
+			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
+				currentInitializing++
+			} else if gs.Status.State == mpsv1alpha1.GameServerStateActive {
 				currentActive++
 			} else if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 				currentStandingBy++
 			}
 		}
-		return currentActive == activeCount && currentStandingBy == standingByCount
+		return currentActive == activeCount && currentStandingBy == standingByCount && currentInitializing == initializingCount
 	}, timeout, interval).Should(BeTrue())
 }
 

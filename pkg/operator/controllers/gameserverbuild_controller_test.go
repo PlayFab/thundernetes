@@ -33,7 +33,7 @@ var _ = Describe("GameServerBuild controller tests", func() {
 			Expect(testk8sClient.Create(ctx, &gsb)).Should(Succeed())
 			testVerifyTotalGameServerCount(ctx, buildID, 2)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 2, 0)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 2, 0)
 		})
 
 		// simple scaling test
@@ -43,12 +43,12 @@ var _ = Describe("GameServerBuild controller tests", func() {
 			Expect(testk8sClient.Create(ctx, &gsb)).Should(Succeed())
 			testVerifyTotalGameServerCount(ctx, buildID, 2)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 2, 0)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 2, 0)
 
 			testUpdateGameServerBuild(ctx, 4, 4, buildName)
 			testVerifyTotalGameServerCount(ctx, buildID, 4)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 4, 0)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 4, 0)
 		})
 		// controller should block creating ">max" GameServers
 		It("should not scale game servers beyond max", func() {
@@ -57,12 +57,12 @@ var _ = Describe("GameServerBuild controller tests", func() {
 			Expect(testk8sClient.Create(ctx, &gsb)).Should(Succeed())
 			testVerifyTotalGameServerCount(ctx, buildID, 2)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 2, 0)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 2, 0)
 
 			testUpdateGameServerBuild(ctx, 5, 4, buildName)
 			testVerifyTotalGameServerCount(ctx, buildID, 4)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 4, 0)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 4, 0)
 		})
 		// however, when we increase the max, controller should create the additional GameServers
 		It("should scale game servers when max is increasing", func() {
@@ -71,17 +71,17 @@ var _ = Describe("GameServerBuild controller tests", func() {
 			Expect(testk8sClient.Create(ctx, &gsb)).Should(Succeed())
 			testVerifyTotalGameServerCount(ctx, buildID, 2)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 2, 0)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 2, 0)
 
 			testUpdateGameServerBuild(ctx, 5, 4, buildName)
 			testVerifyTotalGameServerCount(ctx, buildID, 4)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 4, 0)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 4, 0)
 
 			testUpdateGameServerBuild(ctx, 5, 5, buildName)
 			testVerifyTotalGameServerCount(ctx, buildID, 5)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 5, 0)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 5, 0)
 		})
 
 		// manual allocation by manually setting .GameServer.Status.State to "Active"
@@ -91,25 +91,25 @@ var _ = Describe("GameServerBuild controller tests", func() {
 			Expect(testk8sClient.Create(ctx, &gsb)).Should(Succeed())
 			testVerifyTotalGameServerCount(ctx, buildID, 2)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 2, 0)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 2, 0)
 
 			// allocate two GameServers and watch that new StandingBys are being created
 			allocateGameServerManually(ctx, buildID)
 			testVerifyTotalGameServerCount(ctx, buildID, 3)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 2, 1)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 2, 1)
 
 			allocateGameServerManually(ctx, buildID)
 			testVerifyTotalGameServerCount(ctx, buildID, 4)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 2, 2)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 2, 2)
 
 			// another scaling test, increase the standingBy to 4 and max to 6
 			// since we have 2 active, we should have 4 standingBy
 			testUpdateGameServerBuild(ctx, 4, 6, buildName)
 			testVerifyTotalGameServerCount(ctx, buildID, 6)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 4, 2)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 4, 2)
 		})
 
 		It("should create new game servers if game sessions end", func() {
@@ -118,35 +118,35 @@ var _ = Describe("GameServerBuild controller tests", func() {
 			Expect(testk8sClient.Create(ctx, &gsb)).Should(Succeed())
 			testVerifyTotalGameServerCount(ctx, buildID, 4)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 4, 0)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 4, 0)
 
 			// allocate two game servers, end up with 2 standingBy and 2 active
 			allocateGameServerManually(ctx, buildID)
 			testVerifyTotalGameServerCount(ctx, buildID, 4)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 3, 1)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 3, 1)
 
 			allocateGameServerManually(ctx, buildID)
 			testVerifyTotalGameServerCount(ctx, buildID, 4)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 2, 2)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 2, 2)
 
 			// gracefully end the game session for one game server
 			// we wait till we have a new GameServer, since it'll take one reconcile loop for the controller to notice the GameServer has exited
 			// once we get that, we verify that the controller has created a new GameServer
 			testTerminateActiveGameServer(ctx, buildID, true)
-			testVerifyGameServersForBuildAreInitializing(ctx, buildID, 1)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 1, 2, 1)
 			testVerifyTotalGameServerCount(ctx, buildID, 4)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 3, 1)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 3, 1)
 
 			// as before, we gracefully terminate the second active GameServer
 			// we now should have 4 standingBy
 			testTerminateActiveGameServer(ctx, buildID, true)
-			testVerifyGameServersForBuildAreInitializing(ctx, buildID, 1)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 1, 3, 0)
 			testVerifyTotalGameServerCount(ctx, buildID, 4)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 4, 0)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 4, 0)
 		})
 
 		It("should mark Build as unhealthy when there are too many crashes", func() {
@@ -158,14 +158,14 @@ var _ = Describe("GameServerBuild controller tests", func() {
 			Expect(testk8sClient.Create(ctx, &gsb)).Should(Succeed())
 			testVerifyTotalGameServerCount(ctx, buildID, 6)
 			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
-			testVerifyStandingByActiveByCount(ctx, buildID, 6, 0)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 6, 0)
 
 			// allocate 5 times
 			for i := 0; i < 5; i++ {
 				allocateGameServerManually(ctx, buildID)
 			}
 			testVerifyTotalGameServerCount(ctx, buildID, 6)
-			testVerifyStandingByActiveByCount(ctx, buildID, 1, 5)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 1, 5)
 
 			// simulate 5 crashes (5 is the default value for GameServerBuild to be marked as Unhealthy)
 			for i := 0; i < 5; i++ {
@@ -174,8 +174,37 @@ var _ = Describe("GameServerBuild controller tests", func() {
 			verifyThatBuildIsUnhealthy(ctx, buildName)
 		})
 
+		It("should delete initializing servers before deleting standingBy, during downscaling", func() {
+			// create a new GameServerBuild with 4 standingBy and 8 max
+			buildName, buildID := getNewBuildNameAndID()
+			gsb := testGenerateGameServerBuild(buildName, testnamespace, buildID, 4, 8, false)
+			Expect(testk8sClient.Create(ctx, &gsb)).Should(Succeed())
+			testVerifyTotalGameServerCount(ctx, buildID, 4)
+			testUpdateInitializingGameServersToStandingBy(ctx, buildID)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 4, 0)
+
+			// upscale the GameServerBuild to 8 requested standingBy
+			testUpdateGameServerBuild(ctx, 8, 8, buildName)
+			testVerifyTotalGameServerCount(ctx, buildID, 8)
+			// we don't modify the state of the 4 GameServers so they should be initializing
+			// we still have 4 standingBy
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 4, 4, 0)
+
+			// downscale the GameServerBuild to 5 requested standingBy
+			// 3 initializing should have been deleted
+			testUpdateGameServerBuild(ctx, 5, 8, buildName)
+			testVerifyTotalGameServerCount(ctx, buildID, 5)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 1, 4, 0)
+
+			// downscale the GameServerBuild to 3 requested standingBy
+			// 1 initializing and 1 standingBy should have been deleted
+			testUpdateGameServerBuild(ctx, 3, 8, buildName)
+			testVerifyTotalGameServerCount(ctx, buildID, 3)
+			testVerifyInitializingStandingByActiveByCount(ctx, buildID, 0, 3, 0)
+		})
+
 		It("should overwrite containerPort with hostPort value when hostNetwork is required", func() {
-			// create a Build with 6 standingBy
+			// create a Build with 2 standingBy
 			buildName, buildID := getNewBuildNameAndID()
 			gsb := testGenerateGameServerBuild(buildName, testnamespace, buildID, 2, 4, true)
 			Expect(testk8sClient.Create(ctx, &gsb)).Should(Succeed())

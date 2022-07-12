@@ -432,3 +432,31 @@ func IsNodeReadyAndSchedulable(node *corev1.Node) bool {
 func useSpecificNodePoolAndNodeNotGameServer(useSpecificNodePool bool, node *corev1.Node) bool {
 	return useSpecificNodePool && node.Labels[LabelGameServerNode] != "true"
 }
+
+// ByState is a slice of GameServers
+type ByState []mpsv1alpha1.GameServer
+
+// Len is the number of elements in the collection
+func (gs ByState) Len() int { return len(gs) }
+
+// Less helps sort the GameServer slice by the following order
+// first are the Initializing GameServers and then the StandingBy
+// everything else goes last
+func (gs ByState) Less(i, j int) bool {
+	return getValueByState(&gs[i]) < getValueByState(&gs[j])
+}
+
+// Swap swaps the elements at the passed indexes
+func (gs ByState) Swap(i, j int) { gs[i], gs[j] = gs[j], gs[i] }
+
+// getValueByState returns the value of the state of the GameServer
+// to help in sorting the array
+func getValueByState(gs *mpsv1alpha1.GameServer) int {
+	if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
+		return 0
+	} else if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
+		return 1
+	} else {
+		return 2
+	}
+}
