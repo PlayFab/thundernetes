@@ -64,7 +64,7 @@ Now the Game Server API is exposed through the Ingress, to connect to it you hav
 kubectl get ingress thundernetes-gameserverapi-ingress -n thundernetes-system
 ```
 
-The Ingress may take a minute before getting an IP, if you're running this locally it won't ever get one, but you can use port forwarding instead. Finally you can try a simple GET request providing the client keys to test that the API is working, note that you will have to add the public certificate of your CA to your trusted root certificates:
+The Ingress may take a minute before getting an IP, if you're running this locally it won't ever get one, but you can use [port forwarding](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/) instead. Finally you can try a simple GET request providing the client keys to test that the API is working, note that you will have to add the public certificate of your CA to your trusted root certificates:
 
 ```
 curl https://{ingress_IP}/api/v1/gameserverbuilds --cert client.crt --key client.key
