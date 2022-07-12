@@ -68,15 +68,16 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
-    nginx.ingress.kubernetes.io/auth-tls-secret: "thundernetes-system/ca-secret"
-    # nginx.ingress.kubernetes.io/enable-cors: "true"
-    # nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/auth-tls-secret: "thundernetes-system/tls-secret"
 spec:
   ingressClassName: nginx
   tls:
+  - hosts:
+    - {your host}
   - secretName: tls-secret
   rules:
-  - http:
+  - host: {your host}
+    http:
       paths:
       - path: /
         pathType: Prefix
