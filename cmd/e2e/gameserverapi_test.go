@@ -143,7 +143,7 @@ var _ = Describe("GameServerAPI tests", func() {
 			// check that GameServers have a NodeName and a PublicIP
 			g.Expect(gs.Status.NodeName).ToNot(BeEmpty())
 			g.Expect(net.ParseIP(gs.Status.PublicIP)).ToNot(BeNil())
-		}).Should(Succeed())
+		}, timeout, interval).Should(Succeed())
 
 		// delete this GameServer
 		req1, err := http.NewRequest("DELETE", fmt.Sprintf("%s/gameservers/%s/%s", url, testNamespace, gsName), nil)
