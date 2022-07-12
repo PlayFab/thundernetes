@@ -8,7 +8,7 @@ nav_order: 1
 
 # .NET Core game server
 
-This sample, located [here](https://github.com/playfab/thundernetes/samples/netcore), is a simple .NET Core Web API app that implements GSDK. You can install it on your Kubernetes cluster by running the following command:
+This sample, located [here](https://github.com/PlayFab/thundernetes/tree/main/samples/netcore), is a simple .NET Core Web API app that implements GSDK. You can install it on your Kubernetes cluster by running the following command:
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/netcore/sample.yaml

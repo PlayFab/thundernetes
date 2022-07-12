@@ -11,7 +11,7 @@ Thundernetes does not support the concept of rolling upgrades to the GameServerB
 
 To upgrade your game server process, you can follow the steps below:
 
-- create a new GameServerBuild with a different BuildID and scale it to a high enough `standingBy` number of servers. Wait till the standingBy game servers are created.
+- create a new GameServerBuild with a different BuildID and scale it to a high enough `standingBy` number of servers. Wait until the standingBy game servers are created.
 - modify your matchmaker/lobby service to allocate game servers using the new BuildID. 
 - at the same time, set the `standingBy` number of the old Build to zero. Existing sessions on the old Build will eventually finish, but since the `standingBy` number is zero, no new game servers will be created.
 - as the number of Actives on the new GameServerBuild increases, you should increase the `standingBy`/`max` numbers. [Kubernetes Cluster Autoscaler](clusterautoscaling.md) should be enabled so that the number of Nodes in the cluster will increase as needed.
