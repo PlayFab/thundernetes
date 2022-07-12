@@ -16,7 +16,7 @@ spec:
         app: thundernetes-gameserverapi
     spec:
       containers:
-        - image: ghcr.io/playfab/thundernetes-gameserverapi:0.4.1
+        - image: ghcr.io/playfab/thundernetes-gameserverapi:${IMAGE_TAG}
           name: gameserverapi
           imagePullPolicy: IfNotPresent
           resources:
@@ -73,10 +73,10 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - {your host}
+    - ${HOST}
   - secretName: tls-secret
   rules:
-  - host: {your host}
+  - host: ${HOST}
     http:
       paths:
       - path: /
