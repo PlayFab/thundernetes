@@ -6,7 +6,7 @@ nav_order: 3
 
 # Prerequisites
 
-## thundernetes foundational knowledge. 💖
+## Thundernetes foundational knowledge. 💖
 
 Here you will find resources that will fill the knowledge gaps when working with technologies within thundernetes. 
 

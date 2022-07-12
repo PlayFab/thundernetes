@@ -15,7 +15,7 @@ To run LocalMultiplayerAgent to test your game servers for Thundernetes, you'll 
 
 - Download latest version of LocalMultiplayerAgent from the [Releases](https://github.com/PlayFab/MpsAgent/releases) page on GitHub
 - [Install Docker Desktop on Windows](https://docs.docker.com/docker-for-windows/install/)
-- Make sure it's running on [Linux Containers](https://docs.docker.com/docker-for-windows/#switch-between-windows-and-linux-containers)
+- Make sure it's running on [Linux Containers](https://docs.docker.com/docker-for-windows/#switch-between-windows-and-linux-containers) if your game server is built for the Linux operating system
 - Your game server image can be can be locally built or published on a container registry.
 - You should run `SetupLinuxContainersOnWindows.ps1` Powershell file which will create a Docker network called "PlayFab". This is necessary so that your containers running on a separate network namespace can communicate with LocalMultiplayerAgent, running on the host's network namespace.
 - You should properly configure your *LocalMultiplayerSettings.json* file. Below you can see a sample, included in `MultiplayerSettingsLinuxContainersOnWindowsSample.json`:

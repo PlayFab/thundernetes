@@ -8,13 +8,13 @@ nav_order: 1
 
 # .NET Core game server
 
-This sample, located [here](https://github.com/playfab/thundernetes/samples/netcore), is a simple .NET Core Web API app that implements GSDK. You can install it on your Kubernetes cluster by runnning the following command:
+This sample, located [here](https://github.com/playfab/thundernetes/samples/netcore), is a simple .NET Core Web API app that implements GSDK. You can install it on your Kubernetes cluster by running the following command:
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/netcore/sample.yaml
 ```
 
-> _**NOTE**_: To read about the fields that you need to specify for a GameServerBuild, you can check [this document](gameserverbuild.md).
+> _**NOTE**_: To read about the fields that you need to specify for a GameServerBuild, you can check [this document](../gameserverbuild.md).
 
 Try using `kubectl get gs` to see the running game servers, you should see something similar to this:
 

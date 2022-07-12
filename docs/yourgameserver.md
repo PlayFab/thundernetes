@@ -10,34 +10,15 @@ You can use Thundernetes to host your game servers. This guide will walk you thr
 
 ## Creating a local cluster with kind
 
-Refer to the instructions at the [quickstart guide](./quickstart.md) for creating a Kubernetes cluster locally with kind.
+Refer to the instructions at the [quickstart guide](quickstart/installing-kind.md) for creating a Kubernetes cluster locally with kind.
 
 ## Creating an Azure Kubernetes Service cluster
 
-Refer to the instructions at the [quickstart guide](./quickstart.md) for creating an Azure Kubernetes Service cluster.
+Refer to the instructions at the [quickstart guide](quickstart/installing-aks.md) for creating an Azure Kubernetes Service cluster.
 
-## Install thundernetes
+## Install Thundernetes
 
-- Install thundernetes with: 
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator.yaml
-```
-
-- Run this command to verify that the controller is up and running:
-
-```bash
-kubectl get deploy -n thundernetes-system
-```
-
-- You should see something like this if things are working smoothly:
-
-```bash
-NAME                              READY   UP-TO-DATE   AVAILABLE   AGE
-thundernetes-controller-manager   1/1     1            1           15s
-```
-
-If you see no errors, this means thundernetes is installed and working as expected!
+Refer to the instructions at the [quickstart guide](quickstart/installing-thundernetes.md) about installing Thundernetes to your Kubernetes cluster.
 
 ## Run your game server locally using kind
 
