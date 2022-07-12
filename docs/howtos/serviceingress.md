@@ -50,7 +50,7 @@ kubectl create secret generic -n thundernetes-system tls-certs --from-file=tls.c
 
 ### Step 5: Deploy the Service and the Ingress
 
-We have bundled the definitions to deploy the GameServer API in the [deployment/secured/deploy_mtls.yaml](https://github.com/PlayFab/thundernetes/blob/main/cmd/gameserverapi/deployment/secured/deploy_mtls.yaml) file, it includes the Deployment, the Service, and the Ingress needed for the mTLS to work. You have to check the name of the Secret referenced in the Ingress matches the one you created, and also add the host values required. Then you just run:
+We have bundled the definitions to deploy the GameServer API in the [deployment/secured/deploy_mtls.yaml](https://github.com/PlayFab/thundernetes/blob/main/cmd/gameserverapi/deployment/secured/deploy_mtls.yaml) file, it includes the Deployment, the Service, and the Ingress needed for the mTLS to work. You have to check the name of the Secret referenced in the Ingress matches the one you created, replace the ```${IMAGE_TAG}``` for the current release, and also replace the ```${HOST}``` values for your domain. Then you just run:
 
 ```
 kubectl apply -f {path to deploy_mtls.yaml}
