@@ -8,7 +8,9 @@ nav_order: 1
 
 # Creating an AKS cluster
 
-You can create an Azure Kubernetes Service cluster using the [Azure portal](https://portal.azure.com/). The only extra thing you need to do is enable Public IP Per Node feature for your Node Pool. Once you do that, you can [open the necessary ports to the Internet](#expose-ports-10000-12000-to-the-internet).
+You can create an Azure Kubernetes Service cluster using the [Azure portal](https://portal.azure.com/). The only extra thing you need to do is enable Public IP Per Node feature for your Node Pool. This feature can only be enabled during the creation of the Node Pool so to do that, make sure you specifically select the Node Pool during creation and activate the feature. 
+
+Once your cluster is created, you can [open the necessary ports to the Internet](#expose-ports-10000-12000-to-the-internet).
 
 > _**NOTE**_: If you don't have an Azure subscription, you can [sign up for the free offer](https://azure.com/free)
 

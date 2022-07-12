@@ -54,7 +54,7 @@ thundernetes-nodeagent-eabgh                       1/1     Running   0          
 
 At this point, you are ready to run a test game server on Thundernetes to verify that the system is working as expected. If you want to run one of our sample game servers, check our [samples](samples.md). Otherwise, if you want to run your own game server, go to [this document](../developertool.md).
 
-The aforementioned scripts install Thundernetes with unauthenticated access to the allocation API service. This is fine for development scenarios, but for production environments you would need to secure the service. There are a couple of options you can use. Thundernetes offers a way to configure mTLS authentication to the allocation API service, you can read the next section. Alternatively, you can use a reverse proxy, like [nginx-ingress](https://github.com/kubernetes/ingress-nginx).
+The aforementioned scripts install Thundernetes with unauthenticated access to the allocation API service. This is fine for development scenarios, but for production environments you would need to secure the service. There are a couple of options you can use. Thundernetes offers a way to configure mTLS authentication to the allocation API service, you can read the next section. Alternatively, you can use a [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) service, like [nginx-ingress](https://github.com/kubernetes/ingress-nginx).
 
 ### Installing Thundernetes with mTLS authentication
 
