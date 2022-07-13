@@ -120,13 +120,14 @@ var _ = Describe("allocation API service input validation tests", func() {
 })
 
 var _ = Describe("allocation API service queue tests", func() {
+	ctx := context.Background()
 	It("should update queue properly during allocations", func() {
 		// create a GameServerBuild with 2 standingBy servers
 		gsb := testGenerateGameServerBuild(buildName1, buildNamespace, buildID1, 2, 4, false)
-		Expect(testk8sClient.Create(context.Background(), &gsb)).Should(Succeed())
-		testVerifyTotalGameServerCount(context.Background(), buildID1, 2)
-		testUpdateInitializingGameServersToStandingBy(context.Background(), buildID1)
-		testVerifyInitializingStandingByActiveByCount(context.Background(), buildID1, 0, 2, 0)
+		Expect(testk8sClient.Create(ctx, &gsb)).Should(Succeed())
+		testWaitAndVerifyTotalGameServerCount(ctx, buildID1, 2)
+		testUpdateGameServersState(ctx, buildID1, "", mpsv1alpha1.GameServerStateStandingBy)
+		testVerifyGameServerStates(ctx, buildID1, testStates{0, 0, 2, 0})
 		// verify that references exist in queue
 		Eventually(func(g Gomega) {
 			testAllocationApiServer.gameServerQueue.mutex.RLock()
@@ -146,7 +147,8 @@ var _ = Describe("allocation API service queue tests", func() {
 
 		// validate that 2 game servers are in the queue (since 1 standingBy was created)
 		Eventually(func(g Gomega) {
-			testUpdateInitializingGameServersToStandingBy(context.Background(), buildID1)
+			testWaitAndVerifyTotalGameServerCount(ctx, buildID1, 3)
+			testUpdateGameServersState(ctx, buildID1, "", mpsv1alpha1.GameServerStateStandingBy)
 			testAllocationApiServer.gameServerQueue.mutex.RLock()
 			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
 			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]
@@ -164,7 +166,8 @@ var _ = Describe("allocation API service queue tests", func() {
 
 		// validate that there are two game servers in the queue
 		Eventually(func(g Gomega) {
-			testUpdateInitializingGameServersToStandingBy(context.Background(), buildID1)
+			testWaitAndVerifyTotalGameServerCount(ctx, buildID1, 4)
+			testUpdateGameServersState(context.Background(), buildID1, "", mpsv1alpha1.GameServerStateStandingBy)
 			testAllocationApiServer.gameServerQueue.mutex.RLock()
 			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
 			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]
@@ -174,14 +177,15 @@ var _ = Describe("allocation API service queue tests", func() {
 
 		// downscale the Build to one standingBy
 		Eventually(func(g Gomega) {
-			testVerifyInitializingStandingByActiveByCount(context.Background(), buildID1, 0, 2, 2)
+			testVerifyGameServerStates(context.Background(), buildID1, testStates{0, 0, 2, 2})
 			testUpdateGameServerBuild(context.Background(), 1, 4, buildName1)
-			testVerifyInitializingStandingByActiveByCount(context.Background(), buildID1, 0, 1, 2)
+			testWaitAndVerifyTotalGameServerCount(ctx, buildID1, 3)
+			testVerifyGameServerStates(context.Background(), buildID1, testStates{0, 0, 1, 2})
 		}).Should(Succeed())
 
 		// validate that there is one game server in the queue
 		Eventually(func(g Gomega) {
-			testUpdateInitializingGameServersToStandingBy(context.Background(), buildID1)
+			testUpdateGameServersState(context.Background(), buildID1, "", mpsv1alpha1.GameServerStateStandingBy)
 			testAllocationApiServer.gameServerQueue.mutex.RLock()
 			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
 			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]
@@ -192,12 +196,13 @@ var _ = Describe("allocation API service queue tests", func() {
 		// downscale the Build to zero standingBy
 		Eventually(func(g Gomega) {
 			testUpdateGameServerBuild(context.Background(), 0, 4, buildName1)
-			testVerifyInitializingStandingByActiveByCount(context.Background(), buildID1, 0, 0, 2)
+			testWaitAndVerifyTotalGameServerCount(ctx, buildID1, 2)
+			testVerifyGameServerStates(context.Background(), buildID1, testStates{0, 0, 0, 2})
 		}).Should(Succeed())
 
 		// validate that there are no more game servers in the queue
 		Eventually(func(g Gomega) {
-			testUpdateInitializingGameServersToStandingBy(context.Background(), buildID1)
+			testUpdateGameServersState(context.Background(), buildID1, "", mpsv1alpha1.GameServerStateStandingBy)
 			testAllocationApiServer.gameServerQueue.mutex.RLock()
 			defer testAllocationApiServer.gameServerQueue.mutex.RUnlock()
 			_, exists := testAllocationApiServer.gameServerQueue.queuesPerBuilds[buildID1]

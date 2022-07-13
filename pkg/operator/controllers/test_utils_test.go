@@ -100,8 +100,9 @@ func testUpdateGameServerBuild(ctx context.Context, standingBy, max int, buildNa
 	}, timeout, interval).Should(Succeed())
 }
 
-// testVerifyTotalGameServerCount verifies the total number of game servers
-func testVerifyTotalGameServerCount(ctx context.Context, buildID string, total int) {
+// testWaitAndVerifyTotalGameServerCount verifies the total number of game servers
+// useful to wait for the GameServers to be created, so we can update their status
+func testWaitAndVerifyTotalGameServerCount(ctx context.Context, buildID string, total int) {
 	Eventually(func() bool {
 		var gameServers mpsv1alpha1.GameServerList
 		err := testk8sClient.List(ctx, &gameServers, client.InNamespace(testnamespace), client.MatchingLabels{LabelBuildID: buildID})
@@ -110,25 +111,41 @@ func testVerifyTotalGameServerCount(ctx context.Context, buildID string, total i
 	}, timeout, interval).Should(BeTrue())
 }
 
-// verifyStandindByActiveCount verifies that the number of standingBy and active game servers is equal to the expected
-func testVerifyInitializingStandingByActiveByCount(ctx context.Context, buildID string, initializingCount, standingByCount, activeCount int) {
-	Eventually(func() bool {
+// testStates encapsulates the expected test states for GameServers in a GameServerBuild
+type testStates struct {
+	emptyStateCount   int
+	initializingCount int
+	standingByCount   int
+	activeCount       int
+}
+
+// testVerifyGameServerStates verifies that the number of standingBy and active game servers is equal to the expected
+func testVerifyGameServerStates(ctx context.Context, buildID string, t testStates) {
+	Eventually(func(g Gomega) {
 		var gameServers mpsv1alpha1.GameServerList
 		err := testk8sClient.List(ctx, &gameServers, client.InNamespace(testnamespace), client.MatchingLabels{LabelBuildID: buildID})
-		Expect(err).ToNot(HaveOccurred())
-		var currentInitializing, currentActive, currentStandingBy int
+		g.Expect(err).ToNot(HaveOccurred())
+		var currentEmptyState, currentInitializing, currentActive, currentStandingBy, currentUnknown int
 		for i := 0; i < len(gameServers.Items); i++ {
 			gs := gameServers.Items[i]
-			if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
+			if gs.Status.State == "" {
+				currentEmptyState++
+			} else if gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
 				currentInitializing++
-			} else if gs.Status.State == mpsv1alpha1.GameServerStateActive {
-				currentActive++
 			} else if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 				currentStandingBy++
+			} else if gs.Status.State == mpsv1alpha1.GameServerStateActive {
+				currentActive++
+			} else {
+				currentUnknown++
 			}
 		}
-		return currentActive == activeCount && currentStandingBy == standingByCount && currentInitializing == initializingCount
-	}, timeout, interval).Should(BeTrue())
+		g.Expect(currentEmptyState).To(Equal(t.emptyStateCount))
+		g.Expect(currentInitializing).To(Equal(t.initializingCount))
+		g.Expect(currentActive).To(Equal(t.activeCount))
+		g.Expect(currentStandingBy).To(Equal(t.standingByCount))
+		g.Expect(currentUnknown).To(Equal(0))
+	}, timeout, interval).Should(Succeed())
 }
 
 // getGameServerBuild returns the GameServerBuild with the given name
@@ -147,16 +164,16 @@ func getGameServer(ctx context.Context, gameServerName string) mpsv1alpha1.GameS
 	return gameServer
 }
 
-// testUpdateInitializingGameServersToStandingBy sets all initializing game servers to standing by
-func testUpdateInitializingGameServersToStandingBy(ctx context.Context, buildID string) {
+// testUpdateGameServersState updates the state of the GameServers in the given GameServerBuild
+func testUpdateGameServersState(ctx context.Context, buildID string, oldState, newState mpsv1alpha1.GameServerState) {
 	var gameServers mpsv1alpha1.GameServerList
 	err := testk8sClient.List(ctx, &gameServers, client.InNamespace(testnamespace), client.MatchingLabels{LabelBuildID: buildID})
 	Expect(err).ToNot(HaveOccurred())
 	for _, gameServer := range gameServers.Items {
-		if gameServer.Status.State == "" || gameServer.Status.State == mpsv1alpha1.GameServerStateInitializing {
+		if gameServer.Status.State == oldState {
 			gs := getGameServer(ctx, gameServer.Name) // getting the latest updated GameServer object
 			patch := client.MergeFrom(gs.DeepCopy())
-			gs.Status.State = mpsv1alpha1.GameServerStateStandingBy
+			gs.Status.State = newState
 			gs.Status.Health = mpsv1alpha1.GameServerHealthy
 			err = testk8sClient.Status().Patch(ctx, &gs, patch)
 			Expect(err).ToNot(HaveOccurred())

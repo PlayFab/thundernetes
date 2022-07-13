@@ -451,12 +451,18 @@ func (gs ByState) Swap(i, j int) { gs[i], gs[j] = gs[j], gs[i] }
 
 // getValueByState returns the value of the state of the GameServer
 // to help in sorting the array
+// we want to delete the GameServers that are in empty ("") state first (since they might have Pods Pending or waiting to start)
+// then the ones on Initializing state
+// and lastly the ones on StandingBy state
+// GameServers that have crashed or Terminated are taken care of when the GameServerBuild controller starts
 func getValueByState(gs *mpsv1alpha1.GameServer) int {
-	if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
+	if gs.Status.State == "" {
 		return 0
-	} else if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
+	} else if gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
 		return 1
-	} else {
+	} else if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 		return 2
+	} else {
+		return 3
 	}
 }
