@@ -7,7 +7,7 @@ has_children: true
 
 # GameServer API
 
-The GameServer API is a RESTful API service that facilitates access to Thundernetes' Custom Resources: GameServerBuilds, GameServer, and GameServerDetails. It is an alternative for people who don't want to use tools like [kubectl](https://kubernetes.io/docs/reference/kubectl/kubectl/), and an easy way to integrate Thundernetes to your own applications. It also allows you to use our [Thundernetes UI](../thundernetesui/README.md).
+The GameServer API is a RESTful API service that facilitates access to Thundernetes' Custom Resources: GameServerBuilds, GameServers, and GameServerDetails. It is an alternative for people who don't want to use tools like [kubectl](https://kubernetes.io/docs/reference/kubectl/kubectl/), and an easy way to integrate Thundernetes to your own applications. It also allows you to use our [Thundernetes UI](../thundernetesui/README.md).
 
 ## How to install the GameServer API
 
