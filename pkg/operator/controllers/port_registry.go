@@ -65,7 +65,7 @@ func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerLi
 	if len(gameServers.Items) > 0 {
 		for _, gs := range gameServers.Items {
 			if len(gs.Spec.Template.Spec.Containers) == 0 {
-				setupLog.Info("GameServer with name %s has no containers in its Pod Template: %#v", gs.Name, gs)
+				setupLog.Info("GameServer has no containers in the Pod Template", "GameServer", gs.Name)
 				continue
 			}
 
@@ -75,7 +75,7 @@ func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerLi
 
 				for _, portInfo := range container.Ports {
 					if portInfo.HostPort == 0 {
-						setupLog.Info("HostPort for GameServer %s and ContainerPort %d is zero, ignoring", gs.Name, portInfo.ContainerPort)
+						setupLog.Info("HostPort for GameServer and ContainerPort is zero, ignoring", "GameServerName", gs.Name, "ContainerPort", portInfo.ContainerPort)
 						continue
 					}
 					portsExposed[portsExposedIndex] = portInfo.HostPort
@@ -171,16 +171,16 @@ func (pr *PortRegistry) GetNewPort() (int32, error) {
 }
 
 // DeregisterServerPorts deregisters all host ports so they can be re-used by additional game servers
-func (pr *PortRegistry) DeregisterServerPorts(ports []int32) error {
+func (pr *PortRegistry) DeregisterServerPorts(ports []int32, gsName string) error {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
 	for i := 0; i < len(ports); i++ {
 		if pr.HostPortsPerNode[ports[i]] > 0 {
 			// following log should NOT be changed since an e2e test depends on it
-			pr.logger.V(1).Info("Deregistering port", "port", ports[i])
+			pr.logger.V(1).Info("Deregistering port", "port", ports[i], "GameServer", gsName)
 			pr.HostPortsPerNode[ports[i]]--
 		} else {
-			return fmt.Errorf("cannot deregister port %d, it is not registered", ports[i])
+			return fmt.Errorf("cannot deregister port %d, it is not registered or has already been deleted", ports[i])
 		}
 	}
 	return nil
@@ -192,7 +192,7 @@ func (pr *PortRegistry) assignRegisteredPorts(ports []int32) {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
 	for i := 0; i < len(ports); i++ {
-		pr.logger.V(1).Info("Assigning port", "port", ports[i])
+		pr.logger.V(1).Info("Registering port", "port", ports[i])
 		pr.HostPortsPerNode[ports[i]]++
 	}
 }
