@@ -120,7 +120,7 @@ var _ = Describe("Cluster with variable number of Nodes", Ordered, func() {
 			for _, port := range evictedPodsPorts {
 				// log entries are in this format
 				// 2022-07-02T23:27:55Z    DEBUG   portregistry    Deregistering port      {"port": 10010}
-				matched, err := regexp.MatchString(fmt.Sprintf("Deregistering port\\s+{\"port\": %d}", port), controllerLogs)
+				matched, err := regexp.MatchString(fmt.Sprintf("Deregistering port\\s+{\"port\": %d,", port), controllerLogs)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(matched).To(BeTrue())
 			}

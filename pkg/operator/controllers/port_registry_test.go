@@ -24,6 +24,7 @@ import (
 const (
 	displayPortRegistryVariablesDuringTesting = false
 	testnamespace                             = "default"
+	testGsName                                = "testgs"
 	timeout                                   = time.Second * 10
 	duration                                  = time.Second * 10
 	interval                                  = time.Millisecond * 250
@@ -130,7 +131,7 @@ var _ = Describe("Port registry tests", func() {
 
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 		// deallocate two ports
-		err := portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3})
+		err := portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3}, testGsName)
 		Expect(err).ToNot(HaveOccurred())
 		delete(assignedPorts, testMinPort+1)
 		delete(assignedPorts, testMinPort+3)
@@ -154,7 +155,7 @@ var _ = Describe("Port registry tests", func() {
 		}
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 		// deallocate two ports
-		err := portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3})
+		err := portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3}, testGsName)
 		Expect(err).ToNot(HaveOccurred())
 		delete(assignedPorts, testMinPort+1)
 		delete(assignedPorts, testMinPort+3)
@@ -183,7 +184,7 @@ var _ = Describe("Port registry tests", func() {
 		deletedPortsCount := 0
 		for port := portRegistry.Min; port <= portRegistry.Max; port++ {
 			if portRegistry.HostPortsPerNode[port] == 2 {
-				err := portRegistry.DeregisterServerPorts([]int32{port})
+				err := portRegistry.DeregisterServerPorts([]int32{port}, testGsName)
 				assignedPorts[port] = assignedPorts[port] - 1
 				Expect(err).ToNot(HaveOccurred())
 				deletedPortsCount++
@@ -202,7 +203,7 @@ var _ = Describe("Port registry tests", func() {
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 
 		// deallocate three ports
-		err = portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 2, testMinPort + 3})
+		err = portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 2, testMinPort + 3}, testGsName)
 		Expect(err).ToNot(HaveOccurred())
 		delete(assignedPorts, testMinPort+1)
 		delete(assignedPorts, testMinPort+2)
@@ -268,7 +269,7 @@ var _ = Describe("Port registry with two thousand ports, five hundred on four no
 				defer wg.Done()
 				n := rand.Intn(200) + 50 // n will be between 50 and 250
 				time.Sleep(time.Duration(n) * time.Millisecond)
-				err := portRegistry.DeregisterServerPorts([]int32{portToDeallocate})
+				err := portRegistry.DeregisterServerPorts([]int32{portToDeallocate}, testGsName)
 				Expect(err).ToNot(HaveOccurred())
 				val, ok := assignedPorts.Load(portToDeallocate)
 				if !ok {
