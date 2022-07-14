@@ -311,7 +311,7 @@ We use [GitHub Pages](https://docs.github.com/en/pages) to host Thundernetes doc
 - Run `bundle exec jekyll serve --config _config-development.yml`
 - Browse the site on http://localhost:4000/thundernetes
 
-Alternatively, you can use [this container image](https://github.com/BretFisher/jekyll-serve) with a command similar to the following:
+Alternatively, you can use [this container image](https://github.com/BretFisher/jekyll-serve) with a command similar to the following, once you are in the `docs` directory:
 
 ```bash
 docker run -p 4000:4000 --env JEKYLL_ENV=production --rm -v $(pwd):/site bretfisher/jekyll-serve bundle exec jekyll serve --force-polling --config _config-development.yml --host 0.0.0.0

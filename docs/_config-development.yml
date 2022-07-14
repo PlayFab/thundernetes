@@ -76,6 +76,7 @@ aux_links_new_tab: true
 plugins:
   - jekyll-seo-tag
   - jekyll-sitemap
+  - jekyll-relative-links
   - jemoji
 
 kramdown:
