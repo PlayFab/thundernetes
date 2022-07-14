@@ -456,13 +456,14 @@ func (gs ByState) Swap(i, j int) { gs[i], gs[j] = gs[j], gs[i] }
 // and lastly the ones on StandingBy state
 // GameServers that have crashed or Terminated are taken care of when the GameServerBuild controller starts
 func getValueByState(gs *mpsv1alpha1.GameServer) int {
-	if gs.Status.State == "" {
+	switch gs.Status.State {
+	case "":
 		return 0
-	} else if gs.Status.State == mpsv1alpha1.GameServerStateInitializing {
+	case mpsv1alpha1.GameServerStateInitializing:
 		return 1
-	} else if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
+	case mpsv1alpha1.GameServerStateStandingBy:
 		return 2
-	} else {
+	default:
 		return 3
 	}
 }
