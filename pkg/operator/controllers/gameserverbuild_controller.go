@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math"
 	"runtime"
+	"sort"
 	"sync"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
@@ -408,6 +409,9 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 	// a waitgroup for async deletion calls
 	var wg sync.WaitGroup
 	deletionCalls := 0
+	// we sort the GameServers by state so that we can delete the ones that are empty state or Initializing before we delete the StandingBy ones (if needed)
+	// this is to make sure we don't fall below the desired number of StandingBy during scaling down
+	sort.Sort(ByState(gameServers.Items))
 	for i := 0; i < len(gameServers.Items) && deletionCalls < totalNumberOfGameServersToDelete; i++ {
 		gs := gameServers.Items[i]
 		// we're deleting only initializing/pending/standingBy servers, never touching active
