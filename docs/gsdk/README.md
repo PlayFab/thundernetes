@@ -17,6 +17,7 @@ To integrate with GSDK, follow the guide for the programming language/environmen
 
 - [Unity GSDK](unity.md)
 - [Unreal GSDK](unreal.md)
+- [C#/C++/Java GSDK](csharpcppjava.md)
 
 > **_NOTE_**: For experimenting with Thundernetes, you can use our [wrapper sample](../howtos/usingwrapper.md). This sample takes care of calling the GSDK for you and launching your game server as a separate process.
 
@@ -73,3 +74,5 @@ Congratulations, your game server is up and running on Thundernetes!
 ### Run your game server on Azure Kubernetes Service with Azure Container Registry
 
 As soon as you build your container image, you should publish it to a container registry. If you are using Azure Kubernetes Service, we recommend publishing your image to [Azure Container Registry](https://docs.microsoft.com/azure/container-registry/). To integrate your Azure Container Registry with your Azure Kubernetes Service cluster, check the instructions [here](https://docs.microsoft.com/azure/aks/cluster-container-registry-integration).
+
+[![Azure Container Registry](../assets/images/acr.png)](../assets/images/acr.png)
