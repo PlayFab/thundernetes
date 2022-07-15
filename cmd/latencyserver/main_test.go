@@ -11,7 +11,7 @@ import (
 
 var server, client *net.UDPConn
 
-var _ = Describe("QoS Server tests", func() {
+var _ = Describe("Latency Server tests", func() {
 	It("should send response to the sender", func() {
 		addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", 3070))
 		Expect(err).To(Succeed())
@@ -41,10 +41,10 @@ var _ = Describe("QoS Server tests", func() {
 	})
 })
 
-func TestQoSServer(t *testing.T) {
+func TestLatencyServer(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "QoS Server Suite")
+	RunSpecs(t, "Latency Server Suite")
 }
 
 var _ = BeforeSuite(func() {

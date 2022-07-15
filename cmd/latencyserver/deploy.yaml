@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: thundernetes-qosserver
+  name: thundernetes-latencyserver
   namespace: thundernetes-system
   labels:
-    app: thundernetes-qosserver
+    app: thundernetes-latencyserver
 spec:
   selector:
     matchLabels:
-      app: thundernetes-qosserver
+      app: thundernetes-latencyserver
   replicas: 1
   template:
     metadata:
       labels:
-        app: thundernetes-qosserver
+        app: thundernetes-latencyserver
     spec:
       containers:
-        - image: thundernetes-qosserver:${IMAGE_TAG}
-          name: qosserver
+        - image: thundernetes-latencyserver:${IMAGE_TAG}
+          name: latencyserver
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -36,11 +36,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: thundernetes-qosserver
+  name: thundernetes-latencyserver
   namespace: thundernetes-system
 spec:
   selector:
-    app: thundernetes-qosserver
+    app: thundernetes-latencyserver
   ports:
     - port: 3075
       targetPort: 3075
@@ -50,11 +50,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: thundernetes-qosserver-metrics
+  name: thundernetes-latencyserver-metrics
   namespace: thundernetes-system
 spec:
   selector:
-    app: thundernetes-qosserver
+    app: thundernetes-latencyserver
   ports:
     - port: 8080
       targetPort: 8080
