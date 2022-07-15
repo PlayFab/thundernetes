@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Game Server lifecycle
-nav_order: 6
+parent: GSDK integration
+nav_order: 1
 ---
 
 # Game Server lifecycle

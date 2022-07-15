@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Using LocalMultiplayerAgent
-parent: How to's
+parent: GSDK integration
 nav_order: 8
 ---
 
