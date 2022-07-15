@@ -2,8 +2,8 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
-    name: qosserver
-  name: qosserver-metrics-monitor
+    name: latencyserver
+  name: latencyserver-metrics-monitor
   namespace: system
 spec:
   endpoints:
@@ -15,4 +15,4 @@ spec:
       insecureSkipVerify: true
   selector:
     matchLabels:
-      name: qosserver
+      name: latencyserver

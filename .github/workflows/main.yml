@@ -56,8 +56,8 @@ jobs:
         run: cd cmd/initcontainer && go test -race
       - name: nodeagent unit tests
         run: cd cmd/nodeagent && go test -race
-      - name: qos server unit tests
-        run: cd cmd/qosserver && go test -race
+      - name: latency server server unit tests
+        run: cd cmd/latencyserver && go test -race
       - name: operator unit tests
         run: IMAGE_NAME_SAMPLE=thundernetes-netcore IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer TAG=$(git rev-list HEAD --max-count=1 --abbrev-commit) make -C pkg/operator test
       - name: build Docker images

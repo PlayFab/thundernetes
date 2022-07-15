@@ -14,10 +14,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var QoSSuccessfulServerRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+var SuccessfulLatencyServerRequests = promauto.NewCounterVec(prometheus.CounterOpts{
 	Namespace: "thundernetes",
-	Name:      "qos_successful_server_requests",
-	Help:      "Number of requests made to the QoS server",
+	Name:      "successful_latency_server_requests",
+	Help:      "Number of requests made to the latency server",
 }, []string{"remote_ip"})
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 		log.Fatal("Failed parsing UDP_SERVER_PORT env variable, ", err)
 	}
 	go metricsServer(metrics_server_port)
-	qosServer(udp_server_port)
+	latencyServer(udp_server_port)
 }
 
 // metricsServer starts an http server, on a given port,
@@ -50,10 +50,10 @@ func metricsServer(port int) {
 	}
 }
 
-// qosServer starts a Quality of Service UDP server, on a given port,
+// latencyServer starts a Quality of Service UDP server, on a given port,
 // that expects requests starting with two 0xFF bytes, and responds
 // the same value but with those first bytes flipped to 0x00
-func qosServer(port int) {
+func latencyServer(port int) {
 	log.Infof("Starting UDP server on port :%d", port)
 	conn, err := createServer(port)
 	if err != nil {
@@ -65,7 +65,7 @@ func qosServer(port int) {
 		if err != nil {
 			log.Error(err)
 		} else if remote != nil {
-			QoSSuccessfulServerRequests.WithLabelValues(remote.IP.String()).Inc()
+			SuccessfulLatencyServerRequests.WithLabelValues(remote.IP.String()).Inc()
 		}
 	}
 }
@@ -83,7 +83,7 @@ func createServer(port int) (*net.UDPConn, error) {
 	return conn, nil
 }
 
-// serverLoop contains the logic of a single loop of the QoS server,
+// serverLoop contains the logic of a single loop of the latency server,
 // it reads from the socket, validates the request, and sends a
 // response if needed
 func serverLoop(conn *net.UDPConn) (*net.UDPAddr, error) {
