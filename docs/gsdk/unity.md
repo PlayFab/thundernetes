@@ -2,7 +2,7 @@
 layout: default
 title: Unity
 parent: GSDK integration
-nav_order: 1
+nav_order: 2
 ---
 
 # Integrating GSDK with Unity
@@ -41,3 +41,7 @@ CMD ["/game/UnityServer.x86_64", "-nographics", "-batchmode", "-logfile"]
 ### Samples
 
 For a more robust sample integrating Unity with the popular [Mirror](https://mirror-networking.com/) networking library, check the `MpsSamples` repository [here](https://github.com/PlayFab/MpsSamples/tree/main/UnityMirror).
+
+#### Testing with LocalMultiplayerAgent
+
+You can use [LocalMultiplayerAgent](runlocalmultiplayeragent.md) to test your GSDK integration of your game server before uploading to Thundernetes.
