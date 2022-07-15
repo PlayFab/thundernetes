@@ -13,7 +13,7 @@ nav_order: 1
 
 ```POST /api/v1/gameserverbuilds/```
 
-<details>
+<details markdown=block>
 
   Create a Game Server Build in the cluster.
 
@@ -107,13 +107,11 @@ nav_order: 1
   
 </details>
 
-<br>
-
 ### List Game Server Builds
 
 ```GET /api/v1/gameserverbuilds/```
 
-<details>
+<details  markdown=block>
 
   List all the Game Server Builds in the cluster.
 
@@ -174,13 +172,11 @@ nav_order: 1
   
 </details>
 
-<br>
-
 ### Get a Game Server Build
 
 ```GET /api/v1/gameserverbuilds/:namespace/:buildName```
 
-<details>
+<details markdown=block>
 
   Get a single Game Server Build from the cluster.
 
@@ -250,13 +246,11 @@ nav_order: 1
   
 </details>
 
-<br>
-
 ### Patch a Game Server Build
 
 ```PATCH /api/v1/gameserverbuilds/:namespace/:buildName```
 
-<details>
+<details markdown=block>
 
   Patch the standingBy and max values of a Game Server Build from the cluster.
 
@@ -341,13 +335,11 @@ nav_order: 1
   
 </details>
 
-<br>
-
 ### Delete a Game Server Build
 
 ```DELETE /api/v1/gameserverbuilds/:namespace/:buildName```
 
-<details>
+<details markdown=block>
 
   Delete a Game Server Build from the cluster.
 
@@ -395,15 +387,13 @@ nav_order: 1
 
 <br>
 
-<br>
-
 ## Game Servers
 
 ### List Game Servers
 
 ```GET /api/v1/gameservers/```
 
-<details>
+<details markdown=block>
 
   List all the Game Servers in the cluster.
 
@@ -454,13 +444,11 @@ nav_order: 1
   
 </details>
 
-<br>
-
 ### List the Game Servers from a Game Server Build
 
 ```GET /api/v1/gameserverbuilds/:namespace/:buildName/gameservers```
 
-<details>
+<details markdown=block>
 
   List the Game Servers owned by a specific Game Server Build.
 
@@ -523,13 +511,11 @@ nav_order: 1
   
 </details>
 
-<br>
-
 ### Get a Game Server
 
 ```GET /api/v1/gameservers/:namespace/:gameServerName```
 
-<details>
+<details markdown=block>
 
   Get a single Game Server from the cluster.
 
@@ -589,13 +575,11 @@ nav_order: 1
   
 </details>
 
-<br>
-
 ### Delete a Game Server
 
 ```DELETE /api/v1/gameservers/:namespace/:gameServerName```
 
-<details>
+<details markdown=block>
 
   Delete a Game Server from the cluster.
 
@@ -643,15 +627,13 @@ nav_order: 1
 
 <br>
 
-<br>
-
 ## Game Server Details
 
 ### List the Game Server Details from a Game Server Build
 
 ```GET /api/v1/gameserverbuilds/:namespace/:buildName/gameserverdetails```
 
-<details>
+<details markdown=block>
 
   List the Game Server Details owned by a specific Game Server Build.
 
@@ -708,13 +690,11 @@ nav_order: 1
   
 </details>
 
-<br>
-
 ### Get a Game Server Detail
 
 ```GET /api/v1/gameserverdetails/:namespace/:gameServerDetailName```
 
-<details>
+<details markdown=block>
 
   Get a single Game Server Detail from the cluster.
 
