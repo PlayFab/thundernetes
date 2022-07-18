@@ -33,11 +33,15 @@ until kubectl get servicemonitors --all-namespaces ; do date; sleep 1; echo ""; 
 kubectl create -f manifests/
 ```
 
+> **_NOTE_**: You can also check the [official Prometheus Operator docs](https://prometheus-operator.dev/)
+
 After this, you can install Thundernetes using the install files "with monitoring", these automatically create Prometheus ServiceMonitors that crawl the endpoints described above.
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator_with_monitoring.yaml
 ```
+
+**__NOTE
 
 ## Check the data in Prometheus and Grafana
 
