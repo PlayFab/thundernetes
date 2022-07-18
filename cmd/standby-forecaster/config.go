@@ -75,7 +75,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.StringVar(&c.TargetGameServerBuildName, "targetGameServerBuildName", "gameserverbuild-sample-netcore", "target game server build name")
 	f.StringVar(&c.TargetGameServerBuildNamespace, "targetGameServerBuildNamespace", "default", "target game server build namespace")
 	f.StringVar(&c.MetricToServerConversionOperation, "metricToServerConversionOperation", "divide", "metric to server conversion operation. Can be 'divide' or 'multiply'")
-	f.Float64Var(&c.MetricToServerConversionOperationValue, "metricToServerConversionOperationValue", 10, "metric to server conversion operation value")
+	f.Float64Var(&c.MetricToServerConversionOperationValue, "metricToServerConversionOperationValue", 1, "metric to server conversion operation value")
 	f.BoolVar(&c.K8s.RunInCluster, "k8s.runInCluster", false, "run in cluster")
 	defaultKubConfig := ""
 	if home := homedir.HomeDir(); home != "" {

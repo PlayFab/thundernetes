@@ -1,0 +1,97 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: standby-forecaster-config
+  namespace: default
+data:
+  config.yaml: |-
+    targetGameServerBuildName: "gameserverbuild-sample-netcore"
+    targetGameServerBuildNamespace: "default"
+    queryUrl: "http://prometheus-operated.monitoring:9090"
+    metricsQuery: "sum(simulated_instances)"
+    historicalQueryRange: 6h
+    datapointGranularity: 1m    
+    seasonLength: 60
+    forecastedPoints: 10
+    k8s:
+      runInCluster: true
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: standby-forcaster
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: standby-forcaster
+  template:
+    metadata:
+      labels:
+        role: standby-forcaster
+    spec:
+      containers:
+      - args:
+        - "-config-file=/data/config.yaml"
+        - "-config-expand-env=true"
+        image: thundernetes-standby-forecaster:707680c
+        imagePullPolicy: IfNotPresent        
+        name: simulator
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: 50m
+            memory: 100Mi
+          requests:
+            cpu: 50m
+            memory: 100Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - name: config
+          mountPath: /data/          
+      securityContext:
+        runAsNonRoot: false
+      terminationGracePeriodSeconds: 10
+      
+      volumes:
+        - name: config
+          configMap:
+            name: standby-forecaster-config
+---      
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    role: standby-forcaster
+  name: standby-forcaster-service
+  namespace: default
+spec:
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+  selector:
+    role: standby-forcaster
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+   role: standby-forcaster
+  name: standby-forcaster-monitor
+  namespace: default
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    path: /metrics
+    port: metrics
+    scheme: http
+    tlsConfig:
+      insecureSkipVerify: true
+  selector:
+    matchLabels:
+      role: standby-forcaster

@@ -235,13 +235,17 @@ func getForecastedServerCount(series []timeSeriesPoint, config Config) (int, err
 
 	// create the forecasted series
 	startTime := time.Now()
-	forecastedSeries := holtwinters.TripleExponentialSmoothing(
+	forecastedSeries, err := holtwinters.TripleExponentialSmoothing(
 		values,
 		config.AlphaConstant,
 		config.BetaConstant,
 		config.GammaConstant,
 		config.SeasonLength,
 		config.ForecastedPoints)
+	if err != nil {
+		log.Error("Failed to create forecasted series from input series", "error", err)
+		return 0, err
+	}
 	ForcastComputeTime.Set(float64(time.Since(startTime).Microseconds()))
 
 	log.Debug("Exponential Smoothing Forecasted Series", "series", forecastedSeries)
