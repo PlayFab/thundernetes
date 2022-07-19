@@ -1,0 +1,19 @@
+---
+layout: default
+title: Release new Thundernetes version
+parent: Development
+nav_order: 4
+---
+
+# Release new Thundernetes version
+
+This will require 2 PRs.
+
+- Make sure you update `.versions` file on the root of this repository with the new version
+- Run `make clean` to ensure any cached artifacts of old builds are deleted.
+- Push and merge
+- Manually run the GitHub Actions workflows to create new [linux images](https://github.com/PlayFab/thundernetes/actions/workflows/publish.yml) and [windows images](https://github.com/PlayFab/thundernetes/actions/workflows/publish-windows.yml)
+- Git pull the latest changes from the main branch
+- Run `make create-install-files` to generate the operator install files
+- Replace the image on the [netcore-sample YAML files](https://github.com/PlayFab/thundernetes/samples/netcore)
+- Push and merge
