@@ -7,7 +7,7 @@ nav_order: 4
 
 # Game server logging
 
-Thundernetes does not do anything special to obtain the logs for your GameServer Pods, since there already are a lot of existing solutions in the Kubernetes ecosystem. One easy ways to accomplish this is to use [Fluent Bit](https://fluentbit.io/) to capture logs and send them to [Azure Blob Storage](https://docs.microsoft.com/azure/storage/blobs/storage-blobs-overview) or on a Storage provide of your choice. Fluent Bit supports multiple output providers, you can can see them [here](https://docs.fluentbit.io/manual/pipeline/outputs).
+Thundernetes does not do anything special to obtain the logs for your GameServer Pods, since there already are a lot of existing solutions in the Kubernetes ecosystem. One easy way to accomplish this is to use [Fluent Bit](https://fluentbit.io/) to capture logs and send them to [Azure Blob Storage](https://docs.microsoft.com/azure/storage/blobs/storage-blobs-overview) or on a Storage provide of your choice. Fluent Bit supports multiple output providers, you can can see them [here](https://docs.fluentbit.io/manual/pipeline/outputs).
 
 You can use the following steps to setup Fluent Bit to capture logs from your GameServer Pods and send them to Azure Storage:
 
