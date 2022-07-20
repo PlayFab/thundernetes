@@ -1,16 +1,3 @@
-kind: Namespace
-apiVersion: v1
-metadata:
-  name: logging
-  labels:
-    name: logging
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: fluent-bit
-  namespace: logging
----
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -60,7 +47,6 @@ spec:
       - name: fluent-bit-config
         configMap:
           name: fluent-bit-config
-      serviceAccountName: fluent-bit
       tolerations:
       - key: node-role.kubernetes.io/master
         operator: Exists
