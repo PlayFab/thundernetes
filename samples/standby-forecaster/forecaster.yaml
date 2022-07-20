@@ -8,7 +8,7 @@ data:
     targetGameServerBuildName: "gameserverbuild-sample-netcore"
     targetGameServerBuildNamespace: "default"
     queryUrl: "http://prometheus-operated.monitoring:9090"
-    metricsQuery: "sum(simulated_instances)"
+    metricQuery: "sum(simulated_instances)"
     historicalQueryRange: 6h
     datapointGranularity: 1m    
     seasonLength: 60
@@ -20,17 +20,17 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: standby-forcaster
+  name: standby-forecaster
   namespace: default
 spec:
   replicas: 1
   selector:
     matchLabels:
-      role: standby-forcaster
+      role: standby-forecaster
   template:
     metadata:
       labels:
-        role: standby-forcaster
+        role: standby-forecaster
     spec:
       containers:
       - args:
@@ -55,8 +55,7 @@ spec:
           mountPath: /data/          
       securityContext:
         runAsNonRoot: false
-      terminationGracePeriodSeconds: 10
-      
+      terminationGracePeriodSeconds: 10      
       volumes:
         - name: config
           configMap:
@@ -66,8 +65,8 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    role: standby-forcaster
-  name: standby-forcaster-service
+    role: standby-forecaster
+  name: standby-forecaster-service
   namespace: default
 spec:
   ports:
@@ -75,14 +74,14 @@ spec:
     port: 8080
     targetPort: 8080
   selector:
-    role: standby-forcaster
+    role: standby-forecaster
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
-   role: standby-forcaster
-  name: standby-forcaster-monitor
+   role: standby-forecaster
+  name: standby-forecaster-monitor
   namespace: default
 spec:
   endpoints:
@@ -94,4 +93,4 @@ spec:
       insecureSkipVerify: true
   selector:
     matchLabels:
-      role: standby-forcaster
+      role: standby-forecaster

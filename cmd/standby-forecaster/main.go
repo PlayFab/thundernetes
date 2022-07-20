@@ -367,6 +367,10 @@ func queryPrometheusMetrics(ctx context.Context, queryUrl, metricQuery string, h
 	// initialize the time series
 	timeSeries := make([]timeSeriesPoint, 0)
 
+	if len(results) == 0 {
+		return nil, fmt.Errorf("No results returned for query %s", metricQuery)
+	}
+
 	// loop through the values
 	for _, point := range results[0].Values {
 		// add the time series

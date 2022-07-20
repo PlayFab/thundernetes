@@ -38,7 +38,7 @@ type Config struct {
 	EnableScaleDownCoolOff                 bool          `yaml:"enableScaleDownCoolOff"`
 	ScaleDownCoolOffPeriod                 time.Duration `yaml:"scaleDownCoolOffPeriod"`
 	TargetGameServerBuildName              string        `yaml:"targetGameServerBuildName"`
-	TargetGameServerBuildNamespace         string        `yaml:"targetGameServerBuildNameSpace"`
+	TargetGameServerBuildNamespace         string        `yaml:"targetGameServerBuildNamespace"`
 	MetricToServerConversionOperation      string        `yaml:"metricToServerConversionOperation"`
 	MetricToServerConversionOperationValue float64       `yaml:"metricToServerConversionOperationValue"`
 	K8s                                    struct {

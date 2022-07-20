@@ -23,7 +23,6 @@ var simulatedInstances = promauto.NewGauge(prometheus.GaugeOpts{
 })
 
 func main() {
-
 	log.Info("Starting server-load-simulator")
 
 	config := Config{}
@@ -67,7 +66,7 @@ mainloop:
 
 			// set the simulated load
 			simulatedInstances.Set(math.Ceil(simulatedLoad))
-			log.Info("Simulated instances:", "value", math.Ceil(simulatedLoad))
+			log.Info("Simulated instances: ", "value", math.Ceil(simulatedLoad))
 		}
 	}
 }

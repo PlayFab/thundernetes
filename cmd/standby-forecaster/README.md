@@ -19,7 +19,7 @@ The preferred way to configure the forecaster is to create a Configmap as the sa
 | `targetGameServerBuildName` | ""  | The `GameServerBuild` this forecaster should manage the standby pool of.  |
 | `targetGameServerBuildNamespace` | `default`  | The namespace of where the `GameServerBuild` resides. |
 | `queryUrl`  | `"http://localhost:9090"` | The location of the Prometheus instance used to gather telemetry from.  |
-| `metricsQuery` | "" | The PromQL query to execute in order to determine server utilization as a single time series. |
+| `metricQuery` | "" | The PromQL query to execute in order to determine server utilization as a single time series. |
 | `historicalQueryRange` | `6h` | The time range used when querying Prometheus data to build historical trends. |
 | `datapointGranularity` | `1m` | Time range of each data point returned by Prometheus. |
 | `seasonLength`  | `1440`  | The number of datapoints which represent a full "season" of data. For game servers this is usually 1 day, so 1440 minutes. The size of each data point is affected by the `datapointGranularity` setting.  |
@@ -31,7 +31,7 @@ Example configuration:
   targetGameServerBuildName: "gameserverbuild-sample-netcore"
   targetGameServerBuildNamespace: "default"
   queryUrl: "http://prometheus-operated.monitoring:9090"
-  metricsQuery: "sum(simulated_instances)"
+  metricQuery: "sum(simulated_instances)"
   historicalQueryRange: 6h
   datapointGranularity: 1m    
   seasonLength: 60
