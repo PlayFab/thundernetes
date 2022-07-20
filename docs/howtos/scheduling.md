@@ -2,7 +2,7 @@
 layout: default
 title: Efficient scheduling
 parent: How to's
-nav_order: 3
+nav_order: 12
 ---
 
 # Efficient scheduling

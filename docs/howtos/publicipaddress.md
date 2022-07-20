@@ -1,8 +1,8 @@
 ---
 layout: default
-title: Get public IP address from inside a GameServer
+title: Discover IP address
 parent: How to's
-nav_order: 1
+nav_order: 13
 ---
 
 # How can I find the Public IP address from inside a GameServer?

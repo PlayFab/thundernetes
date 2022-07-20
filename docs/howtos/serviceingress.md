@@ -2,7 +2,7 @@
 layout: default
 title: Protect your Services using an Ingress
 parent: How to's
-nav_order: 11
+nav_order: 7
 ---
 
 # Protect your Services using an Ingress

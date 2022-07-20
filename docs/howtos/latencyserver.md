@@ -1,8 +1,8 @@
 ---
 layout: default
-title: How to measure latency
+title: Measure latency
 parent: How to's
-nav_order: 12
+nav_order: 3
 ---
 
 # How to measure latency
@@ -15,3 +15,7 @@ If you have multiple Thundernetes clusters on different regions, it might be use
 In [Thundernetes' main repository](https://github.com/PlayFab/thundernetes/tree/main/cmd/latencyserver) you can find the code for the server, a Dockerfile to build the image, a YAML file for deploying the server (remember to change the name of the container image), and another for deploying a ServiceMonitor to crawl the [prometheus metrics](./monitoring.md). You can also use the [image from our registry](https://github.com/PlayFab/thundernetes/pkgs/container/thundernetes-latencyserver).
 
 The UDP server runs on the port defined by the ```UDP_SERVER_PORT``` environment variable. A prometheus ```/metrics``` endpoint is also exposed, on the port defined by the ```METRICS_SERVER_PORT``` environment variable, with a counter for the number of successful requests it has received.
+
+## Deploying the latency server
+
+You can find the deployment YAML file [here](https://github.com/PlayFab/thundernetes/blob/main/cmd/latencyserver/deploy.yaml) and the corresponding ServiceMonitor file [here](https://github.com/PlayFab/thundernetes/blob/main/cmd/latencyserver/monitor.yaml).

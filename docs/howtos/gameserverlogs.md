@@ -2,7 +2,7 @@
 layout: default
 title: Game server logging
 parent: How to's
-nav_order: 4
+nav_order: 2
 ---
 
 # Game server logging
