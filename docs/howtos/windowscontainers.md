@@ -2,7 +2,7 @@
 layout: default
 title: Windows containers
 parent: How to's
-nav_order: 10
+nav_order: 8
 ---
 
 # Windows containers

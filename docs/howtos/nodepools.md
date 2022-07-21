@@ -1,8 +1,8 @@
 ---
 layout: default
-title: Separate node pools
+title: Specialized K8s Node Pools
 parent: How to's
-nav_order: 2
+nav_order: 10
 ---
 
 # How do I schedule Thundernetes Pods and GameServer Pods into different Node pools/groups?

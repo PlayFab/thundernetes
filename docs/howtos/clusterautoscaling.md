@@ -2,7 +2,7 @@
 layout: default
 title: Cluster Autoscaling
 parent: How to's
-nav_order: 6
+nav_order: 4
 ---
 
 # Cluster Autoscaling

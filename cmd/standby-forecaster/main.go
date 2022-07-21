@@ -76,10 +76,10 @@ var (
 		Help:      "The time it took to execute the prometheus query",
 	})
 
-	ForcastComputeTime = promauto.NewGauge(prometheus.GaugeOpts{
+	ForecastComputeTime = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: metricsNamespace,
 		Name:      "forecast_compute_time",
-		Help:      "The time it took to compute the forcast",
+		Help:      "The time it took to compute the forecast",
 	})
 )
 
@@ -167,7 +167,7 @@ func scaleGameServerBuild(ctx context.Context, totalServersNeeded int, config Co
 	if err != nil {
 		return time.Time{}, err
 	}
-	// To determin how many standby servers are needed by the forecase, we need to subtract the active servers
+	// To determine how many standby servers are needed by the forecast, we need to subtract the active servers
 	// from the projected total.
 	currentActiveServers := gameServerBuild.Status.CurrentActive
 	currentStandbyServers := gameServerBuild.Status.CurrentStandingBy
@@ -246,7 +246,7 @@ func getForecastedServerCount(series []timeSeriesPoint, config Config) (int, err
 		log.Error("Failed to create forecasted series from input series", "error", err)
 		return 0, err
 	}
-	ForcastComputeTime.Set(float64(time.Since(startTime).Microseconds()))
+	ForecastComputeTime.Set(float64(time.Since(startTime).Microseconds()))
 
 	log.Debug("Exponential Smoothing Forecasted Series", "series", forecastedSeries)
 	wintersForecast := forecastedSeries[len(forecastedSeries)-1]
@@ -325,7 +325,7 @@ func getKubeClient(namespace string, runInCluster bool, kubeConfigPath string) (
 	return &GameServerBuildClient{restClient: client, ns: namespace}, nil
 }
 
-func getLinearRegressionPrediction(data []timeSeriesPoint, timeToForcast int64) (float64, error) {
+func getLinearRegressionPrediction(data []timeSeriesPoint, timeToForecast int64) (float64, error) {
 	// create the regression model
 	r := new(regression.Regression)
 
@@ -338,7 +338,7 @@ func getLinearRegressionPrediction(data []timeSeriesPoint, timeToForcast int64) 
 		return 0.0, err
 	}
 	// predict the value
-	return r.Predict([]float64{float64(timeToForcast)})
+	return r.Predict([]float64{float64(timeToForecast)})
 }
 
 func queryPrometheusMetrics(ctx context.Context, queryUrl, metricQuery string, historyRange time.Duration) ([]timeSeriesPoint, error) {
@@ -368,7 +368,7 @@ func queryPrometheusMetrics(ctx context.Context, queryUrl, metricQuery string, h
 	timeSeries := make([]timeSeriesPoint, 0)
 
 	if len(results) == 0 {
-		return nil, fmt.Errorf("No results returned for query %s", metricQuery)
+		return nil, fmt.Errorf("no results returned for query %s", metricQuery)
 	}
 
 	// loop through the values

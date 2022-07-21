@@ -1,11 +1,11 @@
 ---
 layout: default
-title: Configure Port range
+title: Custom Port range
 parent: How to's
-nav_order: 7
+nav_order: 11
 ---
 
-# Configure Thundernetes port range
+# Configure a custom Thundernetes port range
 
 By default, Thundernetes will allocate ports in the range 10000-12000 to your GameServers. These ports are allocated to the entire set of VMs in the cluster and are open for each and every VM. If you need more or just a different port range, you can configure it via changing the `MIN_PORT` and the `MAX_PORT` environment variables in the controller deployment YAML file.
 

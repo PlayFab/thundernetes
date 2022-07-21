@@ -56,17 +56,6 @@ CrashesToMarkUnhealthy (integer) is the number of crashes that will transition t
 
 Be very careful if you decided to remove the CrashesToMarkUnhealthy field. If you remove it, the GameServerBuild will never be marked as Unhealthy, no matter how many crashes it has. This might have the negative impact on Thundernetes constantly creating GameServers to replace the ones that have crashed. For this reason, we always recommend to set the CrashesToMarkUnhealthy field using a value that makes sense for your game/environment.
 
-## Game server image upgrades
-
-You should **not** change the container image of your GameServerBuild. The best practice to upgrade your game server version is to:
-
-- spin up a separate GameServerBuild 
-- configure your matchmaker to allocate against this new GameServerBuild
-- configure the original GameServerBuild to 0 standingBy
-- when all the active games in the original GameServerBuild end, you can safely delete it
-
-Thundernetes does not do anything to prevent you from changing the container image on the GameServerBuild YAML file, but you should consider the GameServerBuild as immutable (apart from changing the standingBy and max numbers, of course).
-
 ## Using host networking
 
 Thundernetes supports running your GameServer Pods with host networking. To do that, you need to provide a GameServerBuild YAML like [this](http://github.com/playfab/thundernetes/tree/main/samples/netcore/sample-hostnetwork.yaml), setting the `hostNetwork` value to true on PodSpec template. During Pod creation, Thundernetes controllers will **override** the containerPort with the same value that will be assigned in the hostPort. 
@@ -85,3 +74,7 @@ var port = portInfo.Single().ServerListeningPort;
 ```
 
 > _**NOTE**_: It is necessary to provide a `containerPort` value in the GameServerBuild YAML, since it is required for GameServerBuild validation (specifically, the way the PodTemplate is validated from Kubernetes). However, as mentioned, this provided value is not used since it's overwritten by the `hostPort` value.
+
+## Game server image upgrades
+
+You should **not** change any parts of the Pod specification in your GameServerBuild (including image/ports etc.). The best practice to upgrade your game server version is to spin up a separate GameServerBuild and gradually move traffic from the old GameServerBuild to the new one. Check our [relevant documentation](../howtos/upgradebuild.md) for more information.

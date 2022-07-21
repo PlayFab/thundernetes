@@ -2,7 +2,7 @@
 layout: default
 title: Upgrading your game server
 parent: How to's
-nav_order: 9
+nav_order: 5
 ---
 
 # Upgrading your game server

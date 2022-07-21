@@ -2,7 +2,7 @@
 layout: default
 title: Monitoring
 parent: How to's
-nav_order: 5
+nav_order: 1
 ---
 
 # Monitoring
