@@ -298,7 +298,7 @@ func (n *NodeAgentManager) gameServerDeleted(objUnstructured interface{}) {
 		GameServerNamespace: gameServerNamespace,
 	}).Infof("GameServer %s/%s deleted", gameServerNamespace, gameServerName)
 
-	// When a game server is deleted we also set it's player count to 0
+	// When a game server is deleted we also set its player count to 0
 	ConnectedPlayersGauge.WithLabelValues(gameServerNamespace, gameServerName, gameServerBuildName).Set(float64(0))
 
 	// Delete is a no-op if the GameServer is not in the map
