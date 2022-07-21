@@ -39,7 +39,7 @@ const (
 	nodeAgentName               string = "nodeagent"
 	portKey                     string = "gameport"
 	safeToEvictPodAttribute     string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
-	timeout                            = time.Second * 30
+	timeout                            = time.Second * 45
 	interval                           = time.Second * 1
 	thundernetesSystemNamespace        = "thundernetes-system"
 	testNodeCount                      = 3
