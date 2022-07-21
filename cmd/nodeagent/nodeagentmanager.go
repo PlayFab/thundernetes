@@ -281,8 +281,17 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 // gameServerDeleted is called when a GameServer CR is deleted
 func (n *NodeAgentManager) gameServerDeleted(objUnstructured interface{}) {
 	obj := objUnstructured.(*unstructured.Unstructured)
+
 	gameServerName := obj.GetName()
 	gameServerNamespace := obj.GetNamespace()
+
+	gameServerBuildName, err := parseBuildName(obj)
+	if err != nil {
+		log.WithFields(log.Fields{
+			GameServerName:      gameServerName,
+			GameServerNamespace: gameServerNamespace,
+		}).Errorf("parsing buildID: %s", err.Error())
+	}
 
 	log.WithFields(log.Fields{
 		GameServerName:      gameServerName,
@@ -290,7 +299,7 @@ func (n *NodeAgentManager) gameServerDeleted(objUnstructured interface{}) {
 	}).Infof("GameServer %s/%s deleted", gameServerNamespace, gameServerName)
 
 	// When a game server is deleted we also set it's player count to 0
-	ConnectedPlayersGauge.WithLabelValues(gameServerNamespace, gameServerName).Set(float64(0))
+	ConnectedPlayersGauge.WithLabelValues(gameServerNamespace, gameServerName, gameServerBuildName).Set(float64(0))
 
 	// Delete is a no-op if the GameServer is not in the map
 	n.gameServerMap.Delete(gameServerName)
@@ -479,7 +488,7 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 	connectedPlayersCount := len(hb.CurrentPlayers)
 
 	// set the prometheus gauge
-	ConnectedPlayersGauge.WithLabelValues(gsd.GameServerNamespace, gameServerName).Set(float64(connectedPlayersCount))
+	ConnectedPlayersGauge.WithLabelValues(gsd.GameServerNamespace, gameServerName, gsd.BuildName).Set(float64(connectedPlayersCount))
 
 	currentPlayerIDs := make([]string, connectedPlayersCount)
 	for i := 0; i < len(hb.CurrentPlayers); i++ {
