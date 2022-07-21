@@ -13,7 +13,7 @@ Status: Alpha - This component is still being developed and may change drastical
 
 Prediction is implemented using [linear regression](https://en.wikipedia.org/wiki/Linear_regression) and [Holt-Winters](https://en.wikipedia.org/wiki/Exponential_smoothing#Triple_exponential_smoothing_(Holt_Winters)) methods. The algorithm takes the top value and sets the `standingBy` accordingly. It is the user's responsibility to set the `max` in a proper value.
 
-You can use the forecaster immediately with Thundernetes. Until it has 2 "seasons" worth of data, the holt-winters calculation will not work effectively, but the linear regression forecasters will work just fine.
+You can use the forecaster immediately with Thundernetes. Until it has 2 "seasons" worth of data, the Holt-Winters calculation will not work effectively, but the linear regression forecasters will work just fine.
 
 ## Installation & Setup
 

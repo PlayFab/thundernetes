@@ -167,7 +167,7 @@ func scaleGameServerBuild(ctx context.Context, totalServersNeeded int, config Co
 	if err != nil {
 		return time.Time{}, err
 	}
-	// To determine how many standby servers are needed by the forecase, we need to subtract the active servers
+	// To determine how many standby servers are needed by the forecast, we need to subtract the active servers
 	// from the projected total.
 	currentActiveServers := gameServerBuild.Status.CurrentActive
 	currentStandbyServers := gameServerBuild.Status.CurrentStandingBy
