@@ -7,9 +7,9 @@ nav_order: 4
 
 # Allocate a game server
 
-Allocating a GameServer will transition its state from "StandingBy" to "Active" and will unblock the "ReadyForPlayers" GSDK call. You can read [this document](../gameserverlifecycle.md) to learn more about the lifecycle of a GameServer.
+Allocating a GameServer will transition its state from "StandingBy" to "Active" and will unblock the "ReadyForPlayers" GSDK call. You can read [the gameserver lifecycle document](../gameserverlifecycle.md) to learn more about the lifecycle of a GameServer.
 
-If you are running Thundernetes on a cloud service like Azure Kubernetes Service, you can use the following command to allocate a game server:
+If you are running Thundernetes on a cloud service like Azure Kubernetes Service, you can use the following commands to allocate a game server (below is using [Windows Subsystem for Linux](https://docs.microsoft.com/windows/wsl/install)
 
 ```bash
 # grab the IP of the external load balancer that is used to route traffic to the allocation API service
@@ -17,6 +17,12 @@ IP=$(kubectl get svc -n thundernetes-system thundernetes-controller-manager -o j
 # do the allocation call. Make sure the buildID is the same as the one that you created your Build with
 # the sessionID is a unique identifier (GUID) that you can use to track the game server session
 curl -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f6","sessionID":"ac1b7082-d811-47a7-89ae-fe1a9c48a6da"}' http://${IP}:5000/api/v1/allocate
+```
+
+If you are running Thundernetes on [kind](installing-kind.md) your IP can be replaced with localhost and you only need to run the following:
+
+```bash
+curl -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f6","sessionID":"ac1b7082-d811-47a7-89ae-fe1a9c48a6da"}' http://localhost:5000/api/v1/allocate
 ```
 
 The arguments to the allocation call are two:
@@ -30,9 +36,10 @@ Result of the allocate call is the IP/Port of the server in JSON format.
 {"IPV4Address":"52.183.89.4","Ports":"80:10000","SessionID":"ac1b7082-d811-47a7-89ae-fe1a9c48a6da"}
 ```
 
-You can now use the IP/Port to connect to the allocated game server. The .NET Core game server we use [here](sample-dotnet.md) exposes a `/Hello` endpoint that returns the hostname of the container.
+You can now use the IP/Port to connect to the allocated game server. The [.NET Core game server](sample-dotnet.md) we use exposes a `/Hello` endpoint that returns the hostname of the container.
 
 ```bash
+curl http://52.183.89.4:10000/Hello
 Hello from fake GameServer with hostname gameserverbuild-sample-netcore-mveex
 ```
 
