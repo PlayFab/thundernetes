@@ -2,7 +2,7 @@
 layout: default
 title: Custom Port range
 parent: How to's
-nav_order: 11
+nav_order: 12
 ---
 
 # Configure a custom Thundernetes port range

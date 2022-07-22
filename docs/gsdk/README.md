@@ -17,9 +17,9 @@ To integrate with GSDK, follow the guide for the programming language/environmen
 
 - [Unity GSDK](unity.md)
 - [Unreal GSDK](unreal.md)
-- [C#/C++/Java GSDK](csharpcppjava.md)
+- [C#/C++/Java/Go GSDK](csharpcppjava.md)
 
-> **_NOTE_**: For experimenting with Thundernetes, you can use our [wrapper sample](../howtos/usingwrapper.md). This sample takes care of calling the GSDK for you and launching your game server as a separate process.
+> **_NOTE_**: For experimenting with Thundernetes, you can use our [wrapper sample](../howtos/usingwrapper.md). This sample takes care of calling the GSDK for you and launching your game server as a separate process. Generally, not recommended for production workloads.
 
 ## Run your game server on Thundernetes
 

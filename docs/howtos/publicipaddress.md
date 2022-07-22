@@ -2,7 +2,7 @@
 layout: default
 title: Discover IP address
 parent: How to's
-nav_order: 13
+nav_order: 14
 ---
 
 # How can I find the Public IP address from inside a GameServer?

@@ -54,6 +54,4 @@ CMD su ue -c ./ShooterServer.sh
 
 Check [this guide](https://github.com/PlayFab/MpsSamples/tree/main/UnrealThirdPersonMP) on how to integrate the [Unreal Third Person template](https://docs.unrealengine.com/4.27/en-US/Resources/Templates/ThirdPerson/) with the Unreal GSDK.
 
-#### Testing with LocalMultiplayerAgent
-
-You can use [LocalMultiplayerAgent](runlocalmultiplayeragent.md) to test your GSDK integration of your game server before uploading to Thundernetes.
+{% include_relative gsdkfooter.md %}

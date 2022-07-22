@@ -32,8 +32,6 @@ Kubernetes is built on top of Docker to run containers at scale across many mach
 
 ## Game Servers 👾
 
-Thundernetes is a preview project from teams from Azure and Xbox that enables you to run Linux game servers that use the open source Azure PlayFab Game Server SDK (GSDK) on your Kubernetes cluster. 
-
 - [Integrating Game Servers with Game Server SDK (GSDK)](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/integrating-game-servers-with-gsdk)
 - [Azure PlayFab Game Server SDK](https://github.com/PlayFab/gsdk)
 

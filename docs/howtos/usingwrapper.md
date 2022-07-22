@@ -2,7 +2,7 @@
 layout: default
 title: Using a wrapper utility
 parent: How to's
-nav_order: 9
+nav_order: 10
 ---
 
 # Using a wrapper utility (wrappingGsdk)
