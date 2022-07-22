@@ -7,8 +7,11 @@ nav_order: 11
 
 # How do I schedule Thundernetes Pods and GameServer Pods into different Node pools/groups?
 
-In production environments, it would be ideal to have system and Thundernetes Pods (Pods that are created on the kube-system and thundernetes-system namespaces) scheduled on a different set of Nodes other than the GameServer Pods.
-- One reason for this might be that you want special Node types for your GameServers. For example, you might want to have dedicated Nodes with special GPUs for your GameServers or just bigger (in terms of CPU/RAM).
+In production environments, it is a best practice to have system and Thundernetes Pods (Pods that are created on the kube-system and thundernetes-system namespaces) scheduled on a different set of Nodes other than the GameServer Pods.
+
+Some of the reasons for this are:
+
+- You might want special Node types for your GameServers. For example, you might want to have dedicated Nodes with special GPUs for your GameServers or just bigger (in terms of CPU/RAM).
 - Moreover, you might not want any interruption whatsoever to Pods that are critical for the cluster to run properly (system and thundernetes Pods). 
 - Public IP per Node feature (required for Thundernetes game servers) can only be set on the Node pool that the GameServer Pods are scheduled on, thus making the system pods more secure.
 - Last but not least, you might want to scale the GameServer Nodes independently of the system Nodes.
@@ -64,6 +67,6 @@ spec:
 ## Limit the number of available ports
 
 Thundernetes needs to provide dedicated port numbers for the GameServer ports that you need exposed to the internet (i.e. the ports that game clients will connect to). For each VM, Thundernetes provides a single port in the range of 10000-12000. By default, the PortRegistry mechanism inside Thundernetes will allocate a set of 10000-12000 range for every VM in the cluster. However, if you are using a dedicated Node Pool for your GameServers, you'd need to specify this to the Thundernetes controller to avoid assigning ports for more VMs that you can have and lead to pending Pods. There are two steps you need to to perform this:
+
 - Label the GameServer Nodes with the ```mps.playfab.com/gameservernode=true``` Label.
 - Controller YAML deployment needs to be updated by adding the ```PORT_REGISTRY_EXCLUSIVELY_GAMESERVER_NODES``` environment variable with the value of ```"true"```.
-

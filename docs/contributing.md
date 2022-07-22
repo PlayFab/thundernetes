@@ -47,8 +47,8 @@ We welcome many different types of contributions including:
 
 We have good first issues for new contributors and help wanted issues suitable
 for any contributor.
-[good first issue](TODO) has extra information to help you make your first contribution.
-[help wanted](TODO) are issues suitable for someone who isn't a core maintainer and is
+[good first issue](https://github.com/PlayFab/thundernetes/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) has extra information to help you make your first contribution.
+[help wanted](https://github.com/PlayFab/thundernetes/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) are issues suitable for someone who isn't a core maintainer and is
 good to move onto after your first pull request.
 
 Sometimes there won’t be any issues with these labels.

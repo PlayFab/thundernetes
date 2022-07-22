@@ -18,4 +18,4 @@ The UDP server runs on the port defined by the ```UDP_SERVER_PORT``` environment
 
 ## Deploying the latency server
 
-You can find the deployment YAML file [here](https://github.com/PlayFab/thundernetes/blob/main/cmd/latencyserver/deploy.yaml) and the corresponding ServiceMonitor file [here](https://github.com/PlayFab/thundernetes/blob/main/cmd/latencyserver/monitor.yaml).
+You can find the deployment YAML file [here](https://github.com/PlayFab/thundernetes/blob/main/samples/latencyserver/latencyserver.yaml) and the corresponding ServiceMonitor file [here](https://github.com/PlayFab/thundernetes/blob/main/samples/latencyserver/monitor.yaml).

@@ -11,7 +11,7 @@ Thundernetes offers a dynamic standby forecaster that will automatically scale t
 
 Status: Alpha - This component is still being developed and may change drastically in design. Do not use for production scenarios.
 
-Prediction is implemented using [linear regression](https://en.wikipedia.org/wiki/Linear_regression) and [Holt-Winters](https://en.wikipedia.org/wiki/Exponential_smoothing#Triple_exponential_smoothing_(Holt_Winters)) methods. The algorithm takes the top value and sets the `standingBy` accordingly. It is the user's responsibility to set the `max` in a proper value.
+Prediction is implemented using [linear regression](https://en.wikipedia.org/wiki/Linear_regression) and [Holt-Winters](https://en.wikipedia.org/wiki/Exponential_smoothing#Triple_exponential_smoothing_(Holt_Winters)) methods. The algorithm takes the top value predicted by the algorithms and sets the `standingBy` accordingly. It is the user's responsibility to set the `max` with a proper value.
 
 You can use the forecaster immediately with Thundernetes. Until it has 2 "seasons" worth of data, the Holt-Winters calculation will not work effectively, but the linear regression forecasters will work just fine.
 
@@ -23,7 +23,7 @@ Installing the forecaster is directly done by defining and applying a kubernetes
 
 ### Configuration settings
 
-The preferred way to configure the forecaster is to create a Configmap as the sample above does and mount that as a file within the application pod. Within this YAML file a number of settings can be defined:
+The preferred way to configure the forecaster is to create a ConfigMap as the sample above does and mount that as a file within the application pod. Within this YAML file a number of settings can be defined:
 
 | Setting Name  | Default Value | Description |
 |---------------|---------------|-------------|

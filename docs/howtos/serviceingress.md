@@ -14,37 +14,33 @@ It is possible to secure any service in the cluster using a Kubernetes [Ingress]
 When you deploy an Ingress you can use annotations to enable the authentication of both the server and the client, all of this will happen at the Ingress level, so you don't have to change any code in the service. Note that this needs you to have a domain you can use for your service. For this, you have to create a Kubernetes Secret containing the server's private and public key, and the public key from the Certificate Authority (CA). For testing purposes, or for private use, you can create your own CA and use it to sign all your certificates. To do all of this you can follow the next steps:
 
 ### Step 1: Install Thundernetes and the Nginx Ingress Controller on your cluster
-```
+
+```bash
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-manager.yaml
-
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator.yaml
-
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.0/deploy/static/provider/cloud/deploy.yaml
 ```
 
 ### Step 2: Create a key pair to act as your Certificate Authority (CA)
 
-```
+```bash
 openssl req -x509 -sha256 -newkey rsa:4096 -keyout ca.key -out ca.crt -days 1000 -nodes -subj '/CN=My Cert Authority'
 ```
 
 ### Step 3: Create key pairs for the server and for the client and sign them with the CA
 
-```
+```bash
 # create and sign the server keys
 openssl req -new -newkey rsa:4096 -keyout server.key -out server.csr -nodes -subj '/CN={the host of your server}' -addext "subjectAltName=DNS:{the host of your server}"
-
 openssl x509 -req -sha256 -days 1000 -in server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt
-
 # create and sign the client keys
 openssl req -new -newkey rsa:4096 -keyout client.key -out client.csr -nodes -subj '/CN=Client'
-
 openssl x509 -req -sha256 -days 1000 -in client.csr -CA ca.crt -CAkey ca.key -set_serial 02 -out client.crt
 ```
 
 ### Step 4: Create a Kubernetes Secret
 
-```
+```bash
 kubectl create secret generic -n thundernetes-system tls-certs --from-file=tls.crt=server.crt --from-file=tls.key=server.key --from-file=ca.crt=ca.crt
 ```
 
@@ -52,7 +48,7 @@ kubectl create secret generic -n thundernetes-system tls-certs --from-file=tls.c
 
 We have bundled the definitions to deploy the GameServer API in the [deployment/secured/deploy_mtls.yaml](https://github.com/PlayFab/thundernetes/blob/main/cmd/gameserverapi/deployment/secured/deploy_mtls.yaml) file, it includes the Deployment, the Service, and the Ingress needed for the mTLS to work. You have to check the name of the Secret referenced in the Ingress matches the one you created, replace the ```${IMAGE_TAG}``` for the current release, and also replace the ```${HOST}``` values for your domain. Then you just run:
 
-```
+```bash
 kubectl apply -f {path to deploy_mtls.yaml}
 ```
 
@@ -60,18 +56,18 @@ kubectl apply -f {path to deploy_mtls.yaml}
 
 Now the Game Server API is exposed through the Ingress, to connect to it you have to get the Ingress' external IP, you can do this with this command:
 
-```
+```bash
 kubectl get ingress thundernetes-gameserverapi-ingress -n thundernetes-system
 ```
 
 The Ingress may take a minute before getting an IP, if you're running this locally it won't ever get one, but you can use [port forwarding](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/) instead. Finally you can try a simple GET request providing the client keys to test that the API is working, note that you will have to add the public certificate of your CA to your trusted root certificates:
 
-```
+```bash
 curl https://{ingress_IP}/api/v1/gameserverbuilds --cert client.crt --key client.key
 ```
 
 Or, you can also skip the validation on the client side and only check that the server is verifying the client certificates, adding the ```-k``` or ```--insecure``` option:
 
-```
+```bash
 curl https://{ingress_IP}/api/v1/gameserverbuilds --cert client.crt --key client.key -k
 ```

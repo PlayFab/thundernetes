@@ -7,7 +7,7 @@ nav_order: 4
 
 # Allocate a game server
 
-Allocating a GameServer will transition its state from "StandingBy" to "Active" and will unblock the "ReadyForPlayers" GSDK call. You can read [the gameserver lifecycle document](../gameserverlifecycle.md) to learn more about the lifecycle of a GameServer.
+Allocating a GameServer will transition its state from "StandingBy" to "Active" and will unblock the "ReadyForPlayers" GSDK call. You can read [the gameserver lifecycle document](../gsdk/gameserverlifecycle.md) to learn more about the lifecycle of a GameServer.
 
 If you are running Thundernetes on a cloud service like Azure Kubernetes Service, you can use the following commands to allocate a game server (below is using [Windows Subsystem for Linux](https://docs.microsoft.com/windows/wsl/install)
 

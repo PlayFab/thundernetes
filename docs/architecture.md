@@ -34,7 +34,7 @@ GSDK libraries need to read configuration from a file (GSDKConfig.json). In orde
 
 ## End to end (e2e) testing
 
-We are using [kind](https://kind.sigs.k8s.io/) and Kubernetes [client-go](https://github.com/kubernetes/client-go) library for end-to-end testing scenarios. Kind dynamically setups a Kubernetes cluster in which we create and allocate game servers and test various scenarios. Check [this](../cmd/e2e) folder for more details.
+We are using [kind](https://kind.sigs.k8s.io/) and Kubernetes [client-go](https://github.com/kubernetes/client-go) library for end-to-end testing scenarios. Kind dynamically setups a Kubernetes cluster in which we create and allocate game servers and test various scenarios. Check [this](https://github.com/PlayFab/thundernetes/tree/main/e2e) folder for more details.
 
 ## metrics
 

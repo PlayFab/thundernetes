@@ -26,4 +26,4 @@ curl bot.whatismyipaddress.com
 wget -q -O - checkip.dyndns.org | sed -e 's/[^[:digit:]\|.]//g'
 ```
 
-The above methods will work since the Node hosting your Pod has a Public IP.
+The above methods work since the Node hosting your Pod has a Public IP, which is returned by all of the above web services.

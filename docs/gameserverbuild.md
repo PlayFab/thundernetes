@@ -73,4 +73,4 @@ Thundernetes supports Kubernetes host networking (i.e. using the Node's network 
 
 ## Game server image upgrades
 
-You should **not** change any parts of the Pod specification in your GameServerBuild (including image/ports etc.). The best practice to upgrade your game server version is to spin up a separate GameServerBuild and gradually move traffic from the old GameServerBuild to the new one. Check our [relevant documentation](../howtos/upgradebuild.md) for more information.
+You should **not** change any parts of the Pod specification in your GameServerBuild (including image/ports etc.). The best practice to upgrade your game server version is to spin up a separate GameServerBuild and gradually move traffic from the old GameServerBuild to the new one. Check our [relevant documentation](./howtos/upgradebuild.md) for more information.

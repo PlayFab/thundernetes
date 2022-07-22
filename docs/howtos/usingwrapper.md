@@ -7,18 +7,18 @@ nav_order: 10
 
 # Using a wrapper utility (wrappingGsdk)
 
-Your game server needs to be integrated with the Game Server SDK ([GSDK](https://github.com/PlayFab/gsdk)) in order to work with Thundernetes. However, if you want to try your game server without integrating with GSDK you can use a wrapper utility application which:
+Your game server needs to be integrated with the Game Server SDK ([GSDK](../gsdk/README.md)) in order to work with Thundernetes. However, if you want to try your game server without integrating with GSDK you can use a wrapper utility application which:
 
 - integrates with GSDK
 - starts and monitors ("wraps") your game server executable
 
-We have built such a utility (called 'wrappingGsdk') [here](https://github.com/PlayFab/MpsSamples/tree/master/wrappingGsdk). This utility is also published as container image under the name `mpswrapper` on GitHub Container Registry [here](https://github.com/PlayFab/MpsSamples/pkgs/container/mpswrapper) which should be used as the container image in the GameServerBuild definition.
+We have built such a utility (called 'wrappingGsdk') [in the MpsSamples repo](https://github.com/PlayFab/MpsSamples/tree/master/wrappingGsdk). This utility is also published as container image under the name `mpswrapper` on GitHub Container Registry [here](https://github.com/PlayFab/MpsSamples/pkgs/container/mpswrapper) which should be used as the container image in the GameServerBuild definition.
 
 The game server needs to be built and packaged in a place where your Kubernetes cluster can access it. Kubernetes workloads can use [volumes](https://kubernetes.io/docs/concepts/storage/volumes/) to access data external to the Pod. For this sample, we will demonstrate the use of [Azure Files](https://azure.microsoft.com/en-us/services/storage/files/) storage to place the game server files but you are free to use the storage service of your choice.
 
-> _**NOTE**_: Azure Files **Premium** is recommended for optimal performance if you are running on Azure.
+> _**NOTE**_: Azure Files **Premium** is recommended for optimal performance, if you are running your cluster on Azure.
 
-Your game server should *NOT* be integrated with GSDK, since the `wrappingGsdk` application is already integrated. It should be compiled as a Linux executable.
+Your game server should *NOT* be integrated with GSDK, since the `wrappingGsdk` application is already integrated. It should be compiled as a Linux executable (ELF).
 
 As soon as you create an Azure Files account, create a Files share and copy your game server there. You should make sure that Kubernetes knows how to authenticate to your Azure Storage account. One way to do that is create a [Kubernetes Secret](https://kubernetes.io/docs/concepts/configuration/secret/) using the below script:
 
