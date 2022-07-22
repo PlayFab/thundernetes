@@ -16,7 +16,7 @@ spec:
         app: thundernetes-latencyserver
     spec:
       containers:
-        - image: thundernetes-latencyserver:${IMAGE_TAG}
+        - image: ghcr.io/playfab/thundernetes-latencyserver:0.5.0
           name: latencyserver
           imagePullPolicy: IfNotPresent
           resources:
