@@ -6,9 +6,20 @@ nav_order: 7
 
 # GameServerBuild definition
 
-GameServerBuild defines the specification and auto-scaling configuration of the GameServers that you want to run in the cluster. Each version of your game server should have its own GameServerBuild.
+GameServerBuild defines the specification and auto-scaling configuration of a specific version of your GameServers that you want to run in the cluster. Each version of your game server should have its own GameServerBuild.
 
-Here you can see the YAML that can be used to create a GameServerBuild in Thundernetes. The only fields that you should change after the GameServerBuild is created are the *standingBy* and the *max* ones. The other fields should be considered immutable.
+You need to specify these properties in your GameServerBuild YAML file:
+
+- `titleID`: this is a unique string for your game, in case you want to host multiple games in the same cluster
+- `buildID`: this is a unique identifier (GUID) for the specific version of your game server
+- `standingBy`: this is a key property for the auto-scaling feature. A server in the `standingBy` state is a server that has loaded all the necessary assets and configuration and is ready to accept players. Thundernetes will always try to keep this number of servers in the `standingBy` state, always respecting the `max` threshold (see below). For more information on the game server states, check the [Game Server lifecycle](./gsdk/gameserverlifecycle.md) document.
+- `max`: this is the maximum number of servers in all states. The sum of game servers in `initializing` + `standingBy` + `active` states will never be beyong the `max`, for each GameServerBuild.
+- `buildMetadata`: an optional array of key/value pair strings that you can access from your game server process using the [Game Server SDK](./gsdk/README.md)
+- `portsToExpose`: in this field you define which ports of your Pod will be exposed outside the cluster. Read on for more details.
+- `crashesToMarkUnhealthy`: **optional but highly recommended**, this is the threshold for the number of crashes that will trigger your GameServerBuild to become `Unhealthy`. Read on for more details.
+- `template`: this is the specification of [your game server pod](https://kubernetes.io/docs/concepts/workloads/pods/). You should include here whatever is needed for your game server to run (environment variables, storage, etc).
+
+Here you can see a sample YAML file:
 
 ```yaml
 apiVersion: mps.playfab.com/v1alpha1
@@ -19,7 +30,7 @@ spec:
   titleID: "1E03" # required, corresponds to a unique ID for your game. Can be an arbitrary string
   buildID: "85ffe8da-c82f-4035-86c5-9d2b5f42d6f5" # required, build ID of your game, must be GUID. Will be used for allocations, must be unique for each Build/version of your game server
   standingBy: 2 # required, number of standing by servers to create
-  max: 4 # required, max number of servers to create. Sum of active+standingBy servers will never be larger than max
+  max: 4 # required, max number of servers to create. Sum of active+standingBy+initializing servers will never be larger than max
   crashesToMarkUnhealthy: 5 # optional. It is the number of crashes needed to mark the GameServerBuild unhealthy. Once this happens, no other operation will take place. If it is not set, Thundernetes will keep creating new GameServers as the old ones crash
   buildMetadata: # optional. Retrievable via GSDK, used to customize your game server
     - key: "buildMetadataKey1"
@@ -38,7 +49,7 @@ spec:
             name: gameport # name of the port that you want to expose. 
 ```
 
-The template.spec contains the definition for a [Kubernetes Pod](https://kubernetes.io/docs/concepts/workloads/pods/). As a result, you should include here whatever is needed for your game server to run (environment variables, storage, etc).
+In general, the only fields that you should change after the GameServerBuild is created are the standingBy and the max ones. The other fields should be considered immutable.
 
 ## PortsToExpose
 
@@ -56,24 +67,9 @@ CrashesToMarkUnhealthy (integer) is the number of crashes that will transition t
 
 Be very careful if you decided to remove the CrashesToMarkUnhealthy field. If you remove it, the GameServerBuild will never be marked as Unhealthy, no matter how many crashes it has. This might have the negative impact on Thundernetes constantly creating GameServers to replace the ones that have crashed. For this reason, we always recommend to set the CrashesToMarkUnhealthy field using a value that makes sense for your game/environment.
 
-## Using host networking
+## Host Networking
 
-Thundernetes supports running your GameServer Pods with host networking. To do that, you need to provide a GameServerBuild YAML like [this](http://github.com/playfab/thundernetes/tree/main/samples/netcore/sample-hostnetwork.yaml), setting the `hostNetwork` value to true on PodSpec template. During Pod creation, Thundernetes controllers will **override** the containerPort with the same value that will be assigned in the hostPort. 
-
-You **have to** use the generated port when you instantiate your game server process. To grab the port number, you should use the [GSDK](gsdk/README.md) `GetGameServerConnectionInfo` method.
-
-```csharp
-string ListeningPortKey = "gameport";
-var gameServerConnectionInfo = GameserverSDK.GetGameServerConnectionInfo();
-var portInfo = gameServerConnectionInfo.GamePortsConfiguration.Where(x=>x.Name == ListeningPortKey);
-if(portInfo.Count() == 0)
-{
-    throw new Exception("No port info found for " + ListeningPortKey);
-}
-var port = portInfo.Single().ServerListeningPort;
-```
-
-> _**NOTE**_: It is necessary to provide a `containerPort` value in the GameServerBuild YAML, since it is required for GameServerBuild validation (specifically, the way the PodTemplate is validated from Kubernetes). However, as mentioned, this provided value is not used since it's overwritten by the `hostPort` value.
+Thundernetes supports Kubernetes host networking (i.e. using the Node's network namespace), check the [host networking document](./howtos/hostnetworking.md) for more information.
 
 ## Game server image upgrades
 

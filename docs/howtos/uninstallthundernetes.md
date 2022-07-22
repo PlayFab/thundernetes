@@ -2,7 +2,7 @@
 layout: default
 title: Uninstalling
 parent: How to's
-nav_order: 14
+nav_order: 15
 ---
 
 ## Uninstalling Thundernetes

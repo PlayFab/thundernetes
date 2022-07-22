@@ -1,11 +1,11 @@
 ---
 layout: default
-title: Controller/NodeAgent status
+title: Controller/NodeAgent logs
 parent: Troubleshooting
 nav_order: 4
 ---
 
-# How can I get access to the controller and the NodeAgent status and logs? 
+# How can I get access to the controller and the NodeAgent logs and status? 
 
 Thundernetes controller Pod and NodeAgent Pods are installed in the `thundernetes-system` namespace by default. 
 
