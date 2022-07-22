@@ -271,6 +271,10 @@
       "pluginVersion": "8.4.5",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
           "exemplar": true,
           "expr": "sum(thundernetes_allocations_total)",
           "interval": "",
@@ -664,7 +668,7 @@
           "refId": "A"
         }
       ],
-      "title": "Active servers time series",
+      "title": "Standby servers time series",
       "type": "timeseries"
     },
     {
@@ -1519,13 +1523,13 @@
     "list": []
   },
   "time": {
-    "from": "now-3h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Thundernetes GameServer Demo",
   "uid": "T9KjuZOnz",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
