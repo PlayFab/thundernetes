@@ -57,7 +57,7 @@ var (
 		Namespace: "thundernetes",
 		Name:      "connected_players",
 		Help:      "Number of connected players per GameServer",
-	}, []string{"namespace", "name"})
+	}, []string{"namespace", "ServerName", "BuildName"})
 )
 
 // HeartbeatRequest contains data for the heartbeat request coming from the GSDK running alongside GameServer

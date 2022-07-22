@@ -39,7 +39,7 @@ const (
 type HeartbeatState int
 
 const (
-	gotHeartbeat     HeartbeatState = iota // it has sent a hearbeat in the corresponding time window
+	gotHeartbeat     HeartbeatState = iota // it has sent a heartbeat in the corresponding time window
 	noHeartbeatEver                        // it has never sent a heartbeat
 	noHeartbeatSince                       // it hasn't sent a heartbeat in the corresponding time window
 )
@@ -281,20 +281,32 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 // gameServerDeleted is called when a GameServer CR is deleted
 func (n *NodeAgentManager) gameServerDeleted(objUnstructured interface{}) {
 	obj := objUnstructured.(*unstructured.Unstructured)
+
 	gameServerName := obj.GetName()
 	gameServerNamespace := obj.GetNamespace()
+
+	gameServerBuildName, err := parseBuildName(obj)
+	if err != nil {
+		log.WithFields(log.Fields{
+			GameServerName:      gameServerName,
+			GameServerNamespace: gameServerNamespace,
+		}).Errorf("parsing buildID: %s", err.Error())
+	}
 
 	log.WithFields(log.Fields{
 		GameServerName:      gameServerName,
 		GameServerNamespace: gameServerNamespace,
 	}).Infof("GameServer %s/%s deleted", gameServerNamespace, gameServerName)
 
+	// When a game server is deleted we also set its player count to 0
+	ConnectedPlayersGauge.WithLabelValues(gameServerNamespace, gameServerName, gameServerBuildName).Set(float64(0))
+
 	// Delete is a no-op if the GameServer is not in the map
 	n.gameServerMap.Delete(gameServerName)
 }
 
 // heartbeatHandler is the http handler handling heartbeats from the GameServer Pods running on this Node
-// it responds by sending intructions/signal for the next operation
+// it responds by sending instructions/signal for the next operation
 // on Thundernetes, the only operation that NodeAgent can signal to the GameServer is that the GameServer has been allocated (its state has transitioned to Active)
 // when it's allocated, it will return an "Active" operation
 // in all other cases, it will return "Continue" (which basically means continue doing what you are already doing)
@@ -476,7 +488,7 @@ func (n *NodeAgentManager) updateConnectedPlayersIfNeeded(ctx context.Context, h
 	connectedPlayersCount := len(hb.CurrentPlayers)
 
 	// set the prometheus gauge
-	ConnectedPlayersGauge.WithLabelValues(gsd.GameServerNamespace, gameServerName).Set(float64(connectedPlayersCount))
+	ConnectedPlayersGauge.WithLabelValues(gsd.GameServerNamespace, gameServerName, gsd.BuildName).Set(float64(connectedPlayersCount))
 
 	currentPlayerIDs := make([]string, connectedPlayersCount)
 	for i := 0; i < len(hb.CurrentPlayers); i++ {
