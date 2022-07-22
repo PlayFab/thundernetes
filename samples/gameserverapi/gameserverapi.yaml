@@ -16,7 +16,7 @@ spec:
         app: thundernetes-gameserverapi
     spec:
       containers:
-        - image: thundernetes-gameserverapi:${IMAGE_TAG}
+        - image: ghcr.io/playfab/thundernetes-gameserverapi:0.4.1
           name: gameserverapi
           imagePullPolicy: IfNotPresent
           resources:
