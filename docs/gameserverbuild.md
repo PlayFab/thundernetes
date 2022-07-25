@@ -57,7 +57,7 @@ This is a list of ports that you want to be exposed in the [Worker Node/VM](http
 
 The reason for the `PortsToExpose` declaration is that you may want to use some ports on your Pod containers for other purposes rather than players connecting to it.
 
-Ports that are to be exposed are assigned a number in the port range 10000-12000 by default. This port range is configurable, check [here](howtos/configureportrange.md) for details. 
+Ports that are to be exposed are assigned a number in the port range 10000-12000 by default. This port range is configurable, check [here](howtos/customportrange.md) for details. 
 
 **IMPORTANT**: Port names must be specified for all the ports that are in the *portsToExpose* array. Reason is that these ports are accessible via the [GSDK](gsdk/README.md), using their name. This way, the game server can discover them on runtime.
 
