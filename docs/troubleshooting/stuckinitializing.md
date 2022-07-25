@@ -7,7 +7,7 @@ nav_order: 3
 
 # My GameServer state stays in empty or Initializing state and does not transition into StandingBy
 
-❗ Check [here](../gameserverlifecycle.md) for more information on GameServer lifecycle.
+❗ Check [here](../gsdk/gameserverlifecycle.md) for more information on GameServer lifecycle.
 
 ❗ You can check for the state of your GameServer by typing `kubectl get gs <gsName>` or `kubectl describe gs <gsName>`
 
