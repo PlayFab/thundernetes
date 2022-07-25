@@ -14,20 +14,20 @@ Currently we are developing [Thundernetes UI](https://github.com/PlayFab/thunder
 
 You can see a summary of what's going on in all your clusters.
 
-![Home page](./images/thundernetes_ui_home.png "Home page")
+[![Home page](../assets/images/thundernetes_ui_home.png "Home page")](../assets/images/thundernetes_ui_home.png)
 
 ## Manage the builds on each cluster
 
 Check the builds you have on each cluster and their current status. You can also create a new one, either from scratch, or by cloning one from any cluster!
 
-![Cluster view](./images/thundernetes_ui_cluster.png "Cluster view")
+[![Cluster view](../assets/images/thundernetes_ui_cluster.png "Cluster view")](../assets/images/thundernetes_ui_cluster.png)
 
-![Create build view](./images/thundernetes_ui_cluster_create_build.png "Create build view")
+[![Create build view](../assets/images/thundernetes_ui_cluster_create_build.png "Create build view")](../assets/images/thundernetes_ui_cluster_create_build.png)
 
 ## Manage each build
 
 You can check each build separately and see it's status and specs, you can modify the standingBy and max values, allocate individual game servers for testing, and see a list of all the game servers running.
 
-![Build view - Specs](./images/thundernetes_ui_build_specs.png "Build view - Specs")
+[![Build view - Specs](../assets/images/thundernetes_ui_build_specs.png "Build view - Specs")](../assets/images/thundernetes_ui_build_specs.png)
 
-![Build view - GameServers](./images/thundernetes_ui_build_gameservers.png "Build view - GameServers")
+[![Build view - GameServers](../assets/images/thundernetes_ui_build_gameservers.png "Build view - GameServers")](../assets/images/thundernetes_ui_build_gameservers.png)

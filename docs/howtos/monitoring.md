@@ -10,7 +10,7 @@ nav_order: 1
 Thundernetes is able to export game server related metrics to a [Prometheus](https://prometheus.io/docs/introduction/overview/) server, and these can also be imported
 to a [Grafana](https://grafana.com/docs/grafana/latest/introduction/) server for easy and intuitive visualizations.
 
-![Grafana Dasboard Example](../assets/images/grafana_dashboard_1.png)
+[![Grafana Dasboard Example](../assets/images/grafana_dashboard_1.png)](../assets/images/grafana_dashboard_1.png)
 
 Prometheus uses a pull model to retrieve data, and needs apps to implement an endpoint that responds to its HTTP requests. For this, Thundernetes exposes the following endpoints:
 
@@ -95,8 +95,8 @@ There is a custom Grafana dashboard example that visualizes some of this data in
 
 ## More pictures
 
-![Grafana Dasboard Example 2](../assets/images/grafana_dashboard_2.png)
+[![Grafana Dasboard Example 2](../assets/images/grafana_dashboard_2.png)](../assets/images/grafana_dashboard_2.png)
 
-![Grafana Dasboard Example 3](../assets/images/grafana_dashboard_3.png)
+[![Grafana Dasboard Example 3](../assets/images/grafana_dashboard_3.png)](../assets/images/grafana_dashboard_3.png)
 
-![Grafana Dasboard Example 4](../assets/images/grafana_dashboard_4.png)
+[![Grafana Dasboard Example 4](../assets/images/grafana_dashboard_4.png)](../assets/images/grafana_dashboard_4.png)
