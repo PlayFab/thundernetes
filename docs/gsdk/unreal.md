@@ -54,4 +54,4 @@ CMD su ue -c ./ShooterServer.sh
 
 Check [this guide](https://github.com/PlayFab/MpsSamples/tree/main/UnrealThirdPersonMP) on how to integrate the [Unreal Third Person template](https://docs.unrealengine.com/4.27/en-US/Resources/Templates/ThirdPerson/) with the Unreal GSDK.
 
-{% include_relative gsdkfooter.md %}
+{% include gsdkfooter.md %}

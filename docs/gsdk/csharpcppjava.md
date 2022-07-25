@@ -17,4 +17,4 @@ You can find the GSDK libraries for each language here:
 
 In all these programming languages, you need to include the GSDK libraries in your project and call the `Start()` and `ReadyForPlayers()` methods. `Start` will signal to Thundernetes that the game server is initializing whereas `ReadyForPlayers` will signal that the game server is ready for players to connect.
 
-{% include_relative gsdkfooter.md %}
+{% include gsdkfooter.md %}

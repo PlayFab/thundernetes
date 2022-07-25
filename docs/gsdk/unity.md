@@ -42,4 +42,4 @@ CMD ["/game/UnityServer.x86_64", "-nographics", "-batchmode", "-logfile"]
 
 For a more robust sample integrating Unity with the popular [Mirror](https://mirror-networking.com/) networking library, check the `MpsSamples` repository [here](https://github.com/PlayFab/MpsSamples/tree/main/UnityMirror).
 
-{% include_relative gsdkfooter.md %}
+{% include gsdkfooter.md %}
