@@ -56,7 +56,7 @@ gameserverbuild-sample-netcore-pxrqx   Healthy   StandingBy   52.183.89.4   80:1
 
 ### Lifecycle of a game server
 
-The game server will remain in Active state as long as the game server process is running. Once the game server process exits, the GameServer Custom Resource will be deleted. This will make the game server pod to be deleted and a new one will be created in its place (provided we are not beyond the GameServerBuild's maximum). For more information on the GameServer lifecycle, please check [here](../gameserverlifecycle.md).
+The game server will remain in Active state as long as the game server process is running. Once the game server process exits, the GameServer Custom Resource will be deleted. This will make the game server pod to be deleted and a new one will be created in its place (provided we are not beyond the GameServerBuild's maximum). For more information on the GameServer lifecycle, please check [here](../gsdk/gameserverlifecycle.md).
 
 # Scaling a GameServerBuild
 
