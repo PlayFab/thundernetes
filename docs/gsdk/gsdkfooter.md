@@ -1,3 +1,8 @@
+---
+layout: default
+nav_exclude: true
+---
+
 ### Testing with LocalMultiplayerAgent
 
 You can use [LocalMultiplayerAgent](runlocalmultiplayeragent.html) to test your GSDK integration of your game server before uploading to Thundernetes.
