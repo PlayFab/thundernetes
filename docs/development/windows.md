@@ -7,7 +7,7 @@ nav_order: 2
 
 # Developing with Windows containers
 
-Thundernetes now supports game servers running on Windows containers, you can read more about it [here](./howtos/windowscontainers.md). If you want to try this you need both a Windows machine, with Windows 2019 or higher, to build the necessary Windows Docker images, and a Kubernetes cluster with Windows nodes. You can't build or run Windows containers on a Linux machine. If you have all of this, you can follow these next steps:
+Thundernetes now supports game servers running on Windows containers, you can read more about it [here](../howtos/windowscontainers.md). If you want to try this you need both a Windows machine, with Windows 2019 or higher, to build the necessary Windows Docker images, and a Kubernetes cluster with Windows nodes. You can't build or run Windows containers on a Linux machine. If you have all of this, you can follow these next steps:
 
 - Login to your container registry (`docker login <registry>`) on your Linux machine or WSL, where `<registry>` is the registry where you want to upload your images.
 - Run `NS=<registry> make clean build push create-install-files-dev`.

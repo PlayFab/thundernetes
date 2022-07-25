@@ -22,7 +22,7 @@ Thundernetes is a project originating from the [Azure PlayFab Multiplayer Server
 
 Thundernetes offers:
 
-- game server auto-scaling enabled by default, based on [requested standingBy levels](./gameserverbuild.md)
+- game server auto-scaling, based on [requested standingBy levels](./gameserverbuild.md)
 - a [latency server](./howtos/latencyserver.md) to test client connection to multiple Kubernetes cluster and determine the best cluster to connect to
 - a [Game Server SDK](./gsdk/README.md) in multiple languages/environments (Unity, Unreal, C#, C++, Java, Go) and a [local utility](./gsdk/runlocalmultiplayeragent.md) to test your game server integration locally
 - a [web-based User Interface](./thundernetesui/README.md) to manage Thundernetes deployments in multiple clusters. This component utilizes a [REST API](./gameserverapi/README.md) which you can use to manage your game servers

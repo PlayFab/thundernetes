@@ -11,4 +11,4 @@ By default, Thundernetes will allocate ports in the range 10000-12000 to your Ga
 
 Additionally, since by default Thundernetes requires each Node in the cluster to have a Public IP, you would need to allow external traffic on this port range on your cluster. For instructions on how to do this, check your cloud provider's documentation. For Azure, you would need to open the port range in the Azure Network Security Group of your cluster.
 
-> _**IMPORTANT**_: Do not modify the port range when there game servers running on the cluster, since this will probably corrupt the port registry, especially if the new and the old range are different.
+> _**IMPORTANT**_: Do not modify the port range when there game servers running on the cluster, since this will probably corrupt the port registry.
