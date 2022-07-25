@@ -7,7 +7,7 @@ has_children: true
 
 # How to run your game server on Thundernetes?
 
-Once you [install Thundernetes](../quickstart/installing-thundernetes.md) (either on [kind](../quickstart/installing-kind.md) or [AKS](quickstart/installing-aks.md)) and verify it's working as intended, you can prepare your game server for Thundernetes by integrating with the open source [Game Server SDK (GSDK)](https://github.com/playfab/gsdk). GSDK library is also used by [Azure PlayFab Multiplayer Servers (MPS)](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/) service. In this way, you can easily migrate your game servers from MPS to Thundernetes and vice versa.
+Once you [install Thundernetes](../quickstart/installing-thundernetes.md) (either on [kind](../quickstart/installing-kind.md) or [AKS](../quickstart/installing-aks.md)) and verify it's working as intended, you can prepare your game server for Thundernetes by integrating with the open source [Game Server SDK (GSDK)](https://github.com/playfab/gsdk). GSDK library is also used by [Azure PlayFab Multiplayer Servers (MPS)](https://docs.microsoft.com/gaming/playfab/features/multiplayer/servers/) service. In this way, you can easily migrate your game servers from MPS to Thundernetes and vice versa.
 
 Integrating with GSDK is required for your game server to run on Thundernetes. Integration serves two purposes:
 

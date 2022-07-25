@@ -46,7 +46,7 @@ Last command requires you to use `kubectl`, the CLI tool for Kubernetes. Check t
 
 Thundernetes requires VMs to have Public IPs (so game servers can be accessible) and be able to accept network traffic at port range 10000-12000 from the Internet.
 
-> _**NOTE**_: This port range is configurable, check [here](../howtos/configureportrange.md) for details. 
+> _**NOTE**_: This port range is configurable, check [here](../howtos/customportrange.md) for details. 
 
 To allow traffic to these ports, you need to perform the following steps *after your AKS cluster gets created*:
 

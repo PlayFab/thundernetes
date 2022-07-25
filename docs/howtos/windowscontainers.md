@@ -25,7 +25,7 @@ In the case of Thundernetes, the controller still runs only on Linux machines, s
 
 When you install Thundernetes in a cluster with Windows worker nodes, it will automatically use the correct version of both of these components on each node.
 
-On the game server side, all you need to do is integrate your project with the Game Server SDK ([GSDK](../GSDK/README.md)), same as with Linux game servers. When you want to deploy a new game server build, simply add the following to the YAML file, we use this to know how to deploy the game servers correctly:
+On the game server side, all you need to do is integrate your project with the Game Server SDK ([GSDK](../gsdk/README.md)), same as with Linux game servers. When you want to deploy a new game server build, simply add the following to the YAML file, we use this to know how to deploy the game servers correctly:
 
 ```yaml
 apiVersion: mps.playfab.com/v1alpha1
