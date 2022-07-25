@@ -54,7 +54,7 @@ Thundernetes requires a Kubernetes cluster with Public IP per Node. We've tested
 
 > _**NOTE**_: You can use a Kubernetes cluster without a Public IP. However, you would need to configure your own network architecture if you want to access your game servers. For example, if you use a cloud provider's Load Balancer, you would need to configure routes from Load Balancer's public endpoints to the internal ones on your Kubernetes cluster. Check [here](https://github.com/dgkanatsios/thundernetescontrib/tree/main/traefikingress) for an example controller with [traefik](https://github.com/traefik/traefik) ingress controller for HTTP-based game servers (e.g. WebGL).
 
-Moreover, Thundernetes requires ports in the range 10000-12000 to be open in the cluster for external connections (i.e. in the case of Azure Kubernetes Service, this port range must allow incoming traffic in the corresponding Network Security Group). This port range is configurable, check [here](howtos/configureportrange.md) for details. 
+Moreover, Thundernetes requires ports in the range 10000-12000 to be open in the cluster for external connections (i.e. in the case of Azure Kubernetes Service, this port range must allow incoming traffic in the corresponding Network Security Group). This port range is configurable, check [here](howtos/customportrange.md) for details. 
 
 Each GameServerBuild contains the *portsToExpose* field, which contains the port(s) that each GameServer listens to for incoming client connections. When the GameServer Pod is created, each port in the *portsToExpose* field will be assigned a port in the (default) range 10000-12000 (let's call it an external port) via a PortRegistry mechanism in the Thundernetes controller. Game clients can send traffic to this external port and this will be forwarded to the game server container port. Once the GameServer session ends, the port is returned back to the pool of available ports and may be re-used in the future.
 
@@ -63,7 +63,7 @@ Each GameServerBuild contains the *portsToExpose* field, which contains the port
 
 ## GameServer allocation
 
-Make sure you familiarize yourself with the [GameServer lifecycle](gameserverlifecycle.md) document. When you allocate a GameServer so players can connect to it (transition it to the Active state), Thundernetes needs to do two things:
+Make sure you familiarize yourself with the [GameServer lifecycle](gsdk/gameserverlifecycle.md) document. When you allocate a GameServer so players can connect to it (transition it to the Active state), Thundernetes needs to do two things:
 
 - Find a GameServer instance for the requested GameServerBuild in the StandindBy state and update it to the Active state.
 - Inform the corresponding GameServer Pod (specifically, the NodeAgent that handles GSDK calls for that Pod) that the GameServer state is now Active. NodeAgent will pass this information to the GameServer container. The way that this is accomplished is the following: each GameServer process/container regularly heartbeats (sends a JSON HTTP request) to the NodeAgent. When the NodeAgent is notified that the GameServer state has transitioned to Active, it will respond send information about the change of state back to the GameServer container.
