@@ -100,5 +100,3 @@ There is a custom Grafana dashboard example that visualizes some of this data in
 [![Grafana Dasboard Example 3](../assets/images/grafana_dashboard_3.png)](../assets/images/grafana_dashboard_3.png)
 
 [![Grafana Dasboard Example 4](../assets/images/grafana_dashboard_4.png)](../assets/images/grafana_dashboard_4.png)
-
-
