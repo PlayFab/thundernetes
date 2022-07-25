@@ -25,7 +25,7 @@ One approach to achieve this isolation on public cloud providers is by using mul
 For example, on Azure Kubernetes Service you can use the following guidelines:
 
 1. Create a separate NodePool to host your GameServer Pods. Check [here](https://docs.microsoft.com/azure/aks/use-multiple-node-pools) on how to do it on Azure Kubernetes Service. Create this on "user" mode so that "kube-system" Pods are not scheduled on this NodePool. Moreover, when creating a NodePool, you can specify custom Labels for the Nodes. Let's assume that you apply the ```agentpool=gameserver``` Label.
-2. Use the ```nodeSelector``` field on your GameServer Pod spec to request that the GameServer Pod is scheduled on Nodes that have the ```agentpool=gameserver``` Label. Take a look at this [sample YAML file](https://github.com/PlayFab/thundernetes/tree/main/samples/netcore/sample_second_node_pool.yaml) for an example.
+2. Use the ```nodeSelector``` field on your GameServer Pod spec to request that the GameServer Pod is scheduled on Nodes that have the ```agentpool=gameserver``` Label. Take a look at this [sample YAML file](https://github.com/PlayFab/thundernetes/blob/main/samples/netcore/sample-secondnodepool.yaml) for an example.
 3. When you create your GameServer Pods, these will be scheduled on the NodePool you created.
 4. You should also modify the ```nodeSelector``` field on the controller Pod spec to make it will be scheduled on the system Node Pool. On AKS, if the NodePool is called ```nodepool1```, you should add this YAML snippet to the ```thundernetes-controller-manager``` Deployment on the [YAML install file](https://github.com/PlayFab/thundernetes/tree/main/installfiles/operator.yaml):
 

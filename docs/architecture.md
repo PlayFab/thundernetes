@@ -46,7 +46,7 @@ kubectl port-forward -n thundernetes-system deployments/thundernetes-controller-
 
 Then, you can use your browser and point it to `http://localhost:8080/metrics` to view the metrics.
 
-If you currently have [Prometheus](https://prometheus.io) & [Grafana](https://grafana.org) installed, yout can utilize the [sample dashboard](http://github.com/playfab/thundernetes/tree/main/samples/grafana/readme.md) to visualize the current controller and gameserver pod metrics.
+If you currently have [Prometheus](https://prometheus.io) & [Grafana](https://grafana.org) installed, yout can utilize the [sample dashboard]https://github.com/playfab/thundernetes/tree/main/samples/grafana/) to visualize the current controller and gameserver pod metrics.
 
 ## Port allocation
 
