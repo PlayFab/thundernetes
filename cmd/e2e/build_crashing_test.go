@@ -93,7 +93,7 @@ var _ = Describe("Crashing Build", func() {
 // createCrashingBuild creates a build which contains game servers that will crash on start
 func createCrashingBuild(buildName, buildID, img string) *mpsv1alpha1.GameServerBuild {
 	gsb := createTestBuild(buildName, buildID, img)
-	gsb.Spec.Template.Spec.Containers[0].Command = []string{"/bin/sh", "-c", "sleep 2 && command_that_does_not_exist"}
+	gsb.Spec.Template.Spec.Containers[0].Command = []string{"/bin/sh", "-c", "sleep 0.5 && command_that_does_not_exist"}
 	crashes := 5
 	gsb.Spec.CrashesToMarkUnhealthy = &crashes
 	return gsb
