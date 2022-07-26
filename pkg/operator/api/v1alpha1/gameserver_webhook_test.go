@@ -1,8 +1,6 @@
 package v1alpha1
 
 import (
-	"os"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -62,7 +60,7 @@ func createTestGameServer(name, buildID string, hostNetwork bool) GameServer {
 					Containers: []corev1.Container{
 						{
 							Name:  "testcontainer",
-							Image: os.Getenv("THUNDERNETES_SAMPLE_IMAGE"),
+							Image: "testimage",
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 80,

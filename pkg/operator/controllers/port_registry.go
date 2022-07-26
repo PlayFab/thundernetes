@@ -18,15 +18,15 @@ import (
 
 // PortRegistry implements a custom map for the port registry
 type PortRegistry struct {
-	client              client.Client // used to get the list of nodes
-	NodeCount           int           // the number of Ready and Schedulable nodes in the cluster
-	HostPortsPerNode    map[int32]int // a slice for the entire port range. increases by 1 for each registered port
-	Min                 int32         // Minimum Port
-	Max                 int32         // Maximum Port
-	lockMutex           sync.Mutex    // lock for the map
-	useSpecificNodePool bool          // if true, we only take into account Nodes that have the Label "mps.playfab.com/gameservernode"=true
-	nextPortNumber      int32         // the next port to be assigned
-	logger              logr.Logger
+	client                            client.Client // used to get the list of nodes
+	NodeCount                         int           // the number of Ready and Schedulable nodes in the cluster
+	HostPortsPerNode                  map[int32]int // a slice for the entire port range. increases by 1 for each registered port
+	Min                               int32         // Minimum Port
+	Max                               int32         // Maximum Port
+	lockMutex                         sync.Mutex    // lock for the map
+	useSpecificNodePoolForGameServers bool          // if true, we only take into account Nodes that have the Label "mps.playfab.com/gameservernode"=true
+	nextPortNumber                    int32         // the next port to be assigned
+	logger                            logr.Logger
 }
 
 // NewPortRegistry initializes the map[port]counter that holds the port registry
@@ -45,14 +45,14 @@ func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerLi
 	}
 
 	pr := &PortRegistry{
-		client:              client,
-		Min:                 min,
-		Max:                 max,
-		lockMutex:           sync.Mutex{},
-		useSpecificNodePool: useSpecificNodePool,
-		nextPortNumber:      min,
-		NodeCount:           nodeCount,
-		logger:              log.Log.WithName("portregistry"),
+		client:                            client,
+		Min:                               min,
+		Max:                               max,
+		lockMutex:                         sync.Mutex{},
+		useSpecificNodePoolForGameServers: useSpecificNodePool,
+		nextPortNumber:                    min,
+		NodeCount:                         nodeCount,
+		logger:                            log.Log.WithName("portregistry"),
 	}
 
 	// initialize the ports
@@ -96,7 +96,7 @@ func (pr *PortRegistry) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	var err error
 
 	// if we have a specific node pool/group for game servers (with mps.playfab.com/gameservernode=true Label)
-	if pr.useSpecificNodePool {
+	if pr.useSpecificNodePoolForGameServers {
 		err = pr.client.List(ctx, &nodeList, client.MatchingLabels{LabelGameServerNode: "true"})
 	} else { // get all the Nodes
 		err = pr.client.List(ctx, &nodeList)
@@ -205,7 +205,7 @@ func (pr *PortRegistry) SetupWithManager(mgr ctrl.Manager) error {
 		WithEventFilter(predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
 				node := e.Object.(*v1.Node)
-				if useSpecificNodePoolAndNodeNotGameServer(pr.useSpecificNodePool, node) {
+				if pr.useSpecificNodePoolForGameServers && !isNodeGameServerNode(node) {
 					return false
 				}
 				return IsNodeReadyAndSchedulable(node)
@@ -214,7 +214,7 @@ func (pr *PortRegistry) SetupWithManager(mgr ctrl.Manager) error {
 				node := e.Object.(*v1.Node)
 				// ignore this Node if we have a specific node pool for game servers (with mps.playfab.com/gameservernode=true Label)
 				// and the current Node does not have this Label
-				if useSpecificNodePoolAndNodeNotGameServer(pr.useSpecificNodePool, node) {
+				if pr.useSpecificNodePoolForGameServers && !isNodeGameServerNode(node) {
 					return false
 				}
 				return true
@@ -222,7 +222,7 @@ func (pr *PortRegistry) SetupWithManager(mgr ctrl.Manager) error {
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldNode := e.ObjectOld.(*v1.Node)
 				newNode := e.ObjectNew.(*v1.Node)
-				if useSpecificNodePoolAndNodeNotGameServer(pr.useSpecificNodePool, newNode) {
+				if pr.useSpecificNodePoolForGameServers && !isNodeGameServerNode(newNode) {
 					return false
 				}
 				return IsNodeReadyAndSchedulable(oldNode) != IsNodeReadyAndSchedulable(newNode)

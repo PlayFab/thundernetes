@@ -461,16 +461,12 @@ func verifyGameServerPodEvictionAnnotation(ctx context.Context, kubeClient clien
 // verifyPods checks if the Pod state is equal to the expected
 func verifyPods(ctx context.Context, kubeClient client.Client, state buildState) error {
 	pods := corev1.PodList{}
-
-	if err := kubeClient.List(ctx, &pods, client.InNamespace(testNamespace)); err != nil {
+	if err := kubeClient.List(ctx, &pods, client.InNamespace(testNamespace), client.MatchingLabels{LabelBuildName: state.buildName}); err != nil {
 		return err
 	}
 
 	var observedCount int
 	for _, pod := range pods.Items {
-		if pod.Labels[LabelBuildID] != state.buildID {
-			continue
-		}
 		if pod.Status.Phase != corev1.PodRunning {
 			continue
 		}
@@ -486,15 +482,20 @@ func verifyPods(ctx context.Context, kubeClient client.Client, state buildState)
 	if observedCount == state.podRunningCount {
 		return nil
 	}
-	// get a []string with all Pod states
+
+	// if observed count is not equal to running count, this means that a least one Pod has an error, so get a []string with all Pod states
 	var observedStates []string
 	for _, pod := range pods.Items {
-		observedStates = append(observedStates, fmt.Sprintf("%s:%s", pod.Name, pod.Status.Phase))
+		s := fmt.Sprintf("%s:%s", pod.Name, pod.Status.Phase)
+		if pod.Status.Phase != corev1.PodRunning && len(pod.Status.ContainerStatuses) > 0 && pod.Status.ContainerStatuses[0].LastTerminationState.Terminated != nil {
+			s += fmt.Sprintf("-(Terminated.Reason: %s)", pod.Status.ContainerStatuses[0].LastTerminationState.Terminated.Reason)
+		}
+		observedStates = append(observedStates, s)
 	}
 	return fmt.Errorf("Expecting %d Pods in state Running, got %d. Pod states: %v", state.podRunningCount, observedCount, observedStates)
 }
 
-// verifyGameServerDetail checks if the GameServerDetail CR is valid and has the appropriate state
+// verifyGameServerDetail checks if the GameServerDetail CR is valid and has the expected state
 func verifyGameServerDetail(ctx context.Context, kubeClient client.Client, gameServerDetailName string, expectedConnectedPlayersCount int, expectedConnectedPlayers []string) error {
 	gameServerDetail := mpsv1alpha1.GameServerDetail{}
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: gameServerDetailName, Namespace: testNamespace}, &gameServerDetail); err != nil {

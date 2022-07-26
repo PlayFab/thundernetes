@@ -2,19 +2,12 @@ package v1alpha1
 
 import (
 	"math/rand"
-	"os"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
-)
-
-const (
-	timeout  = time.Second * 5
-	interval = time.Millisecond * 250
 )
 
 var _ = Describe("GameServerBuild webhook tests", func() {
@@ -105,7 +98,7 @@ func createTestGameServerBuild(buildName, buildID string, standingBy, max int, h
 					Containers: []corev1.Container{
 						{
 							Name:  "testcontainer",
-							Image: os.Getenv("THUNDERNETES_SAMPLE_IMAGE"),
+							Image: "testimage",
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 80,
