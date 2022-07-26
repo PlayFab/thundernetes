@@ -486,7 +486,12 @@ func verifyPods(ctx context.Context, kubeClient client.Client, state buildState)
 	if observedCount == state.podRunningCount {
 		return nil
 	}
-	return fmt.Errorf("Expecting %d Pods in state Running, got %d", state.podRunningCount, observedCount)
+	// get a []string with all Pod states
+	var observedStates []string
+	for _, pod := range pods.Items {
+		observedStates = append(observedStates, fmt.Sprintf("%s:%s", pod.Name, pod.Status.Phase))
+	}
+	return fmt.Errorf("Expecting %d Pods in state Running, got %d. Pod states: %v", state.podRunningCount, observedCount, observedStates)
 }
 
 // verifyGameServerDetail checks if the GameServerDetail CR is valid and has the appropriate state
