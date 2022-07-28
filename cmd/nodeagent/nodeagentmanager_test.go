@@ -617,6 +617,9 @@ var _ = Describe("nodeagent tests", func() {
 			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:00:00 PST")
 			return value
 		}
+
+		// in this test we run HeartbeatTimeChecker manually, so we turn off the loop that does it
+		// automatically to avoid them running at the same time
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, customNow, false)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
@@ -659,6 +662,9 @@ var _ = Describe("nodeagent tests", func() {
 			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:00:00 PST")
 			return value
 		}
+
+		// in this test we run HeartbeatTimeChecker manually, so we turn off the loop that does it
+		// automatically to avoid them running at the same time
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, customNow, false)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
@@ -727,6 +733,9 @@ var _ = Describe("nodeagent tests", func() {
 			value, _ := time.Parse(layout, "Tue, 26 Apr 2022 10:00:00 PST")
 			return value
 		}
+
+		// in this test we run HeartbeatTimeChecker manually, so we turn off the loop that does it
+		// automatically to avoid them running at the same time
 		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, customNow, false)
 		gs := createUnstructuredTestGameServer(testGameServerName, testGameServerNamespace)
 
