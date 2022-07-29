@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -58,11 +59,13 @@ func init() {
 
 	InitContainerImage = os.Getenv("THUNDERNETES_INIT_CONTAINER_IMAGE")
 	if InitContainerImage == "" {
-		panic("THUNDERNETES_INIT_CONTAINER_IMAGE cannot be empty")
+		log.Log.Error(errors.New("THUNDERNETES_INIT_CONTAINER_IMAGE is not set, setting to a mock value"), "")
+		InitContainerImage = "testInitContainerImage"
 	}
 	InitContainerImageWin = os.Getenv("THUNDERNETES_INIT_CONTAINER_IMAGE_WIN")
 	if InitContainerImageWin == "" {
-		panic("THUNDERNETES_INIT_CONTAINER_IMAGE_WIN cannot be empty")
+		log.Log.Error(errors.New("THUNDERNETES_INIT_CONTAINER_IMAGE_WIN is not set, setting to a mock value"), "")
+		InitContainerImageWin = "testInitContainerImageWin"
 	}
 }
 
@@ -426,11 +429,10 @@ func IsNodeReadyAndSchedulable(node *corev1.Node) bool {
 	return false
 }
 
-// useSpecificNodePoolAndNodeNotGameServer returns true if
-// 1. the cluster contains a specific Node Pool/Group for GameServers (designated by the mps.playfab.com/gameservernode=true Label)
-// 2. and the current Node does *not* have this Label
-func useSpecificNodePoolAndNodeNotGameServer(useSpecificNodePool bool, node *corev1.Node) bool {
-	return useSpecificNodePool && node.Labels[LabelGameServerNode] != "true"
+// isNodeGameServerNode returns true if Node has the Label mps.playfab.com/gameservernode=true set
+// this Label should be set when the cluster contains a specific Node Pool/Group for GameServers
+func isNodeGameServerNode(node *corev1.Node) bool {
+	return node.Labels != nil && node.Labels[LabelGameServerNode] == "true"
 }
 
 // ByState is a slice of GameServers

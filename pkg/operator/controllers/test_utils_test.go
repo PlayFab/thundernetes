@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"os"
 
 	. "github.com/onsi/gomega"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
@@ -195,7 +194,7 @@ func testGenerateGameServerBuild(buildName, buildNamespace, buildID string, stan
 					Containers: []corev1.Container{
 						{
 							Name:  "testcontainer",
-							Image: os.Getenv("THUNDERNETES_SAMPLE_IMAGE"),
+							Image: "testimage",
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 80,
@@ -230,7 +229,7 @@ func testGenerateGameServer(buildName, buildID, gsNamespace, gsName string) *mps
 					Containers: []corev1.Container{
 						{
 							Name:  "testcontainer",
-							Image: os.Getenv("THUNDERNETES_SAMPLE_IMAGE"),
+							Image: "testimage",
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 80,

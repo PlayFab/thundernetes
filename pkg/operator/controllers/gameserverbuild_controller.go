@@ -37,21 +37,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// We have observed cases in which we'll create more than one GameServer for a GameServerBuild
-// This is because on the first reconcile we'll see that we have 0 GameServers and we'll create some
+// We have observed cases in which the controller creates more GameServers than necessary for a GameServerBuild
+// This is because e.g. on the first reconcile call, the controller sees that we have 0 GameServers and it starts to create some
 // On the subsequent reconcile, the cache might have not been updated yet, so we'll still see 0 GameServers (or less than asked) and create more,
 // so eventually we'll end up with more GameServers than requested
-// The code will handle and delete the extra GameServers eventually, but it's a waste of resources unfortunately.
-// The solution is to create a synchonized map (since it will be accessed by multiple reconciliations - one for each GameServerBuild)
-// In this map, the key is GameServerBuild.Name whereas the value is map[string]interface{} and contains the GameServer.Name for all the GameServers under creation
-// We use map[string]interface{} instead a []string to facilitate constant time lookups for GameServer names.
-// On every reconcile loop, we check if all the GameServers for this GameServerBuild are present in cache)
+// The controller code will eventually delete the extra GameServers, but we can improve this process.
+// The solution is to create a synchronized map to track which objects were just created
+// (synchronized since it might be accessed by multiple reconciliation goroutines - one for each GameServerBuild)
+// In this map, the key is the name of the GameServerBuild
+// The value is a struct with map[string]interface{} and a mutex
+// The map acts like a set which contains the name of the GameServer for all the GameServers under creation
+// (We use map[string]interface{} instead of a []string to facilitate constant time lookups for GameServer names)
+// On every reconcile loop, we check if all the GameServers for this GameServerBuild are present in cache
 // If they are, we remove the GameServerBuild entry from the gameServersUnderCreation map
 // If at least one of them is not in the cache, this means that the cache has not been fully updated yet
-// so we will exit the current reconcile loop, cache will be updated in a subsequent loop
+// so we will exit the current reconcile loop, as GameServers are created the controller will reconcile again
 var gameServersUnderCreation = sync.Map{}
 
-// Similar logic to gameServersUnderCreation, but this time for deletion of game servers
+// Similar logic to gameServersUnderCreation, but this time regarding deletion of game servers
 // On every reconcile loop, we check if all the GameServers under deletion for this GameServerBuild have been removed from cache
 // If even one of them exists in cache, we exit the reconcile loop
 // In a subsequent loop, cache will be updated
@@ -59,10 +62,15 @@ var gameServersUnderDeletion = sync.Map{}
 
 // a map to hold the number of crashes per Build
 // concurrent since the reconcile loop can be called multiple times for different GameServerBuilds
+// key is namespace/name of the GameServerBuild
+// value is the number of crashes
 var crashesPerBuild = sync.Map{}
 
 const (
-	maxNumberOfGameServersToAdd    = 20
+	// maximum number of GameServers to create per reconcile loop
+	// we have this in place since each create call is synchronous and we want to minimize the time for each reconcile loop
+	maxNumberOfGameServersToAdd = 20
+	// maximum number of GameServers to delete per reconcile loop
 	maxNumberOfGameServersToDelete = 20
 )
 
@@ -400,6 +408,7 @@ func getKeyForCrashesPerBuildMap(gsb *mpsv1alpha1.GameServerBuild) string {
 }
 
 // deleteNonActiveGameServers loops through all the GameServers CRs and deletes non-Active ones
+// after it sorts all of them by state
 func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Context,
 	gsb *mpsv1alpha1.GameServerBuild,
 	gameServers *mpsv1alpha1.GameServerList,

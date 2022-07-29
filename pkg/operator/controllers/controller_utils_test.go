@@ -177,5 +177,17 @@ var _ = Describe("Utilities tests", func() {
 			Expect(s).To(HavePrefix(prefix))
 			Expect(len(s)).To(BeNumerically(">", len(prefix)))
 		})
+		It("should check if a Node is a GameServer Node", func() {
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						LabelGameServerNode: "true",
+					},
+				},
+			}
+			Expect(isNodeGameServerNode(node)).To(BeTrue())
+			node.Labels[LabelGameServerNode] = "nottrue"
+			Expect(isNodeGameServerNode(node)).To(BeFalse())
+		})
 	})
 })
