@@ -61,7 +61,7 @@ type NodeAgentManager struct {
 	firstHeartbeatTimeout     int64 // the first heartbeat gets a longer window considering initialization time
 }
 
-func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEveryHeartbeat bool, ignoreHealthFromHeartbeat bool, now func() time.Time) *NodeAgentManager {
+func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEveryHeartbeat bool, ignoreHealthFromHeartbeat bool, now func() time.Time, withHeartbeatTimeChecker bool) *NodeAgentManager {
 	n := &NodeAgentManager{
 		dynamicClient:             dynamicClient,
 		watchStopper:              make(chan struct{}),
@@ -72,7 +72,11 @@ func NewNodeAgentManager(dynamicClient dynamic.Interface, nodeName string, logEv
 		nowFunc:                   now,
 	}
 	n.runWatch()
-	n.runHeartbeatTimeCheckerLoop()
+	n.firstHeartbeatTimeout = ParseInt64FromEnv("FIRST_HEARTBEAT_TIMEOUT", 60000)
+	n.heartbeatTimeout = ParseInt64FromEnv("HEARTBEAT_TIMEOUT", 5000)
+	if withHeartbeatTimeChecker {
+		n.runHeartbeatTimeCheckerLoop()
+	}
 	return n
 }
 
@@ -96,8 +100,6 @@ func (n *NodeAgentManager) runWatch() {
 
 // runHeartbeatTimeCheckerLoop runs HeartbeatTimeChecker on an infinite loop
 func (n *NodeAgentManager) runHeartbeatTimeCheckerLoop() {
-	n.firstHeartbeatTimeout = ParseInt64FromEnv("FIRST_HEARTBEAT_TIMEOUT", 60000)
-	n.heartbeatTimeout = ParseInt64FromEnv("HEARTBEAT_TIMEOUT", 5000)
 	go func() {
 		for {
 			n.HeartbeatTimeChecker()
