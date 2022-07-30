@@ -41,8 +41,6 @@ After this, you can install Thundernetes using the install files "with monitorin
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator_with_monitoring.yaml
 ```
 
-**__NOTE
-
 ## Check the data in Prometheus and Grafana
 
 To test this, you can install the netcore Game Server Build sample, this is a basic application that uses GSDK to send information to Thundernetes. You should also allocate a server so you can see the data.
