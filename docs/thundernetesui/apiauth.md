@@ -13,7 +13,7 @@ Kubernetes allows you to secure the Thundernetes' GameServer API [using an Ingre
 
 The idea is to use a proxy between the UI and Thunernetes' API, so the UI makes the requests to the proxy, and the proxy to the Thundernetes clusters, this way the credential can be stored in the proxy without them being exposed through the browser. You can also use a single proxy for multiple clusters, using Nginx to act as a reverse proxy.
 
-![Graphic describing the architecture of Thundernetes UI using a proxy](./images/thundernetes_ui_proxy.png "Graphic describing the architecture of Thundernetes UI using a proxy")
+![Graphic describing the architecture of Thundernetes UI using a proxy](../assets/images/thundernetes_ui_proxy.png "Graphic describing the architecture of Thundernetes UI using a proxy")
 
 ## How to configure your own proxy with mTLS
 
