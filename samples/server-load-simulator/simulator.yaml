@@ -17,7 +17,7 @@ spec:
       - args:
         - "-maxValue=100"
         - "-jitter=0.15"
-        image: ghcr.io/playfab/thundernetes-server-load-simulator:0.5
+        image: ghcr.io/playfab/thundernetes-server-load-simulator:0.5.0
         imagePullPolicy: IfNotPresent        
         name: simulator
         ports:
