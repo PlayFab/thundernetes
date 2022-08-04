@@ -92,7 +92,7 @@ The follow list is only the tools related to building & developing the code for 
 
 Thundernetes follows a standard GitHub pull request workflow.
 If you're unfamiliar with this workflow, read the very helpful
-[Understanding the GitHub flow](https://guides.github.com/introduction/flow/) guide from GitHub.
+[Understanding the GitHub flow](https://docs.github.com/en/get-started/quickstart/github-flow) guide from GitHub.
 
 Anyone is welcome to create draft PRs at any stage of development/readiness.
 This can be very helpful, when asking for assistance, to refer to an active PR.

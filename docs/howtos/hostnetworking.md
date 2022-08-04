@@ -7,7 +7,7 @@ nav_order: 7
 
 # Host Networking
 
-Thundernetes supports running your GameServer Pods with host networking. In Kubernetes, enabling host networking will allow your Pods to use the host's (Node) network namespace and IP address. To register your game server Pods to use host networking, you need to provide a GameServerBuild YAML like [this](http://github.com/playfab/thundernetes/tree/main/samples/netcore/sample-hostnetwork.yaml), setting the `hostNetwork` value to true on PodSpec template. During Pod creation, Thundernetes controllers will **override** the containerPort with the value that will be assigned for the hostPort. 
+Thundernetes supports running your GameServer Pods with host networking. In Kubernetes, enabling host networking will allow your Pods to use the host's (Node) network namespace and IP address. To register your game server Pods to use host networking, you need to provide a GameServerBuild YAML like [this](https://github.com/playfab/thundernetes/tree/main/samples/netcore/sample-hostnetwork.yaml), setting the `hostNetwork` value to true on PodSpec template. During Pod creation, Thundernetes controllers will **override** the containerPort with the value that will be assigned for the hostPort. 
 
 You **have to** use the generated port when you instantiate your game server process. This is necessary since all the Pods will use the same network namespace and we want to prevent any port collisions from happening.
 
