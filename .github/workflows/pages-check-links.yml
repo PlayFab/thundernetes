@@ -4,9 +4,6 @@ name: pages-check-links
 on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-  push:
-    branches:
-      - "dead-links-check"
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -33,8 +30,9 @@ jobs:
           bundle install
       
       - name: Build jekyll website with drafts
-        run: cd docs/ && bundle exec jekyll build --drafts
+        run: |
+          cd docs/
+          bundle exec jekyll build --drafts
         
       - name: Check for broken links
-        run: |
-          bundle exec htmlproofer --log-level :debug ./_site --swap-urls '^/thundernetes/:/' --ignore-status-code 403
+        run: bundle exec htmlproofer --log-level :debug ./_site --swap-urls '^/thundernetes/:/' --ignore-status-code 403
