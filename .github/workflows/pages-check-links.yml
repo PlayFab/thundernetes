@@ -24,15 +24,14 @@ jobs:
       
       - name: Setup Rubygems, Bundler, jekyll
         run: | 
+          cd docs/
           gem update --system --no-document
           gem update bundler --no-document
           gem install jekyll bundler
           bundle install
       
       - name: Build jekyll website with drafts
-        run: |
-          cd docs/
-          bundle exec jekyll build --drafts
+        run: bundle exec jekyll build --drafts
         
       - name: Check for broken links
         run: bundle exec htmlproofer --log-level :debug ./_site --swap-urls '^/thundernetes/:/' --ignore-status-code 403
