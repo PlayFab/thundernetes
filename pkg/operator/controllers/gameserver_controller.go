@@ -50,10 +50,12 @@ const finalizerName string = "gameservers.mps.playfab.com/finalizer"
 // GameServerReconciler reconciles a GameServer object
 type GameServerReconciler struct {
 	client.Client
-	Scheme                 *k8sruntime.Scheme
-	Recorder               record.EventRecorder
-	PortRegistry           *PortRegistry
-	GetNodeDetailsProvider func(ctx context.Context, r client.Reader, nodeName string) (string, string, int, error) // we abstract this for testing purposes
+	Scheme                  *k8sruntime.Scheme
+	Recorder                record.EventRecorder
+	PortRegistry            *PortRegistry
+	InitContainerImageLinux string
+	InitContainerImageWin   string
+	GetNodeDetailsProvider  func(ctx context.Context, r client.Reader, nodeName string) (string, string, int, error) // we abstract this for testing purposes
 }
 
 // we request secret RBAC access here so they can be potentially used by the allocation API service (for GameServer allocations)
@@ -145,8 +147,8 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if !podFoundInCache {
 		log.Info("Creating a new pod for GameServer", GameServerKind, gs.Name)
-
-		newPod := NewPodForGameServer(&gs)
+		log.Info("lala", "init1", r.InitContainerImageLinux, "init2", r.InitContainerImageWin)
+		newPod := NewPodForGameServer(&gs, r.InitContainerImageLinux, r.InitContainerImageWin)
 		if err := r.Create(ctx, newPod); err != nil {
 			return ctrl.Result{}, err
 		}

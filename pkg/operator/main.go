@@ -137,12 +137,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	initContainerImageLinux, initContainerImageWin := controllers.GetInitContainerImages(setupLog)
+
 	if err = (&controllers.GameServerReconciler{
-		Client:                 mgr.GetClient(),
-		Scheme:                 mgr.GetScheme(),
-		PortRegistry:           portRegistry,
-		Recorder:               mgr.GetEventRecorderFor("GameServer"),
-		GetNodeDetailsProvider: controllers.GetNodeDetails,
+		Client:                  mgr.GetClient(),
+		Scheme:                  mgr.GetScheme(),
+		PortRegistry:            portRegistry,
+		Recorder:                mgr.GetEventRecorderFor("GameServer"),
+		GetNodeDetailsProvider:  controllers.GetNodeDetails,
+		InitContainerImageLinux: initContainerImageLinux,
+		InitContainerImageWin:   initContainerImageWin,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GameServer")
 		os.Exit(1)

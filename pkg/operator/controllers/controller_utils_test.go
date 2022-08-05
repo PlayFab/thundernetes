@@ -150,11 +150,12 @@ var _ = Describe("Utilities tests", func() {
 					Name: "test-pod",
 				},
 			}
-			attachInitContainer(gs, pod, false)
+			var testInitContainerImage string = "testInitContainerImage"
+			attachInitContainer(gs, pod, testInitContainerImage, false)
 			Expect(pod.Spec.InitContainers[len(pod.Spec.InitContainers)-1]).To(BeEquivalentTo(corev1.Container{
 				Name:            InitContainerName,
 				ImagePullPolicy: corev1.PullIfNotPresent,
-				Image:           InitContainerImage,
+				Image:           testInitContainerImage,
 				Env:             getInitContainerEnvVariables(gs, false),
 				VolumeMounts: []corev1.VolumeMount{
 					{

@@ -56,7 +56,8 @@ func TestController(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+	z := zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
+	logf.SetLogger(z)
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -90,6 +91,10 @@ var _ = BeforeSuite(func() {
 	err = portRegistry.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
+	initContainerImageLinux, initContainerImageWin := GetInitContainerImages(z)
+	Expect(initContainerImageLinux).ToNot(BeEmpty())
+	Expect(initContainerImageWin).ToNot(BeEmpty())
+
 	err = (&GameServerBuildReconciler{
 		Client:       k8sManager.GetClient(),
 		Scheme:       k8sManager.GetScheme(),
@@ -99,10 +104,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&GameServerReconciler{
-		Client:       k8sManager.GetClient(),
-		Scheme:       k8sManager.GetScheme(),
-		PortRegistry: portRegistry,
-		Recorder:     k8sManager.GetEventRecorderFor("GameServerReconciler"),
+		Client:                  k8sManager.GetClient(),
+		Scheme:                  k8sManager.GetScheme(),
+		PortRegistry:            portRegistry,
+		InitContainerImageLinux: initContainerImageLinux,
+		InitContainerImageWin:   initContainerImageWin,
+		Recorder:                k8sManager.GetEventRecorderFor("GameServerReconciler"),
 		GetNodeDetailsProvider: func(_ context.Context, _ client.Reader, _ string) (string, string, int, error) {
 			return "testNodeName", "testPublicIP", 0, nil
 		},

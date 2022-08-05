@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,22 +52,8 @@ const (
 	LabelGameServerNode string = "mps.playfab.com/gameservernode"
 )
 
-var InitContainerImage string
-var InitContainerImageWin string
-
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano()) //randomize name creation
-
-	InitContainerImage = os.Getenv("THUNDERNETES_INIT_CONTAINER_IMAGE")
-	if InitContainerImage == "" {
-		log.Log.Error(errors.New("THUNDERNETES_INIT_CONTAINER_IMAGE is not set, setting to a mock value"), "")
-		InitContainerImage = "testInitContainerImage"
-	}
-	InitContainerImageWin = os.Getenv("THUNDERNETES_INIT_CONTAINER_IMAGE_WIN")
-	if InitContainerImageWin == "" {
-		log.Log.Error(errors.New("THUNDERNETES_INIT_CONTAINER_IMAGE_WIN is not set, setting to a mock value"), "")
-		InitContainerImageWin = "testInitContainerImageWin"
-	}
 }
 
 // generateName generates a random string concatenated with prefix and a dash
@@ -161,7 +148,7 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 // NewPodForGameServer returns a Kubernetes Pod struct for a specified GameServer
 // Pod has the same name as the GameServer
 // It also sets a label called "GameServer" with the value of the corresponding GameServer resource
-func NewPodForGameServer(gs *mpsv1alpha1.GameServer) *corev1.Pod {
+func NewPodForGameServer(gs *mpsv1alpha1.GameServer, initContainerImageLinux, initContainerImageWin string) *corev1.Pod {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      gs.Name, // same Name as the GameServer
@@ -203,7 +190,12 @@ func NewPodForGameServer(gs *mpsv1alpha1.GameServer) *corev1.Pod {
 		attachDataVolumeOnContainer(&pod.Spec.Containers[i], isWindows)
 		pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, getGameServerEnvVariables(gs, isWindows)...)
 	}
-	attachInitContainer(gs, pod, isWindows)
+
+	var initContainerImage string = initContainerImageLinux
+	if isWindows {
+		initContainerImage = initContainerImageWin
+	}
+	attachInitContainer(gs, pod, initContainerImage, isWindows)
 
 	return pod
 }
@@ -214,12 +206,10 @@ func setPodRestartPolicyToNever(pod *corev1.Pod) {
 }
 
 // attachInitContainer attaches the init container to the GameServer Pod
-func attachInitContainer(gs *mpsv1alpha1.GameServer, pod *corev1.Pod, isWindows bool) {
+func attachInitContainer(gs *mpsv1alpha1.GameServer, pod *corev1.Pod, initContainerImage string, isWindows bool) {
 	dataVolumeMountPath := DataVolumeMountPath
-	initContainerImage := InitContainerImage
 	if isWindows {
 		dataVolumeMountPath = DataVolumeMountPathWin
-		initContainerImage = InitContainerImageWin
 	}
 	initcontainer := corev1.Container{
 		Name:            InitContainerName,
@@ -468,4 +458,20 @@ func getValueByState(gs *mpsv1alpha1.GameServer) int {
 	default:
 		return 3
 	}
+}
+
+// GetInitContainerImages returns the init container images from the environment variables
+func GetInitContainerImages(l logr.Logger) (string, string) {
+	initContainerImageLinux := os.Getenv("THUNDERNETES_INIT_CONTAINER_IMAGE")
+	if initContainerImageLinux == "" {
+		l.Error(errors.New("THUNDERNETES_INIT_CONTAINER_IMAGE is not set, setting to a mock value"), "")
+		initContainerImageLinux = "testInitContainerImage"
+	}
+	initContainerImageWin := os.Getenv("THUNDERNETES_INIT_CONTAINER_IMAGE_WIN")
+	if initContainerImageWin == "" {
+		l.Error(errors.New("THUNDERNETES_INIT_CONTAINER_IMAGE_WIN is not set, setting to a mock value"), "")
+		initContainerImageWin = "testInitContainerImageWin"
+	}
+	l.Info("init container images", "linux", initContainerImageLinux, "win", initContainerImageWin)
+	return initContainerImageLinux, initContainerImageWin
 }

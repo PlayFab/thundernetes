@@ -17,6 +17,16 @@ This command will run the e2e tests locally, and it won't delete the cluster aft
 make clean deletekindcluster builddockerlocal createkindcluster e2elocal
 ```
 
+## Run the controller unit tests locally
+
+To tun the controller unit tests locally, you should go to the `pkg/operator` directory and run the following command:
+
+```bash
+make test
+```
+
+Make sure to not run them while kind cluster is up, since there will be port collisions and the tests will fail.
+
 ### Running end to end tests on macOS
 
 First of all, end to end tests require `envsubst` utility, assuming that you have Homebrew installed you can get it via `brew install gettext && brew link --force gettext`.
