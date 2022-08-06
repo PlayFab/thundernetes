@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI
+name: End to end tests
 
 # Controls when the workflow will run
 on:
@@ -33,33 +33,6 @@ jobs:
         with:
           # The Go version to download (if necessary) and use. Supports semver spec and ranges.
           go-version: 1.18.x
-      - name: check if Go utils need to be executed
-        run: |
-          go fmt ./...
-          go vet ./...
-          go mod tidy
-          if ! [ -z "$(git status --porcelain)" ]; then
-            echo "go utils need to be executed"
-            exit 1
-          fi
-      - name: check if install files are modified
-        run: |
-          make -C pkg/operator kustomize
-          make create-install-files
-          if ! [ -z "$(git status --porcelain)" ]; then
-            echo "install files are modified"
-            exit 1
-          fi
-      - name: GameServer API service unit tests
-        run: cd cmd/gameserverapi && GIN_MODE=release go test -race
-      - name: initcontainer unit tests
-        run: cd cmd/initcontainer && go test -race
-      - name: nodeagent unit tests
-        run: cd cmd/nodeagent && go test -race
-      - name: latency server server unit tests
-        run: cd cmd/latencyserver && go test -race
-      - name: operator unit tests
-        run: IMAGE_NAME_SAMPLE=thundernetes-netcore IMAGE_NAME_INIT_CONTAINER=thundernetes-initcontainer TAG=$(git rev-list HEAD --max-count=1 --abbrev-commit) make -C pkg/operator test
       - name: build Docker images
         run: make builddockerlocal
       - name: install kind binaries

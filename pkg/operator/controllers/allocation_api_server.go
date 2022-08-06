@@ -137,6 +137,7 @@ func (s *AllocationApiServer) Start(ctx context.Context) error {
 }
 
 // setupIndexers sets up the necessary indexers for the GameServer objects
+// specifically, these indexers will allow us to get gameservers by status.sessionID and by spec.BuildID
 func (s *AllocationApiServer) setupIndexers(mgr ctrl.Manager) error {
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &mpsv1alpha1.GameServer{}, statusSessionId, func(rawObj client.Object) []string {
 		gs := rawObj.(*mpsv1alpha1.GameServer)
@@ -155,7 +156,7 @@ func (s *AllocationApiServer) setupIndexers(mgr ctrl.Manager) error {
 	return nil
 }
 
-// SetupWithManager sets up the allocation api controller with the manager
+// SetupWithManager sets up the allocation API controller with the manager
 func (s *AllocationApiServer) SetupWithManager(mgr ctrl.Manager) error {
 	err := s.setupIndexers(mgr)
 	if err != nil {
@@ -180,11 +181,11 @@ func (s *AllocationApiServer) Reconcile(ctx context.Context, req ctrl.Request) (
 	var gs mpsv1alpha1.GameServer
 	if err := s.Client.Get(ctx, req.NamespacedName, &gs); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("Unable to fetch GameServer, it was deleted - deleting from queue")
+			log.Info("Unable to fetch GameServer, it was deleted - deleting from queue", "namespace", req.Namespace, "name", req.Name)
 			s.gameServerQueue.RemoveFromQueue(req.Namespace, req.Name)
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "unable to fetch GameServer")
+		log.Error(err, "unable to fetch GameServer", "namespace", req.Namespace, "name", req.Name)
 		return ctrl.Result{}, err
 	}
 	// we only put a GameServer to the queue if it has reached the StandingBy state
@@ -239,14 +240,13 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			notFoundError(w, s.logger, err, "not found")
-			return
 		} else {
 			internalServerError(w, s.logger, err, "error listing")
-			return
 		}
+		return
 	}
 	if len(gameServerBuilds.Items) == 0 {
-		notFoundError(w, s.logger, errors.New("build not found"), fmt.Sprintf("Build with ID %s not found", args.BuildID))
+		notFoundError(w, s.logger, errors.New("GameServerBuild not found"), fmt.Sprintf("GameServerBuild with ID %s not found", args.BuildID))
 		return
 	}
 
@@ -283,7 +283,7 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 	// allocation using the heap
 	for i := 0; i < allocationTries; i++ {
 		if i > 0 {
-			s.logger.Info("allocation retrying", "buildID", args.BuildID, "retry count", i, "sessionID", args.SessionID)
+			s.logger.Info("retrying allocation", "buildID", args.BuildID, "retry count", i, "sessionID", args.SessionID)
 		}
 		gs := s.gameServerQueue.PopFromQueue(args.BuildID)
 		if gs == nil {
@@ -315,11 +315,11 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 		err = s.Client.Status().Patch(ctx, &gs2, patch)
 		if err != nil {
 			if apierrors.IsConflict(err) {
-				s.logger.Info("error conflict patching game server", "error", err, "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
+				s.logger.Info("conflict error patching game server", "error", err, "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
 			} else if apierrors.IsNotFound(err) {
 				s.logger.Info("error not found patching game server", "error", err, "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
 			} else {
-				s.logger.Error(err, "error patching game server", "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
+				s.logger.Error(err, "uknown error patching game server", "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
 			}
 			// in case of any error, trigger a reconciliation for this GameServer object
 			// so it's re-added to the queue
@@ -349,7 +349,7 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 	// if we reach this point, it means that we have tried multiple times and failed
 	// we return the last error, if possible
 	if err == nil {
-		err = errors.New("unknown error")
+		err = errors.New("unknown error, exceeded the maximum number of retries")
 	}
 	s.logger.Info("Error allocating", "sessionID", args.SessionID, "buildID", args.BuildID, "error", err)
 	internalServerError(w, s.logger, err, "error allocating")

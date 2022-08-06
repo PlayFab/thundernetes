@@ -31,17 +31,20 @@ const (
 
 	LabelBuildID          = "BuildID"
 	LabelBuildName        = "BuildName"
-	LabelOwningGameServer = "OwningGameServer"
-	LabelOwningOperator   = "OwningOperator"
+	LabelOwningGameServer = "mps.playfab.com/OwningGameServer"
+	LabelOwningOperator   = "mps.playfab.com/OwningOperator"
 	LabelNodeName         = "NodeName"
 
-	GsdkConfigFile                = DataVolumeMountPath + "/Config/gsdkConfig.json"
-	LogDirectory                  = DataVolumeMountPath + "/GameLogs/"
-	CertificatesDirectory         = DataVolumeMountPath + "/GameCertificates"
+	GsdkConfigFile    = DataVolumeMountPath + "/Config/gsdkConfig.json"
+	GsdkConfigFileWin = DataVolumeMountPathWin + "\\Config\\gsdkConfig.json"
+
+	LogDirectory    = DataVolumeMountPath + "/GameLogs/"
+	LogDirectoryWin = DataVolumeMountPathWin + "\\GameLogs\\"
+
+	CertificatesDirectory    = DataVolumeMountPath + "/GameCertificates"
+	CertificatesDirectoryWin = DataVolumeMountPathWin + "\\GameCertificates"
+
 	GameSharedContentDirectory    = DataVolumeMountPath + "/GameSharedContent"
-	GsdkConfigFileWin             = DataVolumeMountPathWin + "\\Config\\gsdkConfig.json"
-	LogDirectoryWin               = DataVolumeMountPathWin + "\\GameLogs\\"
-	CertificatesDirectoryWin      = DataVolumeMountPathWin + "\\GameCertificates"
 	GameSharedContentDirectoryWin = DataVolumeMountPathWin + "\\GameSharedContent"
 
 	DaemonSetPort int32 = 56001
