@@ -86,6 +86,9 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
+	// get init container images from environment variables
+	initContainerImageLinux, initContainerImageWin := controllers.GetInitContainerImages(setupLog)
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -99,24 +102,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// initialize a live API client, used for the PortRegistry
+	// initialize a live API client, used for the PortRegistry and fetching the mTLS secret
 	k8sClient := mgr.GetAPIReader()
-
-	var crt, key []byte
-	apiServiceSecurity := os.Getenv("API_SERVICE_SECURITY")
-
-	if apiServiceSecurity == "usetls" {
-		namespace := os.Getenv("TLS_SECRET_NAMESPACE")
-		if namespace == "" {
-			setupLog.Error(err, "unable to get TLS_SECRET_NAMESPACE env variable")
-			os.Exit(1)
-		}
-		crt, key, err = getTlsSecret(k8sClient, namespace)
-		if err != nil {
-			setupLog.Error(err, "unable to get TLS secret")
-			os.Exit(1)
-		}
-	}
+	// get public and privage key, if enabled
+	crt, key := getCrtKeyIfTlsEnabled(k8sClient)
 
 	// initialize the allocation API service, which is also a controller. So we add it to the manager
 	aas := controllers.NewAllocationApiServer(crt, key, mgr.GetClient())
@@ -137,8 +126,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	initContainerImageLinux, initContainerImageWin := controllers.GetInitContainerImages(setupLog)
-
+	// initialize the GameServer controller
 	if err = (&controllers.GameServerReconciler{
 		Client:                  mgr.GetClient(),
 		Scheme:                  mgr.GetScheme(),
@@ -151,6 +139,8 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "GameServer")
 		os.Exit(1)
 	}
+
+	// initialize the GameServerBuild controller
 	if err = (&controllers.GameServerBuildReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
@@ -161,10 +151,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// initialize webhook for GameServerBuild validation
 	if err = (&mpsv1alpha1.GameServerBuild{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "GameServerBuild")
 		os.Exit(1)
 	}
+	// initialize webhook for GameServer validation
 	if err = (&mpsv1alpha1.GameServer{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "GameServer")
 		os.Exit(1)
@@ -302,6 +294,29 @@ func getLogLevel() zapcore.LevelEnabler {
 	default:
 		return zapcore.InfoLevel
 	}
+}
+
+// getCrtKeyIfTlsEnabled returns public and private key components for securing the allocation API service with mTLS
+// for this to happen, user has to set "API_SERVICE_SECURITY" env as "usetls" and set the env "TLS_SECRET_NAMESPACE" with the namespace
+// that contains the Kubernetes Secret with the cert
+// if any of the mentioned conditions are not set, method returns nil
+func getCrtKeyIfTlsEnabled(c client.Reader) ([]byte, []byte) {
+	apiServiceSecurity := os.Getenv("API_SERVICE_SECURITY")
+
+	if apiServiceSecurity == "usetls" {
+		namespace := os.Getenv("TLS_SECRET_NAMESPACE")
+		if namespace == "" {
+			setupLog.Error(errors.New("unable to get TLS_SECRET_NAMESPACE env variable"), "mTLS is enabled, but TLS_SECRET_NAMESPACE is not set")
+			os.Exit(1)
+		}
+		crt, key, err := getTlsSecret(c, namespace)
+		if err != nil {
+			setupLog.Error(err, "unable to get TLS secret")
+			os.Exit(1)
+		}
+		return crt, key
+	}
+	return nil, nil
 }
 
 func useExclusivelyGameServerNodesForPortRegistry() bool {
