@@ -115,9 +115,9 @@ func main() {
 // parseBuildMetadata parses the build metadata from the corresponding environment variable
 func parseBuildMetadata() map[string]string {
 	buildMetadata := make(map[string]string)
-	if os.Getenv("PF_GAMESERVER_BUILD_METADATA") != "" {
-		metadata := os.Getenv("PF_GAMESERVER_BUILD_METADATA")
-		s := strings.Split(metadata, "?")
+	envMetadata := os.Getenv("PF_GAMESERVER_BUILD_METADATA")
+	if envMetadata != "" {
+		s := strings.Split(envMetadata, "?")
 		for _, s2 := range s {
 			if s2 == "" {
 				continue

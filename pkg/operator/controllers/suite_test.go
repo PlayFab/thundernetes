@@ -91,7 +91,7 @@ var _ = BeforeSuite(func() {
 	err = portRegistry.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	initContainerImageLinux, initContainerImageWin := GetInitContainerImages(z)
+	initContainerImageLinux, initContainerImageWin := "testImageLinux", "testImageWin"
 	Expect(initContainerImageLinux).ToNot(BeEmpty())
 	Expect(initContainerImageWin).ToNot(BeEmpty())
 
