@@ -505,7 +505,7 @@ func verifyGameServerDetail(ctx context.Context, kubeClient client.Client, gameS
 		return fmt.Errorf("expected %d connected players, got %d", expectedConnectedPlayersCount, gameServerDetail.Spec.ConnectedPlayersCount)
 	}
 	if len(gameServerDetail.Spec.ConnectedPlayers) != len(expectedConnectedPlayers) {
-		return fmt.Errorf("expected %d connected players, got %d", len(expectedConnectedPlayers), len(gameServerDetail.Spec.ConnectedPlayers))
+		return fmt.Errorf("expected %d connected players' IDs, got %d", len(expectedConnectedPlayers), len(gameServerDetail.Spec.ConnectedPlayers))
 	}
 
 	for i := 0; i < len(gameServerDetail.Spec.ConnectedPlayers); i++ {

@@ -91,29 +91,18 @@ var _ = BeforeSuite(func() {
 	err = portRegistry.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	initContainerImageLinux, initContainerImageWin := "testImageLinux", "testImageWin"
-	Expect(initContainerImageLinux).ToNot(BeEmpty())
-	Expect(initContainerImageWin).ToNot(BeEmpty())
-
-	err = (&GameServerBuildReconciler{
-		Client:       k8sManager.GetClient(),
-		Scheme:       k8sManager.GetScheme(),
-		PortRegistry: portRegistry,
-		Recorder:     k8sManager.GetEventRecorderFor("GameServerBuildReconciler"),
-	}).SetupWithManager(k8sManager)
+	err = (NewGameServerBuildReconciler(k8sManager, portRegistry)).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&GameServerReconciler{
-		Client:                  k8sManager.GetClient(),
-		Scheme:                  k8sManager.GetScheme(),
-		PortRegistry:            portRegistry,
-		InitContainerImageLinux: initContainerImageLinux,
-		InitContainerImageWin:   initContainerImageWin,
-		Recorder:                k8sManager.GetEventRecorderFor("GameServerReconciler"),
-		GetNodeDetailsProvider: func(_ context.Context, _ client.Reader, _ string) (string, string, int, error) {
+	initContainerImageLinux, initContainerImageWin := "testImageLinux", "testImageWin"
+	err = NewGameServerReconciler(
+		k8sManager,
+		portRegistry,
+		func(_ context.Context, _ client.Reader, _ string) (string, string, int, error) {
 			return "testNodeName", "testPublicIP", 0, nil
 		},
-	}).SetupWithManager(k8sManager)
+		initContainerImageLinux,
+		initContainerImageWin).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	// allocation api service is a controller, so add it to the manager

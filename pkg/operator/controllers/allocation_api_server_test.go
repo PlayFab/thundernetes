@@ -15,15 +15,15 @@ import (
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 )
 
-const (
-	buildName1     string = "testbuild"
-	buildNamespace string = "default"
-	buildID1       string = "acb84898-cf73-46e2-8057-314ac557d85d"
-	sessionID1     string = "d5f075a4-517b-4bf4-8123-dfa0021aa169"
-	gsName         string = "testgs"
-)
-
 var _ = Describe("allocation API service input validation tests", func() {
+	const (
+		buildName1     string = "testbuild"
+		buildNamespace string = "default"
+		buildID1       string = "acb84898-cf73-46e2-8057-314ac557d85d"
+		sessionID1     string = "d5f075a4-517b-4bf4-8123-dfa0021aa169"
+		gsName         string = "testgs"
+	)
+
 	It("empty body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", nil)
 		w := httptest.NewRecorder()
@@ -121,6 +121,14 @@ var _ = Describe("allocation API service input validation tests", func() {
 
 var _ = Describe("allocation API service queue tests", func() {
 	ctx := context.Background()
+	const (
+		buildName1     string = "testbuild"
+		buildNamespace string = "default"
+		buildID1       string = "acb84898-cf73-46e2-8057-314ac557d85d"
+		sessionID1     string = "d5f075a4-517b-4bf4-8123-dfa0021aa169"
+		gsName         string = "testgs"
+	)
+
 	It("should update queue properly during allocations", func() {
 		// create a GameServerBuild with 2 standingBy servers
 		gsb := testGenerateGameServerBuild(buildName1, buildNamespace, buildID1, 2, 4, false)

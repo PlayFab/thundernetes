@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 )
@@ -58,8 +59,23 @@ type GameServerReconciler struct {
 	GetNodeDetailsProvider  func(ctx context.Context, r client.Reader, nodeName string) (string, string, int, error) // we abstract this for testing purposes
 }
 
-// we request secret RBAC access here so they can be potentially used by the allocation API service (for GameServer allocations)
+func NewGameServerReconciler(mgr manager.Manager,
+	portRegistry *PortRegistry,
+	getNodeDetailsProvider func(ctx context.Context, r client.Reader, nodeName string) (string, string, int, error),
+	initContainerImageLinux string,
+	initContainerImageWin string) *GameServerReconciler {
+	return &GameServerReconciler{
+		Client:                  mgr.GetClient(),
+		Scheme:                  mgr.GetScheme(),
+		PortRegistry:            portRegistry,
+		Recorder:                mgr.GetEventRecorderFor("GameServer"),
+		GetNodeDetailsProvider:  getNodeDetailsProvider,
+		InitContainerImageLinux: initContainerImageLinux,
+		InitContainerImageWin:   initContainerImageWin,
+	}
+}
 
+// we request secret RBAC access here so they can be potentially used by the allocation API service (for GameServer allocations)
 // the gameserverapi uses the same manager role, so we need to add get, list and watch for gameserverdetails
 
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers,verbs=get;list;watch;create;update;patch;delete

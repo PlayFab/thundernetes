@@ -14,7 +14,7 @@ const (
 	ExpandENVParam  = "config-expand-env"
 )
 
-// Parses the configFile and expandENV params via separate flag set as these
+// ParseConfigFileAndEnvParams parses the configFile and expandENV params via separate flag set as these
 // parameters need to be processed in order to load the config file
 // AND THEN process any remaining CLI params to override values.
 func ParseConfigFileAndEnvParams(args []string) (string, bool) {
@@ -36,7 +36,7 @@ func ParseConfigFileAndEnvParams(args []string) (string, bool) {
 	return configFile, expandENV
 }
 
-// Replaces ${var} or $var to the values of the current environment variables.
+// ExpandEnvInConfigFile replaces ${var} or $var to the values of the current environment variables.
 // Default values can be specified with ${var:default} format
 func ExpandEnvInConfigFile(config []byte) []byte {
 	return []byte(os.Expand(string(config), func(envName string) string {

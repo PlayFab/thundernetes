@@ -29,36 +29,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
-
-// We have observed cases in which the controller creates more GameServers than necessary for a GameServerBuild
-// This is because e.g. on the first reconcile call, the controller sees that we have 0 GameServers and it starts to create some
-// On the subsequent reconcile, the cache might have not been updated yet, so we'll still see 0 GameServers (or less than asked) and create more,
-// so eventually we'll end up with more GameServers than requested
-// The controller code will eventually delete the extra GameServers, but we can improve this process.
-// The solution is to create a synchronized map to track which objects were just created
-// (synchronized since it might be accessed by multiple reconciliation goroutines - one for each GameServerBuild)
-// In this map, the key is the name of the GameServerBuild
-// The value is a struct with map[string]interface{} and a mutex
-// The map acts like a set which contains the name of the GameServer for all the GameServers under creation
-// (We use map[string]interface{} instead of a []string to facilitate constant time lookups for GameServer names)
-// On every reconcile loop, we check if all the GameServers for this GameServerBuild are present in cache
-// If they are, we remove the GameServerBuild entry from the gameServersUnderCreation map
-// If at least one of them is not in the cache, this means that the cache has not been fully updated yet
-// so we will exit the current reconcile loop, as GameServers are created the controller will reconcile again
-var gameServersUnderCreation = sync.Map{}
-
-// Similar logic to gameServersUnderCreation, but this time regarding deletion of game servers
-// On every reconcile loop, we check if all the GameServers under deletion for this GameServerBuild have been removed from cache
-// If even one of them exists in cache, we exit the reconcile loop
-// In a subsequent loop, cache will be updated
-var gameServersUnderDeletion = sync.Map{}
 
 // a map to hold the number of crashes per Build
 // concurrent since the reconcile loop can be called multiple times for different GameServerBuilds
@@ -87,6 +64,7 @@ type GameServerBuildReconciler struct {
 	Scheme       *k8sruntime.Scheme
 	PortRegistry *PortRegistry
 	Recorder     record.EventRecorder
+	expectations *GameServerExpectations
 }
 
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverbuilds,verbs=get;list;watch;create;update;patch;delete
@@ -95,6 +73,17 @@ type GameServerBuildReconciler struct {
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers,verbs=get;list;watch
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/status,verbs=get
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+
+func NewGameServerBuildReconciler(mgr manager.Manager, portRegistry *PortRegistry) *GameServerBuildReconciler {
+	cl := mgr.GetClient()
+	return &GameServerBuildReconciler{
+		Client:       cl,
+		Scheme:       mgr.GetScheme(),
+		PortRegistry: portRegistry,
+		Recorder:     mgr.GetEventRecorderFor("GameServerBuild"),
+		expectations: NewGameServerExpectations(cl),
+	}
+}
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -125,7 +114,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 
-	deletionsCompleted, err := r.gameServersUnderDeletionWereDeleted(ctx, &gsb)
+	deletionsCompleted, err := r.expectations.gameServersUnderDeletionWereDeleted(ctx, &gsb)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -133,7 +122,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 
-	creationsCompleted, err := r.gameServersUnderCreationWereCreated(ctx, &gsb)
+	creationsCompleted, err := r.expectations.gameServersUnderCreationWereCreated(ctx, &gsb)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -167,7 +156,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				return ctrl.Result{}, err
 			}
 			GameServersSessionEndedCounter.WithLabelValues(gsb.Name).Inc()
-			addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
+			r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Exited", "GameServer %s session completed", gs.Name)
 		} else if gs.Status.State == mpsv1alpha1.GameServerStateCrashed {
 			// game server process exited with code != 0 (crashed)
@@ -176,7 +165,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				return ctrl.Result{}, err
 			}
 			GameServersCrashedCounter.WithLabelValues(gsb.Name).Inc()
-			addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
+			r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Unhealthy", "GameServer %s was deleted because it became unhealthy, state: %s, health: %s", gs.Name, gs.Status.State, gs.Status.Health)
 		} else if gs.Status.Health == mpsv1alpha1.GameServerUnhealthy {
 			// all cases where the game server was marked as Unhealthy
@@ -185,7 +174,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				return ctrl.Result{}, err
 			}
 			GameServersUnhealthyCounter.WithLabelValues(gsb.Name).Inc()
-			addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
+			r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Crashed", "GameServer %s was deleted because it crashed, state: %s, health: %s", gs.Name, gs.Status.State, gs.Status.Health)
 		}
 	}
@@ -234,7 +223,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				errCh <- err
 				return
 			}
-			addGameServerToUnderCreationMap(gsb.Name, newgs.Name)
+			r.expectations.addGameServerToUnderCreationMap(gsb.Name, newgs.Name)
 			GameServersCreatedCounter.WithLabelValues(gsb.Name).Inc()
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Creating", "Creating GameServer %s", newgs.Name)
 		}()
@@ -318,89 +307,6 @@ func (r *GameServerBuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// addGameServerToUnderDeletionMap adds the GameServer to the map of GameServers to be deleted for this GameServerBuild
-func addGameServerToUnderDeletionMap(gameServerBuildName, gameServerName string) {
-	val, _ := gameServersUnderDeletion.LoadOrStore(gameServerBuildName, &MutexMap{make(map[string]interface{}), sync.Mutex{}})
-	v := val.(*MutexMap)
-	v.mu.Lock()
-	v.data[gameServerName] = struct{}{}
-	v.mu.Unlock()
-}
-
-// addGameServerToUnderCreationMap adds a GameServer to the map of GameServers that are under creation for this GameServerBuild
-func addGameServerToUnderCreationMap(gameServerBuildName, gameServerName string) {
-	val, _ := gameServersUnderCreation.LoadOrStore(gameServerBuildName, &MutexMap{make(map[string]interface{}), sync.Mutex{}})
-	v := val.(*MutexMap)
-	v.mu.Lock()
-	v.data[gameServerName] = struct{}{}
-	v.mu.Unlock()
-}
-
-// gameServersUnderDeletionWereDeleted is a helper function that checks if all the GameServers in the map have been deleted from cache
-// returns true if all the GameServers have been deleted, false otherwise
-func (r *GameServerBuildReconciler) gameServersUnderDeletionWereDeleted(ctx context.Context, gsb *mpsv1alpha1.GameServerBuild) (bool, error) {
-	// if this gameServerBuild has GameServers under deletion
-	if val, exists := gameServersUnderDeletion.Load(gsb.Name); exists {
-		gameServersUnderDeletionForBuild := val.(*MutexMap)
-		// check all GameServers under deletion, if they exist in cache
-		gameServersUnderDeletionForBuild.mu.Lock()
-		defer gameServersUnderDeletionForBuild.mu.Unlock()
-		for k := range gameServersUnderDeletionForBuild.data {
-			var g mpsv1alpha1.GameServer
-			if err := r.Get(ctx, types.NamespacedName{Name: k, Namespace: gsb.Namespace}, &g); err != nil {
-				// if one does not exist in cache, this means that cache has been updated (with its deletion)
-				// so remove it from the map
-				if apierrors.IsNotFound(err) {
-					delete(gameServersUnderDeletionForBuild.data, k)
-					continue
-				}
-				return false, err
-			}
-		}
-
-		// all GameServers under deletion do not exist in cache
-		if len(gameServersUnderDeletionForBuild.data) == 0 {
-			// so it's safe to remove the GameServerBuild entry from the map
-			gameServersUnderDeletion.Delete(gsb.Name)
-			return true, nil
-		}
-		return false, nil
-	}
-	return true, nil
-}
-
-// gameServersUnderCreationWereCreated checks if all GameServers under creation exist in cache
-// returns true if all GameServers under creation exist in cache
-// false otherwise
-func (r *GameServerBuildReconciler) gameServersUnderCreationWereCreated(ctx context.Context, gsb *mpsv1alpha1.GameServerBuild) (bool, error) {
-	// if this GameServerBuild has GameServers under creation
-	if val, exists := gameServersUnderCreation.Load(gsb.Name); exists {
-		gameServersUnderCreationForBuild := val.(*MutexMap)
-		gameServersUnderCreationForBuild.mu.Lock()
-		defer gameServersUnderCreationForBuild.mu.Unlock()
-		for k := range gameServersUnderCreationForBuild.data {
-			var g mpsv1alpha1.GameServer
-			if err := r.Get(ctx, types.NamespacedName{Name: k, Namespace: gsb.Namespace}, &g); err != nil {
-				// this GameServer doesn't exist in cache, so return false
-				if apierrors.IsNotFound(err) {
-					return false, nil
-				}
-				return false, err
-			}
-			// GameServer exists in cache, so remove it from the map
-			delete(gameServersUnderCreationForBuild.data, k)
-		}
-		// all GameServers under creation do not exist in cache
-		if len(gameServersUnderCreationForBuild.data) == 0 {
-			// so it's safe to remove the GameServerBuild entry from the map
-			gameServersUnderCreation.Delete(gsb.Name)
-			return true, nil
-		}
-		return false, nil
-	}
-	return true, nil
-}
-
 // getKeyForCrashesPerBuildMap returns the key for the map of crashes per build
 // key is namespace/name
 func getKeyForCrashesPerBuildMap(gsb *mpsv1alpha1.GameServerBuild) string {
@@ -437,7 +343,7 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 					return
 				}
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
-				addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
+				r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 				r.Recorder.Eventf(gsb, corev1.EventTypeNormal, "GameServer deleted", "GameServer %s deleted", gs.Name)
 			}()
 		}

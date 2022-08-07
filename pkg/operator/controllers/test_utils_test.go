@@ -256,6 +256,7 @@ func testNewSimpleK8sClient() client.Client {
 
 // testCreateGameServerAndBuild creates a GameServer and GameServerBuild with the given name and ID.
 func testCreateGameServerAndBuild(client client.Client, gameServerName, buildName, buildID, sessionID string, state mpsv1alpha1.GameServerState) error {
+	buildNamespace := "default"
 	gsb := mpsv1alpha1.GameServerBuild{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      buildName,
