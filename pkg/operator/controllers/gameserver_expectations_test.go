@@ -35,7 +35,7 @@ var _ = Describe("expectations tests", func() {
 		Expect(ok).To(BeTrue())
 
 		// create a new GameServer and make sure it's added in the map
-		err = client.Create(context.TODO(), testGenerateGameServer(buildName, buildID, buildNamespace, gsName2))
+		err = client.Create(context.Background(), testGenerateGameServer(buildName, buildID, buildNamespace, gsName2))
 		Expect(err).ToNot(HaveOccurred())
 		e.addGameServerToUnderCreationMap(buildName, gsName2)
 		_, ok = mmCreations.data[gsName2]
@@ -43,12 +43,12 @@ var _ = Describe("expectations tests", func() {
 
 		// make sure create expectations have been satisfied
 		gsb := mpsv1alpha1.GameServerBuild{}
-		err = client.Get(context.TODO(), types.NamespacedName{
+		err = client.Get(context.Background(), types.NamespacedName{
 			Name:      buildName,
 			Namespace: buildNamespace,
 		}, &gsb)
 		Expect(err).To(Not(HaveOccurred()))
-		created, err := e.gameServersUnderCreationWereCreated(context.TODO(), &gsb)
+		created, err := e.gameServersUnderCreationWereCreated(context.Background(), &gsb)
 		Expect(err).To(Not(HaveOccurred()))
 		Expect(created).To(BeTrue())
 
@@ -58,7 +58,7 @@ var _ = Describe("expectations tests", func() {
 
 		// get and delete the second GameServer
 		gs := mpsv1alpha1.GameServer{}
-		err = client.Get(context.TODO(), types.NamespacedName{
+		err = client.Get(context.Background(), types.NamespacedName{
 			Name:      gsName2,
 			Namespace: buildNamespace,
 		}, &gs)
@@ -73,9 +73,9 @@ var _ = Describe("expectations tests", func() {
 		Expect(ok).To(BeTrue())
 
 		// delete it and make sure the deletion expectations are satisfied
-		err = client.Delete(context.TODO(), &gs)
+		err = client.Delete(context.Background(), &gs)
 		Expect(err).To(Not(HaveOccurred()))
-		deleted, err := e.gameServersUnderDeletionWereDeleted(context.TODO(), &gsb)
+		deleted, err := e.gameServersUnderDeletionWereDeleted(context.Background(), &gsb)
 		Expect(err).To(Not(HaveOccurred()))
 		Expect(deleted).To(BeTrue())
 

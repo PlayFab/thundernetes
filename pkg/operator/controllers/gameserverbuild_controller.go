@@ -67,13 +67,7 @@ type GameServerBuildReconciler struct {
 	expectations *GameServerExpectations
 }
 
-//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverbuilds,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverbuilds/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverbuilds/finalizers,verbs=update
-//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers,verbs=get;list;watch
-//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/status,verbs=get
-//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
-
+// NewGameServerBuildReconciler returns a pointer to a new GameServerBuildReconciler
 func NewGameServerBuildReconciler(mgr manager.Manager, portRegistry *PortRegistry) *GameServerBuildReconciler {
 	cl := mgr.GetClient()
 	return &GameServerBuildReconciler{
@@ -84,6 +78,13 @@ func NewGameServerBuildReconciler(mgr manager.Manager, portRegistry *PortRegistr
 		expectations: NewGameServerExpectations(cl),
 	}
 }
+
+//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverbuilds,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverbuilds/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverbuilds/finalizers,verbs=update
+//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers,verbs=get;list;watch
+//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/status,verbs=get
+//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

@@ -39,6 +39,15 @@ type GameServerExpectations struct {
 	client client.Reader
 }
 
+// NewGameServerExpectations returns a pointer to a new GameServerExpectations struct
+func NewGameServerExpectations(c client.Reader) *GameServerExpectations {
+	return &GameServerExpectations{
+		gameServersUnderCreation: sync.Map{},
+		gameServersUnderDeletion: sync.Map{},
+		client:                   c,
+	}
+}
+
 // addGameServerToUnderDeletionMap adds the GameServer to the map of GameServers to be deleted for this GameServerBuild
 func (g *GameServerExpectations) addGameServerToUnderDeletionMap(gameServerBuildName, gameServerName string) {
 	val, _ := g.gameServersUnderDeletion.LoadOrStore(gameServerBuildName, &MutexMap{make(map[string]interface{}), sync.Mutex{}})
@@ -120,13 +129,4 @@ func (g *GameServerExpectations) gameServersUnderCreationWereCreated(ctx context
 		return false, nil
 	}
 	return true, nil
-}
-
-// NewGameServerExpectations returns a pointer to a new GameServerExpectations struct
-func NewGameServerExpectations(c client.Reader) *GameServerExpectations {
-	return &GameServerExpectations{
-		gameServersUnderCreation: sync.Map{},
-		gameServersUnderDeletion: sync.Map{},
-		client:                   c,
-	}
 }

@@ -59,6 +59,7 @@ type GameServerReconciler struct {
 	GetNodeDetailsProvider  func(ctx context.Context, r client.Reader, nodeName string) (string, string, int, error) // we abstract this for testing purposes
 }
 
+// NewGameServerReconciler returns a pointer to a new GameServerReconciler
 func NewGameServerReconciler(mgr manager.Manager,
 	portRegistry *PortRegistry,
 	getNodeDetailsProvider func(ctx context.Context, r client.Reader, nodeName string) (string, string, int, error),
