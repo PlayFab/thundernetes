@@ -1,4 +1,5 @@
-[![CI](https://github.com/PlayFab/thundernetes/actions/workflows/main.yml/badge.svg)](https://github.com/PlayFab/thundernetes/actions/workflows/main.yml)
+[![e2e](https://github.com/PlayFab/thundernetes/actions/workflows/main.yml/badge.svg)](https://github.com/PlayFab/thundernetes/actions/workflows/e2e.yml)
+[![unit-tests](https://github.com/PlayFab/thundernetes/actions/workflows/main.yml/badge.svg)](https://github.com/PlayFab/thundernetes/actions/workflows/unit-tests.yml)
 [![Software License](https://img.shields.io/badge/license-Apache-brightgreen.svg?style=flat-square)](LICENSE)
 [![GitHub release](https://img.shields.io/github/release/playfab/thundernetes.svg)](https://github.com/playfab/thundernetes/releases)
 ![](https://img.shields.io/badge/status-beta-lightgreen.svg)
