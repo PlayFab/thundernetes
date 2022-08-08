@@ -3,15 +3,12 @@ package controllers
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,17 +31,20 @@ const (
 
 	LabelBuildID          = "BuildID"
 	LabelBuildName        = "BuildName"
-	LabelOwningGameServer = "OwningGameServer"
-	LabelOwningOperator   = "OwningOperator"
+	LabelOwningGameServer = "mps.playfab.com/OwningGameServer"
+	LabelOwningOperator   = "mps.playfab.com/OwningOperator"
 	LabelNodeName         = "NodeName"
 
-	GsdkConfigFile                = DataVolumeMountPath + "/Config/gsdkConfig.json"
-	LogDirectory                  = DataVolumeMountPath + "/GameLogs/"
-	CertificatesDirectory         = DataVolumeMountPath + "/GameCertificates"
+	GsdkConfigFile    = DataVolumeMountPath + "/Config/gsdkConfig.json"
+	GsdkConfigFileWin = DataVolumeMountPathWin + "\\Config\\gsdkConfig.json"
+
+	LogDirectory    = DataVolumeMountPath + "/GameLogs/"
+	LogDirectoryWin = DataVolumeMountPathWin + "\\GameLogs\\"
+
+	CertificatesDirectory    = DataVolumeMountPath + "/GameCertificates"
+	CertificatesDirectoryWin = DataVolumeMountPathWin + "\\GameCertificates"
+
 	GameSharedContentDirectory    = DataVolumeMountPath + "/GameSharedContent"
-	GsdkConfigFileWin             = DataVolumeMountPathWin + "\\Config\\gsdkConfig.json"
-	LogDirectoryWin               = DataVolumeMountPathWin + "\\GameLogs\\"
-	CertificatesDirectoryWin      = DataVolumeMountPathWin + "\\GameCertificates"
 	GameSharedContentDirectoryWin = DataVolumeMountPathWin + "\\GameSharedContent"
 
 	DaemonSetPort int32 = 56001
@@ -458,20 +458,4 @@ func getValueByState(gs *mpsv1alpha1.GameServer) int {
 	default:
 		return 3
 	}
-}
-
-// GetInitContainerImages returns the init container images from the environment variables
-func GetInitContainerImages(l logr.Logger) (string, string) {
-	initContainerImageLinux := os.Getenv("THUNDERNETES_INIT_CONTAINER_IMAGE")
-	if initContainerImageLinux == "" {
-		l.Error(errors.New("THUNDERNETES_INIT_CONTAINER_IMAGE is not set, setting to a mock value"), "")
-		initContainerImageLinux = "testInitContainerImage"
-	}
-	initContainerImageWin := os.Getenv("THUNDERNETES_INIT_CONTAINER_IMAGE_WIN")
-	if initContainerImageWin == "" {
-		l.Error(errors.New("THUNDERNETES_INIT_CONTAINER_IMAGE_WIN is not set, setting to a mock value"), "")
-		initContainerImageWin = "testInitContainerImageWin"
-	}
-	l.Info("init container images", "linux", initContainerImageLinux, "win", initContainerImageWin)
-	return initContainerImageLinux, initContainerImageWin
 }

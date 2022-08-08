@@ -3,6 +3,7 @@ module github.com/playfab/thundernetes
 go 1.18
 
 require (
+	github.com/caarlos0/env/v6 v6.9.3
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-logr/logr v1.2.0
 	github.com/google/uuid v1.2.0
