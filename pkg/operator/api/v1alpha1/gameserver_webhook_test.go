@@ -17,7 +17,7 @@ var _ = Describe("GameServer webhook tests", func() {
 			gs.ObjectMeta.OwnerReferences = make([]metav1.OwnerReference, 0)
 			err := k8sClient.Create(ctx, &gs)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("a GameServer must have a GameServerBuild as an owner"))
+			Expect(err.Error()).Should(ContainSubstring(errNoOwner))
 		})
 
 		It("validates that the port to expose exists", func() {
@@ -26,7 +26,7 @@ var _ = Describe("GameServer webhook tests", func() {
 			gs.Spec.PortsToExpose = append(gs.Spec.PortsToExpose, 70)
 			err := k8sClient.Create(ctx, &gs)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("there must be at least one port that matches each value in portsToExpose"))
+			Expect(err.Error()).Should(ContainSubstring(errPortsMatchingPortsToExpose))
 		})
 
 		It("validates that the port to expose does not need to exist if the HostNetwork is enabled", func() {
@@ -43,7 +43,7 @@ var _ = Describe("GameServer webhook tests", func() {
 			gs.Spec.Template.Spec.Containers[0].Ports[0].Name = ""
 			err := k8sClient.Create(ctx, &gs)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("ports to expose must have a name"))
+			Expect(err.Error()).Should(ContainSubstring(errNoPortName))
 		})
 	})
 })

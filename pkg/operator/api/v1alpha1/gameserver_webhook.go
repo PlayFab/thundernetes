@@ -17,9 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
-
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -97,40 +94,10 @@ func (r *GameServer) validateOwnerReferences() *field.Error {
 		}
 	}
 	return field.Invalid(field.NewPath("OwnerReferences"), r.Name,
-		"a GameServer must have a GameServerBuild as an owner")
+		errNoOwner)
 }
 
-// validatePortsToExpose makes the following validations for ports in portsToExpose:
-// 1. if a port number is in portsToExpose, there must be at least one
-//    matching port in the pod containers spec, this validation is skipped
-//    if the GameServer has HostNetwork enabled
-// 2. if a port number is in portsToExpose, the matching ports in the
-//    pod containers spec must have a name
+// validatePortsToExpose validates the portsToExpose slice
 func (r *GameServer) validatePortsToExpose() field.ErrorList {
-	var portsGroupedByNumber = make(map[int32][]corev1.ContainerPort)
-	for i := 0; i < len(r.Spec.Template.Spec.Containers); i++ {
-		container := r.Spec.Template.Spec.Containers[i]
-		for j := 0; j < len(container.Ports); j++ {
-			port := container.Ports[j]
-			if port.ContainerPort != 0 {
-				portsGroupedByNumber[port.ContainerPort] = append(portsGroupedByNumber[port.ContainerPort], port)
-			}
-		}
-	}
-	var errs field.ErrorList
-	for i := 0; i < len(r.Spec.PortsToExpose); i++ {
-		ports := portsGroupedByNumber[r.Spec.PortsToExpose[i]]
-		if len(ports) < 1 && !r.Spec.Template.Spec.HostNetwork {
-			errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
-				fmt.Sprintf("there must be at least one port that matches each value in portsToExpose, error in port %d", r.Spec.PortsToExpose[i])))
-		}
-		for j := 0; j < len(ports); j++ {
-			port := ports[j]
-			if port.Name == "" {
-				errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
-					fmt.Sprintf("ports to expose must have a name, error in port %d", port.ContainerPort)))
-			}
-		}
-	}
-	return errs
+	return validatePortsToExposeInternal(r.Name, &r.Spec.Template.Spec, r.Spec.PortsToExpose, false /* validateHostPort */)
 }
