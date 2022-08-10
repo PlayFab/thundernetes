@@ -24,7 +24,7 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 			gsb = createTestGameServerBuild(buildName2, buildID, 2, 4, false)
 			err := k8sClient.Create(ctx, &gsb)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("cannot have more than one GameServerBuild with the same BuildID"))
+			Expect(err.Error()).Should(ContainSubstring(errBuildIdUnique))
 		})
 
 		It("validates that updating the buildID is not allowed", func() {
@@ -35,7 +35,7 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 			gsb.Spec.BuildID = buildID2
 			err := k8sClient.Update(ctx, &gsb)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("changing buildID on an existing GameServerBuild is not allowed"))
+			Expect(err.Error()).Should(ContainSubstring(errBuildIdImmutable))
 		})
 
 		It("validates that the port to expose exists", func() {
@@ -44,7 +44,7 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 			gsb.Spec.PortsToExpose = append(gsb.Spec.PortsToExpose, 70)
 			err := k8sClient.Create(ctx, &gsb)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("there must be at least one port that matches each value in portsToExpose"))
+			Expect(err.Error()).Should(ContainSubstring(errPortsMatchingPortsToExpose))
 		})
 
 		It("validates that the port to expose has a name", func() {
@@ -53,7 +53,7 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 			gsb.Spec.Template.Spec.Containers[0].Ports[0].Name = ""
 			err := k8sClient.Create(ctx, &gsb)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("ports to expose must have a name"))
+			Expect(err.Error()).Should(ContainSubstring(errNoPortName))
 		})
 
 		It("validates that the port to expose doesn't have a hostPort", func() {
@@ -62,8 +62,17 @@ var _ = Describe("GameServerBuild webhook tests", func() {
 			gsb.Spec.Template.Spec.Containers[0].Ports[0].HostPort = 1000
 			err := k8sClient.Create(ctx, &gsb)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("ports to expose must not have a hostPort value"))
+			Expect(err.Error()).Should(ContainSubstring(errNoHostPort))
 		})
+
+		It("validates that standingBy must be less than equal to max", func() {
+			buildName, buildID := getNewNameAndID()
+			gsb := createTestGameServerBuild(buildName, buildID, 5, 4, false)
+			err := k8sClient.Create(ctx, &gsb)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).Should(ContainSubstring(errStandingByLessThanMax))
+		})
+
 	})
 })
 

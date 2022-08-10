@@ -37,6 +37,16 @@ var (
 	c                  client.Client
 )
 
+const (
+	errNoHostPort                 = "ports to expose must not have a hostPort value"
+	errNoPortName                 = "ports to expose must have a name"
+	errBuildIdUnique              = "cannot have more than one GameServerBuild with the same BuildID"
+	errBuildIdImmutable           = "changing buildID on an existing GameServerBuild is not allowed"
+	errPortsMatchingPortsToExpose = "there must be at least one port that matches each value in portsToExpose"
+	errNoOwner                    = "a GameServer must have a GameServerBuild as an owner"
+	errStandingByLessThanMax      = "standingby must be less or equal than max"
+)
+
 func (r *GameServerBuild) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	// this should be a live API reader but this won't in this case since we're querying the GameServerBuild via spec.buildID
 	// and arbitrary field CRD selectors are not working at this time
@@ -114,7 +124,7 @@ func (r *GameServerBuild) validateCreateBuildID() *field.Error {
 		gsb := gsbList.Items[i]
 		if r.Name != gsb.Name {
 			return field.Invalid(field.NewPath("spec").Child("buildID"),
-				r.Name, "cannot have more than one GameServerBuild with the same BuildID")
+				r.Name, errBuildIdUnique)
 		}
 	}
 	return nil
@@ -124,22 +134,41 @@ func (r *GameServerBuild) validateCreateBuildID() *field.Error {
 func (r *GameServerBuild) validateUpdateBuildID(old runtime.Object) *field.Error {
 	if r.Spec.BuildID != old.(*GameServerBuild).Spec.BuildID {
 		return field.Invalid(field.NewPath("spec").Child("buildID"),
-			r.Name, "changing buildID on an existing GameServerBuild is not allowed")
+			r.Name, errBuildIdImmutable)
 	}
 	return nil
 }
 
-// validatePortsToExpose makes the following validations for ports in portsToExpose:
-// 1. if a port number is in portsToExpose, there must be at least one
-//    matching port in the pod containers spec
-// 2. if a port number is in portsToExpose, the matching ports in the
-//    pod containers spec must have a name
-// 3. if a port number is in portsToExpose, the matching ports in the
-//    pod containers spec must not have a hostPort
+// validatePortsToExpose validates the portsToExpose slice
 func (r *GameServerBuild) validatePortsToExpose() field.ErrorList {
+	return validatePortsToExposeInternal(r.Name, &r.Spec.Template.Spec, r.Spec.PortsToExpose, true /* validateHostPort */)
+}
+
+// validateStandingBy checks that the standingBy value is less or equal than max
+func (r *GameServerBuild) validateStandingBy() *field.Error {
+	if r.Spec.StandingBy > r.Spec.Max {
+		return field.Invalid(field.NewPath("spec").Child("standingby"),
+			r.Name, errStandingByLessThanMax)
+	}
+	return nil
+}
+
+// validatePortsToExposeInternal validates portsToExpose slice
+// it performs the following validations
+// - if a port number is in portsToExpose, there must be at least one
+//    matching port in the pod containers spec
+//    This part of validation is skipped if the GameServer has HostNetwork enabled
+//    This can happen when the user creates a multi-container GameServer with hostNetwork enabled
+//    and has selected a hostPort for an existing container
+// - if a port number is in portsToExpose, the matching ports in the
+//    pod containers spec must have a name. This is because the name will be used by the GSDK to reference the port
+// - if a port number is in portsToExpose, the matching ports in the
+//    pod containers spec must not have a hostPort
+//    We set validateHostPort to true only for GameServerBuild validation. When the GameServer is created, we assign a HostPort so no need for validation
+func validatePortsToExposeInternal(name string, spec *corev1.PodSpec, portsToExpose []int32, validateHostPort bool) field.ErrorList {
 	var portsGroupedByNumber = make(map[int32][]corev1.ContainerPort)
-	for i := 0; i < len(r.Spec.Template.Spec.Containers); i++ {
-		container := r.Spec.Template.Spec.Containers[i]
+	for i := 0; i < len(spec.Containers); i++ {
+		container := spec.Containers[i]
 		for j := 0; j < len(container.Ports); j++ {
 			port := container.Ports[j]
 			if port.ContainerPort != 0 {
@@ -148,32 +177,23 @@ func (r *GameServerBuild) validatePortsToExpose() field.ErrorList {
 		}
 	}
 	var errs field.ErrorList
-	for i := 0; i < len(r.Spec.PortsToExpose); i++ {
-		ports := portsGroupedByNumber[r.Spec.PortsToExpose[i]]
-		if len(ports) < 1 {
-			errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
-				fmt.Sprintf("there must be at least one port that matches each value in portsToExpose, error in port %d", r.Spec.PortsToExpose[i])))
+	for i := 0; i < len(portsToExpose); i++ {
+		ports := portsGroupedByNumber[portsToExpose[i]]
+		if !spec.HostNetwork && len(ports) < 1 {
+			errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), name,
+				fmt.Sprintf("%s: error in port %d", errPortsMatchingPortsToExpose, portsToExpose[i])))
 		}
 		for j := 0; j < len(ports); j++ {
 			port := ports[j]
 			if port.Name == "" {
-				errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
-					fmt.Sprintf("ports to expose must have a name, error in port %d", port.ContainerPort)))
+				errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), name,
+					fmt.Sprintf("%s: error in port %d", errNoPortName, port.ContainerPort)))
 			}
-			if port.HostPort != 0 {
-				errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), r.Name,
-					fmt.Sprintf("ports to expose must not have a hostPort value, error in port %d", port.ContainerPort)))
+			if validateHostPort && port.HostPort != 0 {
+				errs = append(errs, field.Invalid(field.NewPath("spec").Child("portsToExpose"), name,
+					fmt.Sprintf("%s: error in port %d", errNoHostPort, port.ContainerPort)))
 			}
 		}
 	}
 	return errs
-}
-
-// validateStandingBy checks that the standingBy value is less or equal than max
-func (r *GameServerBuild) validateStandingBy() *field.Error {
-	if r.Spec.StandingBy > r.Spec.Max {
-		return field.Invalid(field.NewPath("spec").Child("standingby"),
-			r.Name, "standingby must be less or equal than max")
-	}
-	return nil
 }
