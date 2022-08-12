@@ -27,8 +27,10 @@ curl -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5
 
 The arguments to the allocation call are two:
 
-* buildID: this must be the same as the buildID configured in the GameServerBuild
-* sessionID: a GUID that you can use to identify the game server session. Must be unique for each game server you allocate. If you try to allocate using a sessionID that is in use, the call will return the details of the existing game server. 
+* buildID (required): this must be the same as the buildID configured in the GameServerBuild
+* sessionID (required): a GUID that you can use to identify the game server session. Must be unique for each game server you allocate. If you try to allocate using a sessionID that is in use, the call will return the details of the existing game server. 
+* sessionCookie (optional): an optional string that contains information that is passed to the game server. Retrievable by GSDK
+* initialPlayers (optional): an optional array of strings containing the user IDs of the players that are expected to connect initially to the server. Retrievable by GSDK
 
 Result of the allocate call is the IP/Port of the server in JSON format.
 
