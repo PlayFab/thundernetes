@@ -72,7 +72,7 @@ section of the Thundernetes repository.
 
 ### Code
 
-To get the latest code for thundernetes run the following in a terminal:
+To get the latest code for Thundernetes run the following in a terminal:
 
 ```bash
 git clone https://github.com/PlayFab/thundernetes.git
@@ -80,13 +80,17 @@ git clone https://github.com/PlayFab/thundernetes.git
 
 ### Tools
 
-See the [Prerequisites](prerequisites.md) page for tools & systems to run thundernetes.
-The follow list is only the tools related to building & developing the code for thundernetes.
+See the [Prerequisites](prerequisites.md) page for tools & systems to run Thundernetes.
+The follow list is only the tools related to building & developing the code for Thundernetes.
 
 * [VS Code](https://code.visualstudio.com)
 * [Golang](https://go.dev)
 * [.NET](https://dotnet.microsoft.com/download/dotnet)
 * [Docker](https://docs.docker.com/get-docker/)
+
+## External Contributors
+
+If you want to contribute but are not part of the GitHub Playfab org, we recommend working on a fork of the project.
 
 ## Pull Request Workflow
 
