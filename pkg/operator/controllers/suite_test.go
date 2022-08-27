@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -33,6 +34,11 @@ import (
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	//+kubebuilder:scaffold:imports
+)
+
+const (
+	assertPollingInterval = 20 * time.Millisecond
+	assertTimeout         = 2 * time.Second
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to

@@ -23,6 +23,7 @@ type PortRegistry struct {
 	HostPortsPerNode                  map[int32]int // a slice for the entire port range. increases by 1 for each registered port
 	Min                               int32         // Minimum Port
 	Max                               int32         // Maximum Port
+	FreePortsCount                    int           // the number of free ports
 	lockMutex                         sync.Mutex    // lock for the map
 	useSpecificNodePoolForGameServers bool          // if true, we only take into account Nodes that have the Label "mps.playfab.com/gameservernode"=true
 	nextPortNumber                    int32         // the next port to be assigned
@@ -48,10 +49,11 @@ func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerLi
 		client:                            client,
 		Min:                               min,
 		Max:                               max,
+		NodeCount:                         nodeCount,
+		FreePortsCount:                    nodeCount * int(max-min+1),
 		lockMutex:                         sync.Mutex{},
 		useSpecificNodePoolForGameServers: useSpecificNodePool,
 		nextPortNumber:                    min,
-		NodeCount:                         nodeCount,
 		logger:                            log.Log.WithName("portregistry"),
 	}
 
@@ -136,6 +138,7 @@ func (pr *PortRegistry) onNodeAdded() {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
 	pr.NodeCount++
+	pr.FreePortsCount += int(pr.Max - pr.Min + 1)
 }
 
 // onNodeRemoved is called when a Node is removed from the cluster
@@ -145,29 +148,43 @@ func (pr *PortRegistry) onNodeRemoved() {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
 	pr.NodeCount--
+	pr.FreePortsCount -= int(pr.Max - pr.Min + 1)
 }
 
-// GetNewPort returns and registers a new port for the designated game server
+// GetNewPorts returns and registers a new port for the designated game server
 // One may wonder what happens if two GameServer Pods get assigned the same HostPort
 // The answer is that we will not have a collision, since Kubernetes is pretty smart and will place the Pod on a different Node, to prevent it
-func (pr *PortRegistry) GetNewPort() (int32, error) {
+func (pr *PortRegistry) GetNewPorts(count int) ([]int32, error) {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
-
-	for port := pr.nextPortNumber; port <= pr.Max; port++ {
-		// this port is used less than maximum times (where maximum is the number of nodes)
-		if pr.HostPortsPerNode[port] < pr.NodeCount {
-			pr.HostPortsPerNode[port]++
-			pr.nextPortNumber = port + 1
-			// we did a full cycle on the map
-			if pr.nextPortNumber > pr.Max {
-				pr.nextPortNumber = pr.Min
+	if count > pr.FreePortsCount {
+		return nil, errors.New("not enough free ports")
+	}
+	portsToReturn := make([]int32, count)
+	for i := 0; i < count; i++ {
+		portFound := false
+		// get the next port
+		for port := pr.nextPortNumber; port <= pr.Max; port++ {
+			// this port is used less than maximum times (where maximum is the number of nodes)
+			if pr.HostPortsPerNode[port] < pr.NodeCount {
+				pr.HostPortsPerNode[port]++
+				pr.nextPortNumber = port + 1
+				// we did a full cycle on the map
+				if pr.nextPortNumber > pr.Max {
+					pr.nextPortNumber = pr.Min
+				}
+				pr.FreePortsCount--
+				portFound = true
+				portsToReturn[i] = port
+				break
 			}
-			return port, nil
+		}
+		if !portFound {
+			// we made a full circle, no available ports
+			return nil, errors.New("cannot register a new port. No available ports")
 		}
 	}
-
-	return -1, errors.New("cannot register a new port. No available ports")
+	return portsToReturn, nil
 }
 
 // DeregisterServerPorts deregisters all host ports so they can be re-used by additional game servers
@@ -179,6 +196,7 @@ func (pr *PortRegistry) DeregisterServerPorts(ports []int32, gsName string) erro
 			// following log should NOT be changed since an e2e test depends on it
 			pr.logger.V(1).Info("Deregistering port", "port", ports[i], "GameServer", gsName)
 			pr.HostPortsPerNode[ports[i]]--
+			pr.FreePortsCount++
 		} else {
 			return fmt.Errorf("cannot deregister port %d, it is not registered or has already been deleted", ports[i])
 		}
@@ -194,6 +212,7 @@ func (pr *PortRegistry) assignRegisteredPorts(ports []int32) {
 	for i := 0; i < len(ports); i++ {
 		pr.logger.V(1).Info("Registering port", "port", ports[i])
 		pr.HostPortsPerNode[ports[i]]++
+		pr.FreePortsCount--
 	}
 }
 

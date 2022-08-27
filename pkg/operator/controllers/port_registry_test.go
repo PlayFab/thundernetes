@@ -37,11 +37,13 @@ var _ = Describe("Port registry tests", func() {
 		portRegistry, _ := getPortRegistryKubeClientForTesting(testMinPort, testMaxPort)
 		Expect(portRegistry.Min).To(Equal(int32(testMinPort)))
 		Expect(portRegistry.Max).To(Equal(int32(testMaxPort)))
+		Expect(portRegistry.FreePortsCount).To(Equal(testMaxPort - testMinPort + 1))
 		assignedPorts := make(map[int32]int)
 		// get 4 ports
+		ports, err := portRegistry.GetNewPorts(4)
+		Expect(err).ToNot(HaveOccurred())
 		for i := 0; i < 4; i++ {
-			port, err := portRegistry.GetNewPort()
-			Expect(err).ToNot(HaveOccurred())
+			port := ports[i]
 			validatePort(port, testMinPort, testMaxPort)
 			Expect(port).To(Equal(int32(testMinPort + i)))
 			if _, ok := assignedPorts[port]; ok {
@@ -55,9 +57,10 @@ var _ = Describe("Port registry tests", func() {
 	It("should fail to allocate more ports than the maximum", func() {
 		portRegistry, _ := getPortRegistryKubeClientForTesting(testMinPort, testMaxPort)
 		assignedPorts := make(map[int32]int)
-		for i := testMinPort; i <= testMaxPort; i++ {
-			port, err := portRegistry.GetNewPort()
-			Expect(err).ToNot(HaveOccurred())
+		ports, err := portRegistry.GetNewPorts(testMaxPort - testMinPort + 1)
+		Expect(err).To(Not(HaveOccurred()))
+		for i := 0; i < testMaxPort-testMinPort+1; i++ {
+			port := ports[i]
 			validatePort(port, testMinPort, testMaxPort)
 			if _, ok := assignedPorts[port]; ok {
 				Fail(fmt.Sprintf("Port %d should not be in the assignedPorts map", port))
@@ -67,7 +70,7 @@ var _ = Describe("Port registry tests", func() {
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 
 		// this one should fail
-		_, err := portRegistry.GetNewPort()
+		_, err = portRegistry.GetNewPorts(1)
 		Expect(err).To(HaveOccurred())
 	})
 
@@ -103,9 +106,10 @@ var _ = Describe("Port registry tests", func() {
 
 		assignedPorts := make(map[int32]int)
 		// get 15 ports
+		ports, err := portRegistry.GetNewPorts(15)
+		Expect(err).ToNot(HaveOccurred())
 		for i := 0; i < 15; i++ {
-			port, err := portRegistry.GetNewPort()
-			Expect(err).ToNot(HaveOccurred())
+			port := ports[i]
 			validatePort(port, testMinPort, testMaxPort)
 			assignedPorts[port] = assignedPorts[port] + 1
 		}
@@ -119,8 +123,10 @@ var _ = Describe("Port registry tests", func() {
 		Expect(portRegistry.Max).To(Equal(int32(testMaxPort)))
 		assignedPorts := make(map[int32]int)
 		// get 10 ports
+		ports, err := portRegistry.GetNewPorts(10)
+		Expect(err).To(Not(HaveOccurred()))
 		for i := 0; i < 10; i++ {
-			port, err := portRegistry.GetNewPort()
+			port := ports[i]
 			Expect(err).ToNot(HaveOccurred())
 			validatePort(port, testMinPort, testMaxPort)
 			if _, ok := assignedPorts[port]; ok {
@@ -131,7 +137,7 @@ var _ = Describe("Port registry tests", func() {
 
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 		// deallocate two ports
-		err := portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3}, testGsName)
+		err = portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3}, testGsName)
 		Expect(err).ToNot(HaveOccurred())
 		delete(assignedPorts, testMinPort+1)
 		delete(assignedPorts, testMinPort+3)
@@ -144,8 +150,10 @@ var _ = Describe("Port registry tests", func() {
 		Expect(portRegistry.Max).To(Equal(int32(testMaxPort)))
 		assignedPorts := make(map[int32]int)
 		// get 10 ports
+		ports, err := portRegistry.GetNewPorts(10)
+		Expect(err).To(Not(HaveOccurred()))
 		for i := 0; i < 10; i++ {
-			port, err := portRegistry.GetNewPort()
+			port := ports[i]
 			Expect(err).ToNot(HaveOccurred())
 			validatePort(port, testMinPort, testMaxPort)
 			if _, ok := assignedPorts[port]; ok {
@@ -155,7 +163,7 @@ var _ = Describe("Port registry tests", func() {
 		}
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 		// deallocate two ports
-		err := portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3}, testGsName)
+		err = portRegistry.DeregisterServerPorts([]int32{testMinPort + 1, testMinPort + 3}, testGsName)
 		Expect(err).ToNot(HaveOccurred())
 		delete(assignedPorts, testMinPort+1)
 		delete(assignedPorts, testMinPort+3)
@@ -172,9 +180,10 @@ var _ = Describe("Port registry tests", func() {
 		}).Should(Succeed())
 
 		// get 8 ports, we have 16 in total
+		ports, err = portRegistry.GetNewPorts(8)
+		Expect(err).To(Not(HaveOccurred()))
 		for i := 0; i < 8; i++ {
-			port, err := portRegistry.GetNewPort()
-			Expect(err).ToNot(HaveOccurred())
+			port := ports[i]
 			validatePort(port, testMinPort, testMaxPort)
 			assignedPorts[port] = assignedPorts[port] + 1
 		}
@@ -236,7 +245,7 @@ var _ = Describe("Port registry with two thousand ports, five hundred on four no
 	}).Should(Succeed())
 
 	It("should work with allocating and deallocating ports", func() {
-		// allocate all 2000 ports
+		// allocate all 2000 ports, one at a time
 		var wg sync.WaitGroup
 		for i := 0; i < int(max-min+1)*4; i++ {
 			wg.Add(1)
@@ -244,13 +253,13 @@ var _ = Describe("Port registry with two thousand ports, five hundred on four no
 				defer wg.Done()
 				n := rand.Intn(200) + 50 // n will be between 50 and 250
 				time.Sleep(time.Duration(n) * time.Millisecond)
-				port, err := portRegistry.GetNewPort()
+				ports, err := portRegistry.GetNewPorts(1)
 				Expect(err).ToNot(HaveOccurred())
-				val, ok := assignedPorts.Load(port)
+				val, ok := assignedPorts.Load(ports[0])
 				if !ok {
-					assignedPorts.Store(port, 1)
+					assignedPorts.Store(ports[0], 1)
 				} else {
-					assignedPorts.Store(port, val.(int)+1)
+					assignedPorts.Store(ports[0], val.(int)+1)
 				}
 			}()
 		}
@@ -259,7 +268,7 @@ var _ = Describe("Port registry with two thousand ports, five hundred on four no
 		verifyExpectedHostPorts(portRegistry, m, 2000)
 
 		// trying to get another port should fail, since we've allocated every available port
-		_, err := portRegistry.GetNewPort()
+		_, err := portRegistry.GetNewPorts(1)
 		Expect(err).To(HaveOccurred())
 
 		//deallocate 1000 ports
@@ -290,8 +299,9 @@ var _ = Describe("Port registry with two thousand ports, five hundred on four no
 				defer wg.Done()
 				n := rand.Intn(200) + 50 // n will be between 50 and 250
 				time.Sleep(time.Duration(n) * time.Millisecond)
-				port, err := portRegistry.GetNewPort()
+				ports, err := portRegistry.GetNewPorts(1)
 				Expect(err).ToNot(HaveOccurred())
+				port := ports[0]
 				val, ok := assignedPorts.Load(port)
 				if !ok {
 					assignedPorts.Store(port, 1)
@@ -312,8 +322,9 @@ var _ = Describe("Port registry with two thousand ports, five hundred on four no
 				defer wg.Done()
 				n := rand.Intn(200) + 50 // n will be between 50 and 250
 				time.Sleep(time.Duration(n) * time.Millisecond)
-				port, err := portRegistry.GetNewPort()
+				ports, err := portRegistry.GetNewPorts(1)
 				Expect(err).ToNot(HaveOccurred())
+				port := ports[0]
 				val, ok := assignedPorts.Load(port)
 				if !ok {
 					assignedPorts.Store(port, 1)
@@ -328,7 +339,7 @@ var _ = Describe("Port registry with two thousand ports, five hundred on four no
 		verifyExpectedHostPorts(portRegistry, m, 2000)
 
 		// trying to get another port should fail, since we've allocated every available port
-		_, err = portRegistry.GetNewPort()
+		_, err = portRegistry.GetNewPorts(1)
 		Expect(err).To(HaveOccurred())
 	})
 })
