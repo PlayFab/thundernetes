@@ -82,14 +82,14 @@ var _ = Describe("Port registry tests", func() {
 		// do a manual reconcile since we haven't added the controller to the manager
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 		Eventually(func() error {
-			return verifyHostPortsPerNode(portRegistry, 2)
+			return verifyHostPortsPerNode(portRegistry, 2, 2*(testMaxPort-testMinPort+1))
 		}).Should(Succeed())
 
 		err = kubeClient.Delete(context.Background(), node)
 		Expect(err).ToNot(HaveOccurred())
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 		Eventually(func() error {
-			return verifyHostPortsPerNode(portRegistry, 1)
+			return verifyHostPortsPerNode(portRegistry, 1, 1*(testMaxPort-testMinPort+1))
 		}).Should(Succeed())
 	})
 
@@ -101,7 +101,7 @@ var _ = Describe("Port registry tests", func() {
 		// do a manual reconcile since we haven't added the controller to the manager
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 		Eventually(func() error {
-			return verifyHostPortsPerNode(portRegistry, 2)
+			return verifyHostPortsPerNode(portRegistry, 2, 2*(testMaxPort-testMinPort+1))
 		}).Should(Succeed())
 
 		assignedPorts := make(map[int32]int)
@@ -176,7 +176,7 @@ var _ = Describe("Port registry tests", func() {
 		// do a manual reconcile since we haven't added the controller to the manager
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 		Eventually(func() error {
-			return verifyHostPortsPerNode(portRegistry, 2)
+			return verifyHostPortsPerNode(portRegistry, 2, 2*(testMaxPort-testMinPort+1)-8)
 		}).Should(Succeed())
 
 		// get 8 ports, we have 16 in total
@@ -207,7 +207,7 @@ var _ = Describe("Port registry tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 		Eventually(func() error {
-			return verifyHostPortsPerNode(portRegistry, 1)
+			return verifyHostPortsPerNode(portRegistry, 1, 1*(testMaxPort-testMinPort+1)-10)
 		}).Should(Succeed())
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 
@@ -241,7 +241,7 @@ var _ = Describe("Port registry with two thousand ports, five hundred on four no
 	}
 
 	Eventually(func() error {
-		return verifyHostPortsPerNode(portRegistry, 4)
+		return verifyHostPortsPerNode(portRegistry, 4, 4*int(max-min+1))
 	}).Should(Succeed())
 
 	It("should work with allocating and deallocating ports", func() {
@@ -366,9 +366,12 @@ func verifyExpectedHostPorts(portRegistry *PortRegistry, expectedHostPorts map[i
 
 // verifyHostPortsPerNode verifies that the hostPortsPerNode map on the PortRegistry has the proper length
 // and its item has the correct length as well
-func verifyHostPortsPerNode(portRegistry *PortRegistry, expectedNodeCount int) error {
+func verifyHostPortsPerNode(portRegistry *PortRegistry, expectedNodeCount, expectedTotalFreePortsCount int) error {
 	if portRegistry.NodeCount != expectedNodeCount {
 		return fmt.Errorf("NodeCount is not %d, it is %d", expectedNodeCount, portRegistry.NodeCount)
+	}
+	if portRegistry.FreePortsCount != expectedTotalFreePortsCount {
+		return fmt.Errorf("FreePortsCount is not %d, it is %d", expectedTotalFreePortsCount, portRegistry.FreePortsCount)
 	}
 	return nil
 }

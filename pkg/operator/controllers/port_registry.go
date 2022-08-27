@@ -50,7 +50,7 @@ func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerLi
 		Min:                               min,
 		Max:                               max,
 		NodeCount:                         nodeCount,
-		FreePortsCount:                    nodeCount * int(max-min+1),
+		FreePortsCount:                    nodeCount * int(max-min+1), // +1 since the [min,max] ports set is inclusive of both edges
 		lockMutex:                         sync.Mutex{},
 		useSpecificNodePoolForGameServers: useSpecificNodePool,
 		nextPortNumber:                    min,
@@ -151,9 +151,10 @@ func (pr *PortRegistry) onNodeRemoved() {
 	pr.FreePortsCount -= int(pr.Max - pr.Min + 1)
 }
 
-// GetNewPorts returns and registers a new port for the designated game server
-// One may wonder what happens if two GameServer Pods get assigned the same HostPort
-// The answer is that we will not have a collision, since Kubernetes is pretty smart and will place the Pod on a different Node, to prevent it
+// GetNewPorts returns and registers a slice of ports with lengh that will be used by a GameServer
+// It returns an error if there are no available ports
+// You may wonder what happens if two GameServer Pods get assigned the same HostPort
+// We will not have a collision, since Kubernetes is pretty smart and will place the Pod on a different Node, to prevent it
 func (pr *PortRegistry) GetNewPorts(count int) ([]int32, error) {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
@@ -165,18 +166,18 @@ func (pr *PortRegistry) GetNewPorts(count int) ([]int32, error) {
 		portFound := false
 		// get the next port
 		for port := pr.nextPortNumber; port <= pr.Max; port++ {
-			// this port is used less than maximum times (where maximum is the number of nodes)
+			// this port is used less times than the total number of Nodes
 			if pr.HostPortsPerNode[port] < pr.NodeCount {
-				pr.HostPortsPerNode[port]++
-				pr.nextPortNumber = port + 1
-				// we did a full cycle on the map
+				pr.HostPortsPerNode[port]++  // increase the times (Nodes) this port is used
+				pr.nextPortNumber = port + 1 // move the next port to the next one
+				// we did a full circle on the map
 				if pr.nextPortNumber > pr.Max {
 					pr.nextPortNumber = pr.Min
 				}
-				pr.FreePortsCount--
+				pr.FreePortsCount--     // decrease the number of used ports
+				portsToReturn[i] = port // add the port to the slice to be returned
 				portFound = true
-				portsToReturn[i] = port
-				break
+				break // exit the loop
 			}
 		}
 		if !portFound {

@@ -124,6 +124,7 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 		// we don't create any status since we have the .Status subresource enabled
 	}
 	// get host ports
+	// we assume that each portToExpose exists only once in the GameServer spec
 	hostPorts, err := portRegistry.GetNewPorts(len(gsb.Spec.PortsToExpose))
 	j := 0
 	if err != nil {
@@ -139,7 +140,7 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 				if gs.Spec.Template.Spec.HostNetwork {
 					container.Ports[i].ContainerPort = hostPorts[j]
 				}
-				j++
+				j++ // increase the hostPort index so on the next iteration (if any) we will use the next hostPort
 			}
 		}
 	}
