@@ -122,7 +122,7 @@ var _ = Describe("Port registry tests", func() {
 		Expect(portRegistry.Min).To(Equal(int32(testMinPort)))
 		Expect(portRegistry.Max).To(Equal(int32(testMaxPort)))
 		assignedPorts := make(map[int32]int)
-		// get 10 ports
+		// allocate 10 ports
 		ports, err := portRegistry.GetNewPorts(10)
 		Expect(err).To(Not(HaveOccurred()))
 		for i := 0; i < 10; i++ {
@@ -141,7 +141,7 @@ var _ = Describe("Port registry tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		delete(assignedPorts, testMinPort+1)
 		delete(assignedPorts, testMinPort+3)
-		verifyExpectedHostPorts(portRegistry, assignedPorts, 8)
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 8) // 10 minus two
 	})
 
 	It("should successfully deallocate ports - two Nodes to one scenario", func() {
@@ -167,7 +167,7 @@ var _ = Describe("Port registry tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		delete(assignedPorts, testMinPort+1)
 		delete(assignedPorts, testMinPort+3)
-		verifyExpectedHostPorts(portRegistry, assignedPorts, 8)
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 8) // ten minus two
 
 		// add a second Node
 		node := getNewNodeForTest("node2")
@@ -176,10 +176,10 @@ var _ = Describe("Port registry tests", func() {
 		// do a manual reconcile since we haven't added the controller to the manager
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 		Eventually(func() error {
-			return verifyHostPortsPerNode(portRegistry, 2, 2*(testMaxPort-testMinPort+1)-8)
+			return verifyHostPortsPerNode(portRegistry, 2, 2*(testMaxPort-testMinPort+1)-8) // ten minus two
 		}).Should(Succeed())
 
-		// get 8 ports, we have 16 in total
+		// get 8 more ports, we have 16 in total
 		ports, err = portRegistry.GetNewPorts(8)
 		Expect(err).To(Not(HaveOccurred()))
 		for i := 0; i < 8; i++ {
@@ -200,14 +200,14 @@ var _ = Describe("Port registry tests", func() {
 			}
 		}
 		Expect(deletedPortsCount).To(Equal(6))
-		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 10) // 16 minus 6
 
 		// now delete the second node
 		err = kubeClient.Delete(context.Background(), node)
 		Expect(err).ToNot(HaveOccurred())
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 		Eventually(func() error {
-			return verifyHostPortsPerNode(portRegistry, 1, 1*(testMaxPort-testMinPort+1)-10)
+			return verifyHostPortsPerNode(portRegistry, 1, 1*(testMaxPort-testMinPort+1)-10) // 16 minus 6
 		}).Should(Succeed())
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 
@@ -217,7 +217,7 @@ var _ = Describe("Port registry tests", func() {
 		delete(assignedPorts, testMinPort+1)
 		delete(assignedPorts, testMinPort+2)
 		delete(assignedPorts, testMinPort+3)
-		verifyExpectedHostPorts(portRegistry, assignedPorts, 7)
+		verifyExpectedHostPorts(portRegistry, assignedPorts, 7) // 10 minus three
 	})
 
 })
@@ -366,12 +366,12 @@ func verifyExpectedHostPorts(portRegistry *PortRegistry, expectedHostPorts map[i
 
 // verifyHostPortsPerNode verifies that the hostPortsPerNode map on the PortRegistry has the proper length
 // and its item has the correct length as well
-func verifyHostPortsPerNode(portRegistry *PortRegistry, expectedNodeCount, expectedTotalFreePortsCount int) error {
+func verifyHostPortsPerNode(portRegistry *PortRegistry, expectedNodeCount, expectedFreePortsCount int) error {
 	if portRegistry.NodeCount != expectedNodeCount {
 		return fmt.Errorf("NodeCount is not %d, it is %d", expectedNodeCount, portRegistry.NodeCount)
 	}
-	if portRegistry.FreePortsCount != expectedTotalFreePortsCount {
-		return fmt.Errorf("FreePortsCount is not %d, it is %d", expectedTotalFreePortsCount, portRegistry.FreePortsCount)
+	if portRegistry.FreePortsCount != expectedFreePortsCount {
+		return fmt.Errorf("FreePortsCount is not %d, it is %d", expectedFreePortsCount, portRegistry.FreePortsCount)
 	}
 	return nil
 }
