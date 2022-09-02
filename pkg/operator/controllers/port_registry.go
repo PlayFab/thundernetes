@@ -151,7 +151,7 @@ func (pr *PortRegistry) onNodeRemoved() {
 	pr.FreePortsCount -= int(pr.Max - pr.Min + 1)
 }
 
-// GetNewPorts returns and registers a slice of ports with lengh that will be used by a GameServer
+// GetNewPorts returns and registers a slice of ports with "count" length that will be used by a GameServer
 // It returns an error if there are no available ports
 // You may wonder what happens if two GameServer Pods get assigned the same HostPort
 // We will not have a collision, since Kubernetes is pretty smart and will place the Pod on a different Node, to prevent it
