@@ -2,16 +2,10 @@ package controllers
 
 import (
 	"context"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
-)
-
-const (
-	assertPollingInterval = 20 * time.Millisecond
-	assertTimeout         = 2 * time.Second
 )
 
 var _ = Describe("GameServerBuild controller tests", func() {
