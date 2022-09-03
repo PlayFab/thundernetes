@@ -27,6 +27,7 @@ type PortRegistry struct {
 	lockMutex                         sync.Mutex    // lock for the map
 	useSpecificNodePoolForGameServers bool          // if true, we only take into account Nodes that have the Label "mps.playfab.com/gameservernode"=true
 	nextPortNumber                    int32         // the next port to be assigned
+	HostPortsPerGameServer            map[string][]int32
 	logger                            logr.Logger
 }
 
@@ -54,6 +55,7 @@ func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerLi
 		lockMutex:                         sync.Mutex{},
 		useSpecificNodePoolForGameServers: useSpecificNodePool,
 		nextPortNumber:                    min,
+		HostPortsPerGameServer:            make(map[string][]int32),
 		logger:                            log.Log.WithName("portregistry"),
 	}
 
@@ -155,7 +157,7 @@ func (pr *PortRegistry) onNodeRemoved() {
 // It returns an error if there are no available ports
 // You may wonder what happens if two GameServer Pods get assigned the same HostPort
 // We will not have a collision, since Kubernetes is pretty smart and will place the Pod on a different Node, to prevent it
-func (pr *PortRegistry) GetNewPorts(count int) ([]int32, error) {
+func (pr *PortRegistry) GetNewPorts(namespace, name string, count int) ([]int32, error) {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
 	if count > pr.FreePortsCount {
@@ -185,24 +187,29 @@ func (pr *PortRegistry) GetNewPorts(count int) ([]int32, error) {
 			return nil, errors.New("cannot register a new port. No available ports")
 		}
 	}
+	pr.HostPortsPerGameServer[getNamespacedName(namespace, name)] = portsToReturn
 	return portsToReturn, nil
 }
 
 // DeregisterServerPorts deregisters all host ports so they can be re-used by additional game servers
-func (pr *PortRegistry) DeregisterServerPorts(ports []int32, gsName string) error {
+func (pr *PortRegistry) DeregisterServerPorts(namespace, name string) ([]int32, error) {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
+	ports, ok := pr.HostPortsPerGameServer[getNamespacedName(namespace, name)]
+	if !ok {
+		return nil, nil
+	}
 	for i := 0; i < len(ports); i++ {
 		if pr.HostPortsPerNode[ports[i]] > 0 {
 			// following log should NOT be changed since an e2e test depends on it
-			pr.logger.V(1).Info("Deregistering port", "port", ports[i], "GameServer", gsName)
+			pr.logger.V(1).Info("Deregistering port", "port", ports[i], "GameServer Namespace", namespace, "GameServer Name", name)
 			pr.HostPortsPerNode[ports[i]]--
 			pr.FreePortsCount++
 		} else {
-			return fmt.Errorf("cannot deregister port %d, it is not registered or has already been deleted", ports[i])
+			return nil, fmt.Errorf("cannot deregister port %d, it is not registered or has already been deleted", ports[i])
 		}
 	}
-	return nil
+	return ports, nil
 }
 
 // assignRegisteredPorts assigns ports that are already registered

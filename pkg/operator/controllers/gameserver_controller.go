@@ -31,7 +31,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -46,7 +45,6 @@ var (
 )
 
 const SafeToEvictPodAttribute string = "cluster-autoscaler.kubernetes.io/safe-to-evict"
-const finalizerName string = "gameservers.mps.playfab.com/finalizer"
 
 // GameServerReconciler reconciles a GameServer object
 type GameServerReconciler struct {
@@ -98,48 +96,17 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	var gs mpsv1alpha1.GameServer
 	if err := r.Get(ctx, req.NamespacedName, &gs); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("Unable to fetch GameServer - skipping")
+			log.Info("Unable to fetch GameServer, it probably has been deleted. Trying to deregister ports")
+			ports, err := r.PortRegistry.DeregisterServerPorts(gs.Namespace, gs.Name)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			log.V(1).Info("Deregistered ports", "ports", ports)
 			return ctrl.Result{}, nil
 		}
 		log.Error(err, "unable to fetch GameServer")
 		return ctrl.Result{}, err
 	}
-
-	// ----------------------- finalizer logic start ----------------------- //
-	// examine DeletionTimestamp to determine if object is under deletion
-	if gs.ObjectMeta.DeletionTimestamp.IsZero() {
-		// The object is not being deleted, so if it does not have our finalizer,
-		// then lets add the finalizer and update the object. This is equivalent
-		// registering our finalizer.
-		if !containsString(gs.GetFinalizers(), finalizerName) {
-			patch := client.MergeFrom(gs.DeepCopy())
-			controllerutil.AddFinalizer(&gs, finalizerName)
-			if err := r.Patch(ctx, &gs, patch); err != nil {
-				return ctrl.Result{}, err
-			}
-			return ctrl.Result{}, nil
-		}
-	} else {
-		// The object is being deleted
-		if containsString(gs.GetFinalizers(), finalizerName) {
-			patch := client.MergeFrom(gs.DeepCopy())
-			// our finalizer is present, so lets handle any external dependency
-			err := r.unassignPorts(&gs)
-			if err != nil {
-				// we're logging the error but no more actions
-				log.Error(err, "unable to deregister ports", "GameServer", gs.Name)
-			}
-			// remove our finalizer from the list and update it.
-			controllerutil.RemoveFinalizer(&gs, finalizerName)
-			if err := r.Patch(ctx, &gs, patch); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-
-		// Stop reconciliation as the item is being deleted
-		return ctrl.Result{}, nil
-	}
-	// ----------------------- finalizer logic end ----------------------- //
 
 	// get the pod that is owned by this GameServer
 	var pod corev1.Pod
@@ -248,21 +215,6 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	return ctrl.Result{}, nil
-}
-
-// unassignPorts will remove any ports that are used by this GameServer from the port registry
-func (r *GameServerReconciler) unassignPorts(gs *mpsv1alpha1.GameServer) error {
-	hostPorts := make([]int32, 0)
-	for i := 0; i < len(gs.Spec.Template.Spec.Containers); i++ {
-		container := gs.Spec.Template.Spec.Containers[i]
-		for j := 0; j < len(container.Ports); j++ {
-			// if the hostPort is > 0, this means that it has been assigned by the controller
-			if container.Ports[j].HostPort > 0 {
-				hostPorts = append(hostPorts, container.Ports[j].HostPort)
-			}
-		}
-	}
-	return r.PortRegistry.DeregisterServerPorts(hostPorts, gs.Name)
 }
 
 // SetupWithManager sets up the controller with the Manager.
