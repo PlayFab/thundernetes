@@ -81,7 +81,6 @@ func NewGameServerBuildReconciler(mgr manager.Manager, portRegistry *PortRegistr
 
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverbuilds,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverbuilds/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverbuilds/finalizers,verbs=update
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers,verbs=get;list;watch
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/status,verbs=get
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch

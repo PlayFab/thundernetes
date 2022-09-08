@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -25,8 +24,8 @@ type PortRegistry struct {
 	Max                               int32         // Maximum Port
 	FreePortsCount                    int           // the number of free ports
 	lockMutex                         sync.Mutex    // lock for the map
+	nextPortNumber                    int32         // the next port to check
 	useSpecificNodePoolForGameServers bool          // if true, we only take into account Nodes that have the Label "mps.playfab.com/gameservernode"=true
-	nextPortNumber                    int32         // the next port to be assigned
 	HostPortsPerGameServer            map[string][]int32
 	logger                            logr.Logger
 }
@@ -53,8 +52,8 @@ func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerLi
 		NodeCount:                         nodeCount,
 		FreePortsCount:                    nodeCount * int(max-min+1), // +1 since the [min,max] ports set is inclusive of both edges
 		lockMutex:                         sync.Mutex{},
-		useSpecificNodePoolForGameServers: useSpecificNodePool,
 		nextPortNumber:                    min,
+		useSpecificNodePoolForGameServers: useSpecificNodePool,
 		HostPortsPerGameServer:            make(map[string][]int32),
 		logger:                            log.Log.WithName("portregistry"),
 	}
@@ -160,19 +159,29 @@ func (pr *PortRegistry) onNodeRemoved() {
 func (pr *PortRegistry) GetNewPorts(namespace, name string, count int) ([]int32, error) {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
+	namespacedName := getNamespacedName(namespace, name)
 	if count > pr.FreePortsCount {
 		return nil, errors.New("not enough free ports")
+	}
+	if _, ok := pr.HostPortsPerGameServer[namespacedName]; ok {
+		return nil, errors.New("ports already assigned for this GameServer")
 	}
 	portsToReturn := make([]int32, count)
 	for i := 0; i < count; i++ {
 		portFound := false
 		// get the next port
-		for port := pr.nextPortNumber; port <= pr.Max; port++ {
+		// do pr.Max-pr.Min+1 iterations, since the [min,max] ports set is inclusive of both edges
+		var j int32
+		for j = 0; j < pr.Max-pr.Min+1; j++ {
+			port := pr.nextPortNumber + j
+			if port > pr.Max {
+				port = pr.Min + (port - pr.Max - 1)
+			}
 			// this port is used less times than the total number of Nodes
 			if pr.HostPortsPerNode[port] < pr.NodeCount {
-				pr.HostPortsPerNode[port]++  // increase the times (Nodes) this port is used
-				pr.nextPortNumber = port + 1 // move the next port to the next one
-				// we did a full circle on the map
+				pr.HostPortsPerNode[port]++ // increase the times (Nodes) this port is used
+				pr.nextPortNumber = port + 1
+				// we did a full cycle on the map
 				if pr.nextPortNumber > pr.Max {
 					pr.nextPortNumber = pr.Min
 				}
@@ -187,7 +196,8 @@ func (pr *PortRegistry) GetNewPorts(namespace, name string, count int) ([]int32,
 			return nil, errors.New("cannot register a new port. No available ports")
 		}
 	}
-	pr.HostPortsPerGameServer[getNamespacedName(namespace, name)] = portsToReturn
+	pr.HostPortsPerGameServer[namespacedName] = portsToReturn
+	pr.logger.V(1).Info("Registering ports", "ports", portsToReturn, "GameServer Namespace", namespace, "GameServer Name", name)
 	return portsToReturn, nil
 }
 
@@ -195,7 +205,8 @@ func (pr *PortRegistry) GetNewPorts(namespace, name string, count int) ([]int32,
 func (pr *PortRegistry) DeregisterServerPorts(namespace, name string) ([]int32, error) {
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
-	ports, ok := pr.HostPortsPerGameServer[getNamespacedName(namespace, name)]
+	namespacedName := getNamespacedName(namespace, name)
+	ports, ok := pr.HostPortsPerGameServer[namespacedName]
 	if !ok {
 		return nil, nil
 	}
@@ -206,9 +217,10 @@ func (pr *PortRegistry) DeregisterServerPorts(namespace, name string) ([]int32, 
 			pr.HostPortsPerNode[ports[i]]--
 			pr.FreePortsCount++
 		} else {
-			return nil, fmt.Errorf("cannot deregister port %d, it is not registered or has already been deleted", ports[i])
+			pr.logger.V(1).Info("cannot deregister port, it is not registered or has already been deleted", "port", ports[i], "GameServer Namespace", namespace, "GameServer Name", name)
 		}
 	}
+	delete(pr.HostPortsPerGameServer, namespacedName)
 	return ports, nil
 }
 

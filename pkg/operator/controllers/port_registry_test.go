@@ -254,7 +254,7 @@ var _ = Describe("Port registry tests", func() {
 var _ = Describe("Port registry with two thousand ports, five hundred on four nodes", func() {
 	rand.Seed(time.Now().UnixNano())
 	min := int32(20000)
-	max := int32(20005)
+	max := int32(20014)
 
 	portRegistry, kubeClient := getPortRegistryKubeClientForTesting(min, max)
 	Expect(portRegistry.Min).To(Equal(min))
@@ -324,55 +324,57 @@ var _ = Describe("Port registry with two thousand ports, five hundred on four no
 		m = syncMapToMapInt32Int(&assignedPorts)
 		verifyExpectedHostPorts(portRegistry, m, int(max-min+1)*2)
 
-		// // allocate 500 ports
-		// for i := 0; i < int(max-min+1); i++ {
-		// 	wg.Add(1)
-		// 	go func() {
-		// 		defer wg.Done()
-		// 		n := rand.Intn(200) + 50 // n will be between 50 and 250
-		// 		time.Sleep(time.Duration(n) * time.Millisecond)
-		// 		ports, err := portRegistry.GetNewPorts(1)
-		// 		Expect(err).ToNot(HaveOccurred())
-		// 		port := ports[0]
-		// 		val, ok := assignedPorts.Load(port)
-		// 		if !ok {
-		// 			assignedPorts.Store(port, 1)
-		// 		} else {
-		// 			assignedPorts.Store(port, val.(int)+1)
-		// 		}
-		// 	}()
-		// }
-		// wg.Wait()
+		// allocate 500 ports
+		for i := 0; i < int(max-min+1); i++ {
+			wg.Add(1)
+			go func(j int) {
+				defer GinkgoRecover()
+				defer wg.Done()
+				n := rand.Intn(200) + 50 // n will be between 50 and 250
+				time.Sleep(time.Duration(n) * time.Millisecond)
+				ports, err := portRegistry.GetNewPorts(testnamespace, fmt.Sprintf("%s%d", testGsName, j), 1)
+				Expect(err).ToNot(HaveOccurred())
+				port := ports[0]
+				val, ok := assignedPorts.Load(port)
+				if !ok {
+					assignedPorts.Store(port, 1)
+				} else {
+					assignedPorts.Store(port, val.(int)+1)
+				}
+			}(i)
+		}
+		wg.Wait()
 
-		// m = syncMapToMapInt32Int(&assignedPorts)
-		// verifyExpectedHostPorts(portRegistry, m, 1500)
+		m = syncMapToMapInt32Int(&assignedPorts)
+		verifyExpectedHostPorts(portRegistry, m, int(max-min+1)*3)
 
-		// // allocate another 500 ports
-		// for i := 0; i < int(max-min+1); i++ {
-		// 	wg.Add(1)
-		// 	go func() {
-		// 		defer wg.Done()
-		// 		n := rand.Intn(200) + 50 // n will be between 50 and 250
-		// 		time.Sleep(time.Duration(n) * time.Millisecond)
-		// 		ports, err := portRegistry.GetNewPorts(1)
-		// 		Expect(err).ToNot(HaveOccurred())
-		// 		port := ports[0]
-		// 		val, ok := assignedPorts.Load(port)
-		// 		if !ok {
-		// 			assignedPorts.Store(port, 1)
-		// 		} else {
-		// 			assignedPorts.Store(port, val.(int)+1)
-		// 		}
-		// 	}()
-		// }
-		// wg.Wait()
+		//allocate another 500 ports
+		for i := max - min + 1; i < int32(max-min+1)*2; i++ {
+			wg.Add(1)
+			go func(j int) {
+				defer GinkgoRecover()
+				defer wg.Done()
+				n := rand.Intn(200) + 50 // n will be between 50 and 250
+				time.Sleep(time.Duration(n) * time.Millisecond)
+				ports, err := portRegistry.GetNewPorts(testnamespace, fmt.Sprintf("%s%d", testGsName, j), 1)
+				Expect(err).ToNot(HaveOccurred())
+				port := ports[0]
+				val, ok := assignedPorts.Load(port)
+				if !ok {
+					assignedPorts.Store(port, 1)
+				} else {
+					assignedPorts.Store(port, val.(int)+1)
+				}
+			}(int(i))
+		}
+		wg.Wait()
 
-		// m = syncMapToMapInt32Int(&assignedPorts)
-		// verifyExpectedHostPorts(portRegistry, m, 2000)
+		m = syncMapToMapInt32Int(&assignedPorts)
+		verifyExpectedHostPorts(portRegistry, m, int(max-min+1)*4)
 
-		// // trying to get another port should fail, since we've allocated every available port
-		// _, err = portRegistry.GetNewPorts(1)
-		// Expect(err).To(HaveOccurred())
+		// trying to get another port should fail, since we've allocated every available port
+		_, err = portRegistry.GetNewPorts(testnamespace, "willfail", 1)
+		Expect(err).To(HaveOccurred())
 	})
 })
 
@@ -387,12 +389,15 @@ func verifyExpectedHostPorts(portRegistry *PortRegistry, expectedHostPorts map[i
 	actualHostPorts := make(map[int32]int)
 	actualTotalHostPortsCount := 0
 	for port, count := range portRegistry.HostPortsPerNode {
-		if count > 0 {
-			actualHostPorts[port] = count
-			actualTotalHostPortsCount += count
+		actualHostPorts[port] = count
+		actualTotalHostPortsCount += count
+	}
+	for port := portRegistry.Min; port <= portRegistry.Max; port++ {
+		if _, ok := expectedHostPorts[port]; !ok {
+			expectedHostPorts[port] = 0
 		}
 	}
-	fmt.Printf("expectedHostPorts: %v actualHostPorts: %v gameServerPorts %v \n\n", expectedHostPorts, actualHostPorts, portRegistry.HostPortsPerGameServer)
+
 	Expect(len(actualHostPorts)).To(Equal(len(expectedHostPorts)))
 	Expect(reflect.DeepEqual(actualHostPorts, expectedHostPorts)).To(BeTrue())
 	Expect(actualTotalHostPortsCount).To(Equal(expectedTotalHostPortsCount))

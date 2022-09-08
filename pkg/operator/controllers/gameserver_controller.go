@@ -80,7 +80,6 @@ func NewGameServerReconciler(mgr manager.Manager,
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverdetails,verbs=get;list;watch
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
@@ -97,7 +96,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err := r.Get(ctx, req.NamespacedName, &gs); err != nil {
 		if apierrors.IsNotFound(err) {
 			log.Info("Unable to fetch GameServer, it probably has been deleted. Trying to deregister ports")
-			ports, err := r.PortRegistry.DeregisterServerPorts(gs.Namespace, gs.Name)
+			ports, err := r.PortRegistry.DeregisterServerPorts(req.NamespacedName.Namespace, req.NamespacedName.Name)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
