@@ -53,6 +53,12 @@ rules:
 - apiGroups:
   - mps.playfab.com
   resources:
+  - gameserverbuilds/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - mps.playfab.com
+  resources:
   - gameserverbuilds/status
   verbs:
   - get
@@ -78,6 +84,12 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - mps.playfab.com
+  resources:
+  - gameservers/finalizers
+  verbs:
+  - update
 - apiGroups:
   - mps.playfab.com
   resources:
