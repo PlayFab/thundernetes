@@ -84,14 +84,14 @@ var _ = Describe("Port registry tests", func() {
 		// do a manual reconcile since we haven't added the controller to the manager
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 		Eventually(func() error {
-			return verifyHostPortsPerNode(portRegistry, 2, 2*(testMaxPort-testMinPort+1))
+			return verifyHostPortsUsage(portRegistry, 2, 2*(testMaxPort-testMinPort+1))
 		}).Should(Succeed())
 
 		err = kubeClient.Delete(context.Background(), node)
 		Expect(err).ToNot(HaveOccurred())
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 		Eventually(func() error {
-			return verifyHostPortsPerNode(portRegistry, 1, 1*(testMaxPort-testMinPort+1))
+			return verifyHostPortsUsage(portRegistry, 1, 1*(testMaxPort-testMinPort+1))
 		}).Should(Succeed())
 	})
 
@@ -103,7 +103,7 @@ var _ = Describe("Port registry tests", func() {
 		// do a manual reconcile since we haven't added the controller to the manager
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 		Eventually(func() error {
-			return verifyHostPortsPerNode(portRegistry, 2, 2*(testMaxPort-testMinPort+1))
+			return verifyHostPortsUsage(portRegistry, 2, 2*(testMaxPort-testMinPort+1))
 		}).Should(Succeed())
 
 		assignedPorts := make(map[int32]int)
@@ -194,7 +194,7 @@ var _ = Describe("Port registry tests", func() {
 		// do a manual reconcile since we haven't added the controller to the manager
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 		Eventually(func() error {
-			return verifyHostPortsPerNode(portRegistry, 2, 2*(testMaxPort-testMinPort+1)-8) // ten minus two
+			return verifyHostPortsUsage(portRegistry, 2, 2*(testMaxPort-testMinPort+1)-8) // ten minus two
 		}).Should(Succeed())
 
 		// get 8 more ports, we have 16 in total
@@ -231,7 +231,7 @@ var _ = Describe("Port registry tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 		Eventually(func() error {
-			return verifyHostPortsPerNode(portRegistry, 1, 1*(testMaxPort-testMinPort+1)-10) // 16 minus 6
+			return verifyHostPortsUsage(portRegistry, 1, 1*(testMaxPort-testMinPort+1)-10) // 16 minus 6
 		}).Should(Succeed())
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 
@@ -271,7 +271,7 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 	}
 
 	Eventually(func() error {
-		return verifyHostPortsPerNode(portRegistry, 4, 4*int(max-min+1))
+		return verifyHostPortsUsage(portRegistry, 4, 4*int(max-min+1))
 	}).Should(Succeed())
 
 	It("should work with allocating and deallocating ports", func() {
@@ -405,7 +405,7 @@ var _ = Describe("Random port registration on port registry with two thousand po
 	}
 
 	Eventually(func() error {
-		return verifyHostPortsPerNode(portRegistry, 4, 4*int(max-min+1))
+		return verifyHostPortsUsage(portRegistry, 4, 4*int(max-min+1))
 	}).Should(Succeed())
 
 	It("should work with allocating and deallocating ports", func() {
@@ -477,11 +477,11 @@ func validatePort(port, testMinPort, testMaxPort int32) {
 	Expect(port).Should(BeNumerically("<=", testMaxPort))
 }
 
-// verifyExpectedHostPorts compares the hostPortsPerNode map on the PortRegistry to the expectedHostPorts map
+// verifyExpectedHostPorts compares the HostPortsUsage map on the PortRegistry to the expectedHostPorts map
 func verifyExpectedHostPorts(portRegistry *PortRegistry, expectedHostPorts map[int32]int, expectedTotalHostPortsCount int) {
 	actualHostPorts := make(map[int32]int)
 	actualTotalHostPortsCount := 0
-	for port, count := range portRegistry.HostPortsPerNode {
+	for port, count := range portRegistry.HostPortsUsage {
 		actualHostPorts[port] = count
 		actualTotalHostPortsCount += count
 	}
@@ -496,9 +496,9 @@ func verifyExpectedHostPorts(portRegistry *PortRegistry, expectedHostPorts map[i
 	Expect(actualTotalHostPortsCount).To(Equal(expectedTotalHostPortsCount))
 }
 
-// verifyHostPortsPerNode verifies that the hostPortsPerNode map on the PortRegistry has the proper length
+// verifyHostPortsUsage verifies that the HostPortsUsage map on the PortRegistry has the proper length
 // and its item has the correct length as well
-func verifyHostPortsPerNode(portRegistry *PortRegistry, expectedNodeCount, expectedFreePortsCount int) error {
+func verifyHostPortsUsage(portRegistry *PortRegistry, expectedNodeCount, expectedFreePortsCount int) error {
 	if portRegistry.NodeCount != expectedNodeCount {
 		return fmt.Errorf("NodeCount is not %d, it is %d", expectedNodeCount, portRegistry.NodeCount)
 	}

@@ -80,9 +80,9 @@ func NewGameServerReconciler(mgr manager.Manager,
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameserverdetails,verbs=get;list;watch
 //+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=mps.playfab.com,resources=gameservers/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get
 
@@ -96,12 +96,14 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	var gs mpsv1alpha1.GameServer
 	if err := r.Get(ctx, req.NamespacedName, &gs); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("Unable to fetch GameServer, it probably has been deleted. Trying to deregister ports")
-			ports, err := r.PortRegistry.DeregisterServerPorts(req.NamespacedName.Namespace, req.NamespacedName.Name)
+			log.Info("Unable to fetch GameServer, it has probably been deleted. Trying to deregister ports")
+			ports, err := r.PortRegistry.DeregisterServerPorts(req.Namespace, req.Name)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			log.V(1).Info("Deregistered ports", "ports", ports)
+			if len(ports) > 0 {
+				log.V(1).Info("Deregistered ports", "ports", ports)
+			}
 			return ctrl.Result{}, nil
 		}
 		log.Error(err, "unable to fetch GameServer")

@@ -23,29 +23,29 @@ const (
 
 // PortRegistry implements a custom map for the port registry
 type PortRegistry struct {
-	client                            client.Client // used to get the list of nodes
-	NodeCount                         int           // the number of Ready and Schedulable nodes in the cluster
-	HostPortsPerNode                  map[int32]int // a slice for the entire port range. increases by 1 for each registered port
-	Min                               int32         // Minimum Port
-	Max                               int32         // Maximum Port
-	FreePortsCount                    int           // the number of free ports
-	lockMutex                         sync.Mutex    // lock for the map
-	nextPortNumber                    int32         // the next port to check
-	useSpecificNodePoolForGameServers bool          // if true, we only take into account Nodes that have the Label "mps.playfab.com/gameservernode"=true
-	HostPortsPerGameServer            map[string][]int32
+	client                            client.Client      // used to get the list of nodes
+	HostPortsUsage                    map[int32]int      // Number of times each HostPort in the [Min,Max] range is used
+	HostPortsPerGameServer            map[string][]int32 // Map of GameServer namespace/names to the list of ports that are assigned to it
+	NodeCount                         int                // the number of Ready and Schedulable nodes in the cluster
+	Min                               int32              // Minimum Port
+	Max                               int32              // Maximum Port
+	FreePortsCount                    int                // the number of free ports. Originally it equals [Min,Max] * NodeCount
+	nextPortNumber                    int32              // the next port to check. Useful to avoid assigning the same port to different GameServers when the controller starts
+	useSpecificNodePoolForGameServers bool               // if true, we only take into account Nodes that have the Label "mps.playfab.com/gameservernode"=true
 	logger                            logr.Logger
+	lockMutex                         sync.Mutex // lock for the PortRegistry operations
 }
 
 // NewPortRegistry initializes the map[port]counter that holds the port registry
 // The way that this works is the following:
-// We keep a map (HostPortsPerNode) of all the port numbers
+// We keep a map (HostPortsUsage) of all the port numbers
 // every time a new port is requested, we check if the counter for this port is less than the number of Nodes
 // if it is, we increase it by one. If not, we check the next port.
 // the nextPortNumber facilitates getting the next port (port+1),
 // since getting the same port again would cause the GameServer Pod to be placed on a different Node, to avoid collision.
 // This would have a negative impact in cases where we want as many GameServers as possible on the same Node.
-// We also set up a Kubernetes Watch for the Nodes
-// When a new Node is added or removed to the cluster, we modify the NodeCount variable
+// We also set up a Kubernetes Watch for the Nodes so that
+// when a new Node is added or removed to the cluster, we modify the NodeCount variable
 func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerList, min, max int32, nodeCount int, useSpecificNodePool bool, setupLog logr.Logger) (*PortRegistry, error) {
 	if min > max {
 		return nil, errors.New("min port cannot be greater than max port")
@@ -65,9 +65,9 @@ func NewPortRegistry(client client.Client, gameServers *mpsv1alpha1.GameServerLi
 	}
 
 	// initialize the ports
-	pr.HostPortsPerNode = make(map[int32]int)
+	pr.HostPortsUsage = make(map[int32]int)
 	for port := pr.Min; port <= pr.Max; port++ {
-		pr.HostPortsPerNode[port] = 0
+		pr.HostPortsUsage[port] = 0
 	}
 
 	// gather ports for existing game servers
@@ -163,38 +163,39 @@ func (pr *PortRegistry) onNodeRemoved() {
 // You may wonder what happens if two GameServer Pods get assigned the same HostPort
 // We will not have a collision, since Kubernetes is pretty smart and will place the Pod on a different Node, to prevent it
 func (pr *PortRegistry) GetNewPorts(namespace, name string, count int) ([]int32, error) {
+	namespacedName := getNamespacedName(namespace, name)
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
-	namespacedName := getNamespacedName(namespace, name)
+	// check if we have enough free ports for this request
 	if count > pr.FreePortsCount {
 		return nil, errors.New(errorNotEnoughFreePorts)
 	}
+	// check if we have already assigned ports for this GameServer
 	if _, ok := pr.HostPortsPerGameServer[namespacedName]; ok {
 		return nil, errors.New(errorPortsAlreadyAssignedForThisGameServer)
 	}
 	portsToReturn := make([]int32, count)
+	// for all requested ports
 	for i := 0; i < count; i++ {
 		portFound := false
 		// get the next port
 		// do pr.Max-pr.Min+1 iterations, since the [min,max] ports set is inclusive of both edges
 		var j int32
 		for j = 0; j < pr.Max-pr.Min+1; j++ {
-			port := pr.nextPortNumber + j
-			if port > pr.Max {
-				port = pr.Min + (port - pr.Max - 1)
-			}
 			// this port is used less times than the total number of Nodes
-			if pr.HostPortsPerNode[port] < pr.NodeCount {
-				pr.HostPortsPerNode[port]++ // increase the times (Nodes) this port is used
-				pr.nextPortNumber = port + 1
+			if pr.HostPortsUsage[pr.nextPortNumber] < pr.NodeCount {
+				pr.HostPortsUsage[pr.nextPortNumber]++ // increase the times (Nodes) this port is used
 				// we did a full cycle on the map
-				if pr.nextPortNumber > pr.Max {
-					pr.nextPortNumber = pr.Min
-				}
-				pr.FreePortsCount--     // decrease the number of used ports
-				portsToReturn[i] = port // add the port to the slice to be returned
+				pr.FreePortsCount--                  // decrease the number of used ports
+				portsToReturn[i] = pr.nextPortNumber // add the port to the slice to be returned
 				portFound = true
-				break // exit the loop
+			}
+			pr.nextPortNumber++
+			if pr.nextPortNumber > pr.Max {
+				pr.nextPortNumber = pr.Min
+			}
+			if portFound {
+				break
 			}
 		}
 		if !portFound {
@@ -203,27 +204,27 @@ func (pr *PortRegistry) GetNewPorts(namespace, name string, count int) ([]int32,
 		}
 	}
 	pr.HostPortsPerGameServer[namespacedName] = portsToReturn
-	pr.logger.V(1).Info("Registering ports", "ports", portsToReturn, "GameServer Namespace", namespace, "GameServer Name", name)
+	pr.logger.V(1).Info("Registering ports", "ports", portsToReturn, "GameServer NamespacedName", namespacedName)
 	return portsToReturn, nil
 }
 
 // DeregisterServerPorts deregisters all host ports so they can be re-used by additional game servers
 func (pr *PortRegistry) DeregisterServerPorts(namespace, name string) ([]int32, error) {
+	namespacedName := getNamespacedName(namespace, name)
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()
-	namespacedName := getNamespacedName(namespace, name)
 	ports, ok := pr.HostPortsPerGameServer[namespacedName]
 	if !ok {
 		return nil, nil
 	}
 	for i := 0; i < len(ports); i++ {
-		if pr.HostPortsPerNode[ports[i]] > 0 {
+		if pr.HostPortsUsage[ports[i]] > 0 {
 			// following log should NOT be changed since an e2e test depends on it
-			pr.logger.V(1).Info("Deregistering port", "port", ports[i], "GameServer Namespace", namespace, "GameServer Name", name)
-			pr.HostPortsPerNode[ports[i]]--
+			pr.logger.V(1).Info("Deregistering port", "port", ports[i], "GameServer NamespacedName", namespacedName)
+			pr.HostPortsUsage[ports[i]]--
 			pr.FreePortsCount++
 		} else {
-			pr.logger.V(1).Info("cannot deregister port, it is not registered or has already been deleted", "port", ports[i], "GameServer Namespace", namespace, "GameServer Name", name)
+			pr.logger.V(1).Info("cannot deregister port, it is not registered or has already been deleted", "port", ports[i], "GameServer NamespacedName", namespacedName)
 		}
 	}
 	delete(pr.HostPortsPerGameServer, namespacedName)
@@ -237,7 +238,7 @@ func (pr *PortRegistry) assignRegisteredPorts(ports []int32) {
 	pr.lockMutex.Lock()
 	for i := 0; i < len(ports); i++ {
 		pr.logger.V(1).Info("Registering port", "port", ports[i])
-		pr.HostPortsPerNode[ports[i]]++
+		pr.HostPortsUsage[ports[i]]++
 		pr.FreePortsCount--
 	}
 }

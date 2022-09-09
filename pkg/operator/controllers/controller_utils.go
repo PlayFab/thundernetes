@@ -124,7 +124,8 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 		// we don't create any status since we have the .Status subresource enabled
 	}
 	// get host ports
-	// we assume that each portToExpose exists only once in the GameServer spec
+	// we assume that each portToExpose exists only once in the GameServer PodSpec.Containers.Ports.ContainerPort(s)
+	// so we ask for len(gsb.Spec.PortsToExpose) ports
 	hostPorts, err := portRegistry.GetNewPorts(gs.Namespace, gs.Name, len(gsb.Spec.PortsToExpose))
 	j := 0
 	if err != nil {
