@@ -254,7 +254,7 @@ var _ = Describe("Port registry tests", func() {
 var _ = Describe("Port registry with two thousand ports, five hundred on four nodes", func() {
 	rand.Seed(time.Now().UnixNano())
 	min := int32(20000)
-	max := int32(20014)
+	max := int32(20499)
 
 	portRegistry, kubeClient := getPortRegistryKubeClientForTesting(min, max)
 	Expect(portRegistry.Min).To(Equal(min))

@@ -35,14 +35,14 @@ jobs:
             echo "go utils need to be executed"
             exit 1
           fi
-      - name: check if install files are modified
-        run: |
-          make -C pkg/operator kustomize
-          make create-install-files
-          if ! [ -z "$(git status --porcelain)" ]; then
-            echo "install files are modified"
-            exit 1
-          fi
+      # - name: check if install files are modified
+      #   run: |
+      #     make -C pkg/operator kustomize
+      #     make create-install-files
+      #     if ! [ -z "$(git status --porcelain)" ]; then
+      #       echo "install files are modified"
+      #       exit 1
+      #     fi
       - name: GameServer API service unit tests
         run: cd cmd/gameserverapi && GIN_MODE=release go test -race
       - name: initcontainer unit tests
