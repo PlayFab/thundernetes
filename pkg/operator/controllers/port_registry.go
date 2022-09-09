@@ -15,6 +15,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
+const (
+	errorNoAvailablePorts                      = "cannot register a new port. No available ports"
+	errorNotEnoughFreePorts                    = "not enough free ports"
+	errorPortsAlreadyAssignedForThisGameServer = "ports already assigned for this GameServer"
+)
+
 // PortRegistry implements a custom map for the port registry
 type PortRegistry struct {
 	client                            client.Client // used to get the list of nodes
@@ -161,10 +167,10 @@ func (pr *PortRegistry) GetNewPorts(namespace, name string, count int) ([]int32,
 	pr.lockMutex.Lock()
 	namespacedName := getNamespacedName(namespace, name)
 	if count > pr.FreePortsCount {
-		return nil, errors.New("not enough free ports")
+		return nil, errors.New(errorNotEnoughFreePorts)
 	}
 	if _, ok := pr.HostPortsPerGameServer[namespacedName]; ok {
-		return nil, errors.New("ports already assigned for this GameServer")
+		return nil, errors.New(errorPortsAlreadyAssignedForThisGameServer)
 	}
 	portsToReturn := make([]int32, count)
 	for i := 0; i < count; i++ {
@@ -193,7 +199,7 @@ func (pr *PortRegistry) GetNewPorts(namespace, name string, count int) ([]int32,
 		}
 		if !portFound {
 			// we made a full circle, no available ports
-			return nil, errors.New("cannot register a new port. No available ports")
+			return nil, errors.New(errorNoAvailablePorts)
 		}
 	}
 	pr.HostPortsPerGameServer[namespacedName] = portsToReturn

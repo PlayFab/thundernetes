@@ -63,7 +63,7 @@ func generateName(prefix string) string {
 
 // randString creates a random string with lowercase characters
 func randString(n int) string {
-	letters := []rune("abcdefghijklmnopqrstuvwxyz")
+	letters := []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]

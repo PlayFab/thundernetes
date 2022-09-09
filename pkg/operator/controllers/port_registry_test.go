@@ -29,6 +29,7 @@ const (
 	timeout                                   = time.Second * 10
 	duration                                  = time.Second * 10
 	interval                                  = time.Millisecond * 250
+	prefix                                    = "testprefix"
 )
 
 var _ = Describe("Port registry tests", func() {
@@ -300,6 +301,7 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 		// trying to get another port should fail, since we've allocated every available port
 		_, err := portRegistry.GetNewPorts(testnamespace, "willfail", 1)
 		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal(errorNotEnoughFreePorts))
 
 		//deallocate 1000 ports
 		for i := 0; i < int(max-min+1)*2; i++ {
@@ -323,6 +325,11 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 
 		m = syncMapToMapInt32Int(&assignedPorts)
 		verifyExpectedHostPorts(portRegistry, m, int(max-min+1)*2)
+
+		// trying to re-register an existing GameServer will fail
+		_, err = portRegistry.GetNewPorts(testnamespace, fmt.Sprintf("%s%d", testGsName, 1001), 1)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal(errorPortsAlreadyAssignedForThisGameServer))
 
 		// allocate 500 ports
 		for i := 0; i < int(max-min+1); i++ {
@@ -373,12 +380,11 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 		verifyExpectedHostPorts(portRegistry, m, int(max-min+1)*4)
 
 		// trying to get another port should fail, since we've allocated every available port
-		_, err = portRegistry.GetNewPorts(testnamespace, "willfail", 1)
+		_, err = portRegistry.GetNewPorts(testnamespace, "willfail2", 1)
 		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal(errorNotEnoughFreePorts))
 	})
 })
-
-const prefix = "lala"
 
 var _ = Describe("Random port registration on port registry with two thousand ports, five hundred on four nodes", func() {
 	rand.Seed(time.Now().UnixNano())
@@ -425,6 +431,7 @@ var _ = Describe("Random port registration on port registry with two thousand po
 		// trying to get another port should fail, since we've allocated every available port
 		_, err := portRegistry.GetNewPorts(testnamespace, "willfail", 1)
 		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal(errorNotEnoughFreePorts))
 
 		//deallocate 1000 ports
 		i := 0
@@ -458,8 +465,9 @@ var _ = Describe("Random port registration on port registry with two thousand po
 		Expect(len(portRegistry.HostPortsPerGameServer)).To(Equal(int(max-min+1) * 4))
 
 		// trying to get another port should fail, since we've allocated every available port
-		_, err = portRegistry.GetNewPorts(testnamespace, "willfail", 1)
+		_, err = portRegistry.GetNewPorts(testnamespace, "willfailagain", 1)
 		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal(errorNotEnoughFreePorts))
 	})
 })
 
