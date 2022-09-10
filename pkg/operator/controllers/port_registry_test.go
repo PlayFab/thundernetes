@@ -252,6 +252,8 @@ var _ = Describe("Port registry tests", func() {
 
 })
 
+// This test allocates ports from the PortRegistry using predictable GameServer names
+// useful to test ordered GameServer creation that leads to port allocation
 var _ = Describe("Ordered port registration on port registry with two thousand ports, five hundred on four nodes", func() {
 	rand.Seed(time.Now().UnixNano())
 	min := int32(20000)
@@ -260,13 +262,15 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 	portRegistry, kubeClient := getPortRegistryKubeClientForTesting(min, max)
 	Expect(portRegistry.Min).To(Equal(min))
 	Expect(portRegistry.Max).To(Equal(max))
+	// map[port, timesallocated] keeps track of how many times each port has been allocated. Used for assertions
 	assignedPorts := sync.Map{}
 
-	// add three nodes
+	// add three more nodes
 	for i := 0; i < 3; i++ {
 		node := getNewNodeForTest(fmt.Sprintf("node%d", i+2))
 		err := kubeClient.Create(context.Background(), node)
 		Expect(err).ToNot(HaveOccurred())
+		// we manually reconcile so the extra ports are added to the port registry
 		portRegistry.Reconcile(context.Background(), reconcile.Request{})
 	}
 
@@ -274,7 +278,7 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 		return verifyHostPortsUsage(portRegistry, 4, 4*int(max-min+1))
 	}).Should(Succeed())
 
-	It("should work with allocating and deallocating ports", func() {
+	It("should allocate and deallocate ports", func() {
 		// allocate all 2000 ports, one at a time
 		var wg sync.WaitGroup
 		for i := 0; i < int(max-min+1)*4; i++ {
@@ -285,8 +289,8 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 				time.Sleep(time.Duration(n) * time.Millisecond)
 				ports, err := portRegistry.GetNewPorts(testnamespace, fmt.Sprintf("%s%d", testGsName, j), 1)
 				Expect(err).ToNot(HaveOccurred())
-				p := ports[0]
-				val, ok := assignedPorts.Load(p)
+				p := ports[0]                    // we allocate only one port
+				val, ok := assignedPorts.Load(p) // check if this is the first time we allocate this port
 				if !ok {
 					assignedPorts.Store(p, 1)
 				} else {
@@ -303,7 +307,7 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal(errorNotEnoughFreePorts))
 
-		//deallocate 1000 ports
+		//deallocate 1000 ports from GameServers that end in 0..999
 		for i := 0; i < int(max-min+1)*2; i++ {
 			wg.Add(1)
 			go func(j int) {
@@ -324,14 +328,14 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 		wg.Wait()
 
 		m = syncMapToMapInt32Int(&assignedPorts)
-		verifyExpectedHostPorts(portRegistry, m, int(max-min+1)*2)
+		verifyExpectedHostPorts(portRegistry, m, int(max-min+1)*2) // 1000 ports allocated
 
-		// trying to re-register an existing GameServer will fail
-		_, err = portRegistry.GetNewPorts(testnamespace, fmt.Sprintf("%s%d", testGsName, 1001), 1)
+		// trying to re-register an existing GameServer will fail (GameServer ending in 1000 is already registered)
+		_, err = portRegistry.GetNewPorts(testnamespace, fmt.Sprintf("%s%d", testGsName, 1000), 1)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal(errorPortsAlreadyAssignedForThisGameServer))
 
-		// allocate 500 ports
+		// allocate 500 ports (GameServers ending in 0..499)
 		for i := 0; i < int(max-min+1); i++ {
 			wg.Add(1)
 			go func(j int) {
@@ -353,9 +357,14 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 		wg.Wait()
 
 		m = syncMapToMapInt32Int(&assignedPorts)
-		verifyExpectedHostPorts(portRegistry, m, int(max-min+1)*3)
+		verifyExpectedHostPorts(portRegistry, m, int(max-min+1)*3) // 1500 ports allocated
 
-		//allocate another 500 ports
+		// trying to re-register an existing GameServer will fail (GameServer ending in 0 is already registered)
+		_, err = portRegistry.GetNewPorts(testnamespace, fmt.Sprintf("%s%d", testGsName, 0), 1)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal(errorPortsAlreadyAssignedForThisGameServer))
+
+		//allocate another 500 ports (GameServers ending in 500..999)
 		for i := max - min + 1; i < int32(max-min+1)*2; i++ {
 			wg.Add(1)
 			go func(j int) {
@@ -386,6 +395,8 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 	})
 })
 
+// this test verifies that the port registry can handle concurrent requests to allocate ports
+// from random GameServer names
 var _ = Describe("Random port registration on port registry with two thousand ports, five hundred on four nodes", func() {
 	rand.Seed(time.Now().UnixNano())
 	min := int32(20000)
@@ -394,9 +405,10 @@ var _ = Describe("Random port registration on port registry with two thousand po
 	portRegistry, kubeClient := getPortRegistryKubeClientForTesting(min, max)
 	Expect(portRegistry.Min).To(Equal(min))
 	Expect(portRegistry.Max).To(Equal(max))
-	gameServerNames := sync.Map{}
+	// map[GameServerName, port] to save the GameServer/Port tuples that we have registered
+	gameServerNamesAndPorts := sync.Map{}
 
-	// add three nodes
+	// add three more nodes
 	for i := 0; i < 3; i++ {
 		node := getNewNodeForTest(fmt.Sprintf("node%d", i+2))
 		err := kubeClient.Create(context.Background(), node)
@@ -419,14 +431,22 @@ var _ = Describe("Random port registration on port registry with two thousand po
 				n := rand.Intn(200) + 50 // n will be between 50 and 250
 				time.Sleep(time.Duration(n) * time.Millisecond)
 				gameServerName := generateName(prefix)
-				gameServerNames.Store(gameServerName, struct{}{})
 				ports, err := portRegistry.GetNewPorts(testnamespace, gameServerName, 1)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(ports)).To(Equal(1))
+				gameServerNamesAndPorts.Store(gameServerName, ports[0])
 			}()
 		}
 		wg.Wait()
 		Expect(len(portRegistry.HostPortsPerGameServer)).To(Equal(int(max-min+1) * 4))
+
+		// make sure the ports are stored properly in the portRegistry
+		gameServerNamesAndPorts.Range(func(key, value interface{}) bool {
+			gameServerName := key.(string)
+			port := value.(int32)
+			Expect(portRegistry.HostPortsPerGameServer[getNamespacedName(testnamespace, gameServerName)]).To(Equal([]int32{port}))
+			return true
+		})
 
 		// trying to get another port should fail, since we've allocated every available port
 		_, err := portRegistry.GetNewPorts(testnamespace, "willfail", 1)
@@ -435,15 +455,24 @@ var _ = Describe("Random port registration on port registry with two thousand po
 
 		//deallocate 1000 ports
 		i := 0
-		gameServerNames.Range(func(key, value interface{}) bool {
+		gameServerNamesAndPorts.Range(func(key, value interface{}) bool {
 			ports, err := portRegistry.DeregisterServerPorts(testnamespace, key.(string))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(ports)).To(Equal(1))
 			i++
+			gameServerNamesAndPorts.Delete(key)
 			return i != 1000
 		})
 
-		Expect(len(portRegistry.HostPortsPerGameServer)).To(Equal(int(max-min+1) * 2))
+		Expect(len(portRegistry.HostPortsPerGameServer)).To(Equal(int(max-min+1) * 2)) // 1000 ports deallocated
+
+		// make sure the ports are stored properly in the portRegistry
+		gameServerNamesAndPorts.Range(func(key, value interface{}) bool {
+			gameServerName := key.(string)
+			port := value.(int32)
+			Expect(portRegistry.HostPortsPerGameServer[getNamespacedName(testnamespace, gameServerName)]).To(Equal([]int32{port}))
+			return true
+		})
 
 		// allocate 1000 ports
 		for i := 0; i < int(max-min+1)*2; i++ {
@@ -454,15 +483,23 @@ var _ = Describe("Random port registration on port registry with two thousand po
 				n := rand.Intn(200) + 50 // n will be between 50 and 250
 				time.Sleep(time.Duration(n) * time.Millisecond)
 				gameServerName := generateName(prefix)
-				gameServerNames.Store(gameServerName, struct{}{})
 				ports, err := portRegistry.GetNewPorts(testnamespace, gameServerName, 1)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(ports)).To(Equal(1))
+				gameServerNamesAndPorts.Store(gameServerName, ports[0])
 			}()
 		}
 		wg.Wait()
 
-		Expect(len(portRegistry.HostPortsPerGameServer)).To(Equal(int(max-min+1) * 4))
+		Expect(len(portRegistry.HostPortsPerGameServer)).To(Equal(int(max-min+1) * 4)) // 2000 ports allocated
+
+		// make sure the ports are stored properly in the portRegistry
+		gameServerNamesAndPorts.Range(func(key, value interface{}) bool {
+			gameServerName := key.(string)
+			port := value.(int32)
+			Expect(portRegistry.HostPortsPerGameServer[getNamespacedName(testnamespace, gameServerName)]).To(Equal([]int32{port}))
+			return true
+		})
 
 		// trying to get another port should fail, since we've allocated every available port
 		_, err = portRegistry.GetNewPorts(testnamespace, "willfailagain", 1)
