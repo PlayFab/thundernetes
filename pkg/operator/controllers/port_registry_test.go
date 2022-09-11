@@ -279,7 +279,7 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 	}).Should(Succeed())
 
 	It("should allocate and deallocate ports", func() {
-		// allocate all 2000 ports, one at a time
+		// allocate all 2000 ports in parallel, one at a time
 		var wg sync.WaitGroup
 		for i := 0; i < int(max-min+1)*4; i++ {
 			wg.Add(1)
@@ -307,7 +307,7 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal(errorNotEnoughFreePorts))
 
-		//deallocate 1000 ports from GameServers that end in 0..999
+		//deallocate 1000 ports in parallel from GameServers that end in 0..999
 		for i := 0; i < int(max-min+1)*2; i++ {
 			wg.Add(1)
 			go func(j int) {
@@ -335,7 +335,7 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal(errorPortsAlreadyAssignedForThisGameServer))
 
-		// allocate 500 ports (GameServers ending in 0..499)
+		// allocate 500 ports in parallel (GameServers ending in 0..499)
 		for i := 0; i < int(max-min+1); i++ {
 			wg.Add(1)
 			go func(j int) {
@@ -364,7 +364,7 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal(errorPortsAlreadyAssignedForThisGameServer))
 
-		//allocate another 500 ports (GameServers ending in 500..999)
+		//allocate the last 500 ports in parallel (GameServers ending in 500..999)
 		for i := max - min + 1; i < int32(max-min+1)*2; i++ {
 			wg.Add(1)
 			go func(j int) {
@@ -421,7 +421,7 @@ var _ = Describe("Random port registration on port registry with two thousand po
 	}).Should(Succeed())
 
 	It("should work with allocating and deallocating ports", func() {
-		// allocate all 2000 ports, one at a time
+		// allocate all 2000 ports in parallel, one at a time
 		var wg sync.WaitGroup
 		for i := 0; i < int(max-min+1)*4; i++ {
 			wg.Add(1)
@@ -448,12 +448,18 @@ var _ = Describe("Random port registration on port registry with two thousand po
 			return true
 		})
 
+		// make sure all ports have been registered 4 times
+		for k, v := range portRegistry.HostPortsUsage {
+			Expect(v).To(Equal(4))
+			validatePort(k, min, max)
+		}
+
 		// trying to get another port should fail, since we've allocated every available port
 		_, err := portRegistry.GetNewPorts(testnamespace, "willfail", 1)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal(errorNotEnoughFreePorts))
 
-		//deallocate 1000 ports
+		// deallocate 1000 ports in parallel
 		i := 0
 		gameServerNamesAndPorts.Range(func(key, value interface{}) bool {
 			ports, err := portRegistry.DeregisterServerPorts(testnamespace, key.(string))
@@ -461,10 +467,10 @@ var _ = Describe("Random port registration on port registry with two thousand po
 			Expect(len(ports)).To(Equal(1))
 			i++
 			gameServerNamesAndPorts.Delete(key)
-			return i != 1000
+			return i != 1000 // exit the loop when it has run 1000 times
 		})
 
-		Expect(len(portRegistry.HostPortsPerGameServer)).To(Equal(int(max-min+1) * 2)) // 1000 ports deallocated
+		Expect(len(portRegistry.HostPortsPerGameServer)).To(Equal(int(max-min+1) * 2)) // 1000 ports allocated
 
 		// make sure the ports are stored properly in the portRegistry
 		gameServerNamesAndPorts.Range(func(key, value interface{}) bool {
@@ -474,7 +480,7 @@ var _ = Describe("Random port registration on port registry with two thousand po
 			return true
 		})
 
-		// allocate 1000 ports
+		// allocate the rest 1000 ports in parallel
 		for i := 0; i < int(max-min+1)*2; i++ {
 			wg.Add(1)
 			go func() {
