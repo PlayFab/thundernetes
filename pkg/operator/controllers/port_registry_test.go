@@ -143,11 +143,11 @@ var _ = Describe("Port registry tests", func() {
 
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 		// deallocate two ports
-		ports, err := portRegistry.DeregisterServerPorts(testnamespace, testGsName+"1")
+		ports, err := portRegistry.DeregisterPorts(testnamespace, testGsName+"1")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ports[0]).To(Equal(int32(testMinPort + 1)))
 		delete(assignedPorts, testMinPort+1)
-		ports, err = portRegistry.DeregisterServerPorts(testnamespace, testGsName+"3")
+		ports, err = portRegistry.DeregisterPorts(testnamespace, testGsName+"3")
 		Expect(ports[0]).To(Equal(int32(testMinPort + 3)))
 		Expect(err).ToNot(HaveOccurred())
 		delete(assignedPorts, testMinPort+3)
@@ -177,11 +177,11 @@ var _ = Describe("Port registry tests", func() {
 		verifyExpectedHostPorts(portRegistry, assignedPorts, 10)
 
 		// deallocate two ports
-		ports, err := portRegistry.DeregisterServerPorts(testnamespace, testGsName+"1")
+		ports, err := portRegistry.DeregisterPorts(testnamespace, testGsName+"1")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ports[0]).To(Equal(int32(testMinPort + 1)))
 		delete(assignedPorts, testMinPort+1)
-		ports, err = portRegistry.DeregisterServerPorts(testnamespace, testGsName+"3")
+		ports, err = portRegistry.DeregisterPorts(testnamespace, testGsName+"3")
 		Expect(ports[0]).To(Equal(int32(testMinPort + 3)))
 		Expect(err).ToNot(HaveOccurred())
 		delete(assignedPorts, testMinPort+3)
@@ -214,7 +214,7 @@ var _ = Describe("Port registry tests", func() {
 		// deallocate six ports that exist on the second Node
 		for i := 0; i < 6; i++ {
 			ports := portRegistry.HostPortsPerGameServer[getNamespacedName(testnamespace, fmt.Sprintf("%s%d", testGsName2, i))]
-			releasedPorts, err := portRegistry.DeregisterServerPorts(testnamespace, fmt.Sprintf("%s%d", testGsName2, i))
+			releasedPorts, err := portRegistry.DeregisterPorts(testnamespace, fmt.Sprintf("%s%d", testGsName2, i))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(releasedPorts[0]).To(Equal(ports[0]))
 			portToDelete := ports[0]
@@ -237,7 +237,7 @@ var _ = Describe("Port registry tests", func() {
 
 		// deallocate three ports (we're doing 7..9 since 1 and 3 have already been deleted)
 		for i := 7; i <= 9; i++ {
-			releasedPorts, err := portRegistry.DeregisterServerPorts(testnamespace, fmt.Sprintf("%s%d", testGsName, i))
+			releasedPorts, err := portRegistry.DeregisterPorts(testnamespace, fmt.Sprintf("%s%d", testGsName, i))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(releasedPorts[0]).To(Equal(int32(testMinPort + i)))
 			portToDelete := testMinPort + int32(i)
@@ -315,7 +315,7 @@ var _ = Describe("Ordered port registration on port registry with two thousand p
 				defer wg.Done()
 				n := rand.Intn(200) + 50 // n will be between 50 and 250
 				time.Sleep(time.Duration(n) * time.Millisecond)
-				releasedPorts, err := portRegistry.DeregisterServerPorts(testnamespace, fmt.Sprintf("%s%d", testGsName, j))
+				releasedPorts, err := portRegistry.DeregisterPorts(testnamespace, fmt.Sprintf("%s%d", testGsName, j))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(releasedPorts)).To(Equal(1))
 				val, ok := assignedPorts.Load(releasedPorts[0])
@@ -462,7 +462,7 @@ var _ = Describe("Random port registration on port registry with two thousand po
 		// deallocate 1000 ports in parallel
 		i := 0
 		gameServerNamesAndPorts.Range(func(key, value interface{}) bool {
-			ports, err := portRegistry.DeregisterServerPorts(testnamespace, key.(string))
+			ports, err := portRegistry.DeregisterPorts(testnamespace, key.(string))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(ports)).To(Equal(1))
 			i++

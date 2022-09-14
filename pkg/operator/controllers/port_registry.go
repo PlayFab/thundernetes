@@ -208,8 +208,8 @@ func (pr *PortRegistry) GetNewPorts(namespace, name string, count int) ([]int32,
 	return portsToReturn, nil
 }
 
-// DeregisterServerPorts deregisters all host ports so they can be re-used by additional game servers
-func (pr *PortRegistry) DeregisterServerPorts(namespace, name string) ([]int32, error) {
+// DeregisterPorts deregisters all host ports so they can be re-used by additional game servers
+func (pr *PortRegistry) DeregisterPorts(namespace, name string) ([]int32, error) {
 	namespacedName := getNamespacedName(namespace, name)
 	defer pr.lockMutex.Unlock()
 	pr.lockMutex.Lock()

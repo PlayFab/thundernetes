@@ -97,7 +97,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err := r.Get(ctx, req.NamespacedName, &gs); err != nil {
 		if apierrors.IsNotFound(err) {
 			log.Info("Unable to fetch GameServer, it has probably been deleted. Trying to deregister ports")
-			ports, err := r.PortRegistry.DeregisterServerPorts(req.Namespace, req.Name)
+			ports, err := r.PortRegistry.DeregisterPorts(req.Namespace, req.Name)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
