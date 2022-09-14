@@ -164,7 +164,6 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if !podFoundInCache {
 		log.Info("Creating a new pod for GameServer", GameServerKind, gs.Name)
-		log.Info("lala", "init1", r.InitContainerImageLinux, "init2", r.InitContainerImageWin)
 		newPod := NewPodForGameServer(&gs, r.InitContainerImageLinux, r.InitContainerImageWin)
 		if err := r.Create(ctx, newPod); err != nil {
 			return ctrl.Result{}, err
