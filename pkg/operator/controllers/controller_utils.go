@@ -63,7 +63,7 @@ func generateName(prefix string) string {
 
 // randString creates a random string with lowercase characters
 func randString(n int) string {
-	letters := []rune("abcdefghijklmnopqrstuvwxyz")
+	letters := []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
@@ -124,8 +124,9 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 		// we don't create any status since we have the .Status subresource enabled
 	}
 	// get host ports
-	// we assume that each portToExpose exists only once in the GameServer spec
-	hostPorts, err := portRegistry.GetNewPorts(len(gsb.Spec.PortsToExpose))
+	// we assume that each portToExpose exists only once in the GameServer PodSpec.Containers.Ports.ContainerPort(s)
+	// so we ask for len(gsb.Spec.PortsToExpose) ports
+	hostPorts, err := portRegistry.GetNewPorts(gs.Namespace, gs.Name, len(gsb.Spec.PortsToExpose))
 	j := 0
 	if err != nil {
 		return nil, err
