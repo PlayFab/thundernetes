@@ -75,6 +75,12 @@ namespace netcore
                 new ConnectedPlayer("Ken"),
                 new ConnectedPlayer("Dimitris")
             });
+
+            string terminateSeconds = Environment.GetEnvironmentVariable("TERMINATE_AFTER_SECONDS");
+            if(Int32.TryParse(terminateSeconds, out int seconds) && seconds > 0)
+            {
+                Task.Run(async () => await TerminateAfterSeconds(seconds));
+            }
         }
 
         private static void PrintGSDKInfo()
@@ -86,8 +92,15 @@ namespace netcore
                 Console.WriteLine($"    Config with key {item.Key} has value {item.Value}");
             }
             Console.WriteLine("End - printing config settings");
-
         }        
+
+        private static async Task TerminateAfterSeconds(int seconds)
+        {
+            int timeout = new Random().Next(-60,60) + seconds;
+            Utils.LogMessage($"Terminating after {timeout} seconds");
+            await Task.Delay(TimeSpan.FromSeconds(timeout));
+            Environment.Exit(0);
+        }
     }
 
     public static class Utils
