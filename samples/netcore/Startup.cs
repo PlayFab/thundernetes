@@ -79,7 +79,7 @@ namespace netcore
             string terminateSeconds = Environment.GetEnvironmentVariable("TERMINATE_AFTER_SECONDS");
             if(Int32.TryParse(terminateSeconds, out int seconds) && seconds > 0)
             {
-                Task.Run(async () => await TerminateAfterSeconds(seconds));
+                await Task.Run(async () => await TerminateAfterSeconds(seconds));
             }
         }
 
@@ -96,7 +96,8 @@ namespace netcore
 
         private static async Task TerminateAfterSeconds(int seconds)
         {
-            int timeout = new Random().Next(-60,60) + seconds;
+            // will exit after [20,2*TERMINATE_AFTER_SECONDS] seconds
+            int timeout = new Random().Next(20, 2*seconds);
             Utils.LogMessage($"Terminating after {timeout} seconds");
             await Task.Delay(TimeSpan.FromSeconds(timeout));
             Environment.Exit(0);
