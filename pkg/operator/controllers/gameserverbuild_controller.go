@@ -219,17 +219,19 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// calculate the total amount of servers not in the active state
 	nonActiveGameServersCount := standingByCount + initializingCount + pendingCount
 
+	// Evaluate desired number of servers against actual
+	var totalNumberOfGameServersToDelete int
+
 	// user has decreased standingBy numbers
 	if nonActiveGameServersCount > gsb.Spec.StandingBy {
-		var totalNumberOfGameServersToDelete int
-
-		// we also need to check if we are above the max
-		// this can happen if the user modifies the spec.Max during the GameServerBuild's lifetime
-		if nonActiveGameServersCount+activeCount > gsb.Spec.Max {
-			totalNumberOfGameServersToDelete += int(math.Min(float64(nonActiveGameServersCount+activeCount-gsb.Spec.Max), maxNumberOfGameServersToDelete))
-		}
-
-		totalNumberOfGameServersToDelete = int(math.Min(float64(totalNumberOfGameServersToDelete+nonActiveGameServersCount-gsb.Spec.StandingBy), maxNumberOfGameServersToDelete))
+		totalNumberOfGameServersToDelete += int(math.Min(float64(nonActiveGameServersCount-gsb.Spec.StandingBy), maxNumberOfGameServersToDelete))
+	}
+	// we also need to check if we are above the max
+	// this can happen if the user modifies the spec.Max during the GameServerBuild's lifetime
+	if nonActiveGameServersCount+activeCount > gsb.Spec.Max {
+		totalNumberOfGameServersToDelete = int(math.Min(float64(totalNumberOfGameServersToDelete+(nonActiveGameServersCount+activeCount-gsb.Spec.Max)), maxNumberOfGameServersToDelete))
+	}
+	if totalNumberOfGameServersToDelete > 0 {
 		err := r.deleteNonActiveGameServers(ctx, &gsb, &gameServers, totalNumberOfGameServersToDelete)
 		if err != nil {
 			return ctrl.Result{}, err
