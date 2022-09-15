@@ -23,6 +23,7 @@ import (
 	"runtime"
 	"sort"
 	"sync"
+	"time"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -140,6 +141,16 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// calculate counts by state so we can update .status accordingly
 	var activeCount, standingByCount, crashesCount, initializingCount, pendingCount int
+	// Gather sum of time taken to reach standingby phase and server count to produce the recent average gameserver initialization time
+	var timeToStandBySum float64
+	var recentStandingByCount int
+	timeToStandBySum = 0
+
+	// Gather current sum of estimated time taken to clean up crashed or pending deletion gameservers
+	var timeToDeleteBySum float64
+	var pendingCleanUpCount int
+	timeToStandBySum = 0
+
 	for i := 0; i < len(gameServers.Items); i++ {
 		gs := gameServers.Items[i]
 
@@ -149,6 +160,10 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			initializingCount++
 		} else if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy && gs.Status.Health == mpsv1alpha1.GameServerHealthy {
 			standingByCount++
+			if gs.Status.PrevState != gs.Status.State {
+				timeToStandBySum += float64(gs.Status.ReachedStandingByOn.Sub(gs.CreationTimestamp.Time).Milliseconds())
+				recentStandingByCount++
+			}
 		} else if gs.Status.State == mpsv1alpha1.GameServerStateActive && gs.Status.Health == mpsv1alpha1.GameServerHealthy {
 			activeCount++
 		} else if gs.Status.State == mpsv1alpha1.GameServerStateGameCompleted && gs.Status.Health == mpsv1alpha1.GameServerHealthy {
@@ -156,9 +171,13 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			if err := r.Delete(ctx, &gs); err != nil {
 				return ctrl.Result{}, err
 			}
+
 			GameServersSessionEndedCounter.WithLabelValues(gsb.Name).Inc()
 			r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Exited", "GameServer %s session completed", gs.Name)
+
+			pendingCleanUpCount++
+			timeToDeleteBySum += math.Abs(float64(time.Until(gs.DeletionTimestamp.Time).Milliseconds()))
 		} else if gs.Status.State == mpsv1alpha1.GameServerStateCrashed {
 			// game server process exited with code != 0 (crashed)
 			crashesCount++
@@ -168,6 +187,9 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			GameServersCrashedCounter.WithLabelValues(gsb.Name).Inc()
 			r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Unhealthy", "GameServer %s was deleted because it became unhealthy, state: %s, health: %s", gs.Name, gs.Status.State, gs.Status.Health)
+
+			pendingCleanUpCount++
+			timeToDeleteBySum += math.Abs(float64(time.Until(gs.DeletionTimestamp.Time).Milliseconds()))
 		} else if gs.Status.Health == mpsv1alpha1.GameServerUnhealthy {
 			// all cases where the game server was marked as Unhealthy
 			crashesCount++
@@ -177,7 +199,21 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			GameServersUnhealthyCounter.WithLabelValues(gsb.Name).Inc()
 			r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Crashed", "GameServer %s was deleted because it crashed, state: %s, health: %s", gs.Name, gs.Status.State, gs.Status.Health)
+
+			pendingCleanUpCount++
+			timeToDeleteBySum += math.Abs(float64(time.Until(gs.DeletionTimestamp.Time).Milliseconds()))
 		}
+		if gs.Status.State != gs.Status.PrevState {
+			gs.Status.PrevState = gs.Status.State
+		}
+	}
+
+	if recentStandingByCount > 0 {
+		GameServersCreatedDuration.WithLabelValues(gsb.Name).Set(timeToStandBySum / float64(recentStandingByCount))
+	}
+
+	if pendingCleanUpCount > 0 {
+		GameServersCleanUpDuration.WithLabelValues(gsb.Name).Set(timeToDeleteBySum / float64(pendingCleanUpCount))
 	}
 
 	// calculate the total amount of servers not in the active state
@@ -185,17 +221,15 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// user has decreased standingBy numbers
 	if nonActiveGameServersCount > gsb.Spec.StandingBy {
-		totalNumberOfGameServersToDelete := int(math.Min(float64(nonActiveGameServersCount-gsb.Spec.StandingBy), maxNumberOfGameServersToDelete))
-		err := r.deleteNonActiveGameServers(ctx, &gsb, &gameServers, totalNumberOfGameServersToDelete)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
+		var totalNumberOfGameServersToDelete int
 
-	// we need to check if we are above the max
-	// this can happen if the user modifies the spec.Max during the GameServerBuild's lifetime
-	if nonActiveGameServersCount+activeCount > gsb.Spec.Max {
-		totalNumberOfGameServersToDelete := int(math.Min(float64(nonActiveGameServersCount+activeCount-gsb.Spec.Max), maxNumberOfGameServersToDelete))
+		// we also need to check if we are above the max
+		// this can happen if the user modifies the spec.Max during the GameServerBuild's lifetime
+		if nonActiveGameServersCount+activeCount > gsb.Spec.Max {
+			totalNumberOfGameServersToDelete += int(math.Min(float64(nonActiveGameServersCount+activeCount-gsb.Spec.Max), maxNumberOfGameServersToDelete))
+		}
+
+		totalNumberOfGameServersToDelete = int(math.Min(float64(totalNumberOfGameServersToDelete+nonActiveGameServersCount-gsb.Spec.StandingBy), maxNumberOfGameServersToDelete))
 		err := r.deleteNonActiveGameServers(ctx, &gsb, &gameServers, totalNumberOfGameServersToDelete)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -207,13 +241,16 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// we attempt to create the missing number of game servers, but we don't want to create more than the max
 	// an error channel for the go routines to write errors
 	errCh := make(chan error, maxNumberOfGameServersToAdd)
+
+	// Time how long it takes to trigger new standby gameservers
+	standByReconcileStartTime := time.Now()
 	// a waitgroup for async create calls
 	var wg sync.WaitGroup
 	for i := 0; i < gsb.Spec.StandingBy-nonActiveGameServersCount &&
 		i+nonActiveGameServersCount+activeCount < gsb.Spec.Max &&
 		i < maxNumberOfGameServersToAdd; i++ {
 		wg.Add(1)
-		go func() {
+		go func(standByStartTime time.Time) {
 			defer wg.Done()
 			newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
 			if err != nil {
@@ -224,12 +261,15 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				errCh <- err
 				return
 			}
+			newgs.Status.PrevState = mpsv1alpha1.GameServerStateInitializing
 			r.expectations.addGameServerToUnderCreationMap(gsb.Name, newgs.Name)
 			GameServersCreatedCounter.WithLabelValues(gsb.Name).Inc()
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Creating", "Creating GameServer %s", newgs.Name)
-		}()
+			GameServersStandByReconcileDuration.WithLabelValues(gsb.Name).Set(float64(time.Since(standByStartTime).Milliseconds()))
+		}(standByReconcileStartTime)
 	}
 	wg.Wait()
+
 	if len(errCh) > 0 {
 		return ctrl.Result{}, <-errCh
 	}
@@ -325,6 +365,8 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 	// a waitgroup for async deletion calls
 	var wg sync.WaitGroup
 	deletionCalls := 0
+	deletionStartTime := time.Now()
+
 	// we sort the GameServers by state so that we can delete the ones that are empty state or Initializing before we delete the StandingBy ones (if needed)
 	// this is to make sure we don't fall below the desired number of StandingBy during scaling down
 	sort.Sort(ByState(gameServers.Items))
@@ -334,7 +376,7 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 		if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 			deletionCalls++
 			wg.Add(1)
-			go func() {
+			go func(deletionStartTime time.Time) {
 				defer wg.Done()
 				if err := r.deleteGameServer(ctx, &gs); err != nil {
 					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
@@ -346,7 +388,9 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
 				r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 				r.Recorder.Eventf(gsb, corev1.EventTypeNormal, "GameServer deleted", "GameServer %s deleted", gs.Name)
-			}()
+				duration := time.Since(deletionStartTime).Milliseconds()
+				GameServersEndedDuration.WithLabelValues(gsb.Name).Set(float64(duration))
+			}(deletionStartTime)
 		}
 	}
 	wg.Wait()

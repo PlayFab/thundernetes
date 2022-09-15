@@ -22,3 +22,6 @@ installfilesdev
 
 
 .uptodate
+
+# vscode settings
+.vscode
