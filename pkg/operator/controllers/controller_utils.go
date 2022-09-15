@@ -63,7 +63,7 @@ func generateName(prefix string) string {
 
 // randString creates a random string with lowercase characters
 func randString(n int) string {
-	letters := []rune("abcdefghijklmnopqrstuvwxyz")
+	letters := []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
@@ -123,21 +123,25 @@ func NewGameServerForGameServerBuild(gsb *mpsv1alpha1.GameServerBuild, portRegis
 		},
 		// we don't create any status since we have the .Status subresource enabled
 	}
+	// get host ports
+	// we assume that each portToExpose exists only once in the GameServer PodSpec.Containers.Ports.ContainerPort(s)
+	// so we ask for len(gsb.Spec.PortsToExpose) ports
+	hostPorts, err := portRegistry.GetNewPorts(gs.Namespace, gs.Name, len(gsb.Spec.PortsToExpose))
+	j := 0
+	if err != nil {
+		return nil, err
+	}
 	// assigning host ports for all the containers in the Template.Spec
 	for i := 0; i < len(gs.Spec.Template.Spec.Containers); i++ {
 		container := gs.Spec.Template.Spec.Containers[i]
 		for i := 0; i < len(container.Ports); i++ {
 			if sliceContainsPortToExpose(gsb.Spec.PortsToExpose, container.Ports[i].ContainerPort) {
-				port, err := portRegistry.GetNewPort()
-				if err != nil {
-					return nil, err
-				}
-				container.Ports[i].HostPort = port
-
+				container.Ports[i].HostPort = hostPorts[j]
 				// if the user has specified that they want to use the host's network, we override the container port
 				if gs.Spec.Template.Spec.HostNetwork {
-					container.Ports[i].ContainerPort = port
+					container.Ports[i].ContainerPort = hostPorts[j]
 				}
+				j++ // increase the hostPort index so on the next iteration (if any) we will use the next hostPort
 			}
 		}
 	}

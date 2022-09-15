@@ -39,6 +39,13 @@ namespace netcore
                     Console.WriteLine($"Argument: {arg}");
                 } 
             }
+
+            string terminateSeconds = Environment.GetEnvironmentVariable("TERMINATE_AFTER_SECONDS");
+            if(Int32.TryParse(terminateSeconds, out int seconds) && seconds > 0)
+            {
+                Task.Run(async () => await TerminateAfterSeconds(seconds));
+            }
+
             CreateHostBuilder(args).Build().Run();
         }
 
@@ -66,6 +73,13 @@ namespace netcore
         {
             Utils.LogMessage($"Maintenance Scheduled at: {time}");
             _nextMaintenance = time;
+        }
+
+        static async Task TerminateAfterSeconds(int seconds)
+        {
+            Utils.LogMessage($"Terminating after {seconds} seconds");
+            await Task.Delay(TimeSpan.FromSeconds(seconds));
+            Environment.Exit(0);
         }
     }
 }
