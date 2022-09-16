@@ -157,7 +157,7 @@ func listGameServeBuilds(c *gin.Context) {
 	}
 }
 
-// @Summary get a game server build by buildName and namespace
+// @Summary get a GameServerBuild by buildName and namespace
 // @ID get-game-server-build-by-buildName&namespace
 // @Produce json
 // @Param namespace path string true "namespaceParam"
