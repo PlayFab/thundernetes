@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 
-	_ "github.com/playfab/thundernetes/cmd/gameserverapi/docs"
+	"github.com/playfab/thundernetes/cmd/gameserverapi/docs"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -41,12 +41,10 @@ const (
 
 // @title          GameServer API
 // @version        1.0
-// @description    This is a service for managing game server and game server builds
+// @description    This is a service for managing GameServer and GameServerBuilds
 // @termsOfService http://swagger.io/terms/
 // @license.name   Apache 2.0
 // @license.url    http://www.apache.org/licenses/LICENSE-2.0.html
-// @host           localhost:5001
-// @BasePath       /
 func main() {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
@@ -94,8 +92,15 @@ func main() {
 	r.Run(addr)
 }
 
+func setSwaggerInfo(c *gin.Context) {
+	// dynamically sets swagger host and base path
+	docs.SwaggerInfo.Host = c.Request.Host
+	docs.SwaggerInfo.BasePath = urlprefix
+}
+
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		setSwaggerInfo(c)
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Max-Age", "86400")
@@ -165,7 +170,7 @@ func listGameServeBuilds(c *gin.Context) {
 // @Success 200 {object} mpsv1alpha1.GameServerBuild
 // @Failure 404 {object} error
 // @Failure 500 {object} error
-// @Router /api/v1/gameserverbuilds/{namespace}/{buildName} [get]
+// @Router /gameserverbuilds/{namespace}/{buildName} [get]
 func getGameServerBuild(c *gin.Context) {
 	var gsb mpsv1alpha1.GameServerBuild
 	namespace := c.Param(namespaceParam)
@@ -182,6 +187,13 @@ func getGameServerBuild(c *gin.Context) {
 	}
 }
 
+// @Summary get list of GameServers
+// @ID get-list-gameservers
+// @Produce json
+// @Success 200 {object} mpsv1alpha1.GameServerList
+// @Failure 404 {object} error
+// @Failure 500 {object} error
+// @Router /gameservers/ [get]
 func listGameServers(c *gin.Context) {
 	var gsList mpsv1alpha1.GameServerList
 	err := kubeClient.List(ctx, &gsList)
