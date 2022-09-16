@@ -7,6 +7,9 @@
 *.dylib
 bin
 
+# testbin for MacOS
+testbin
+
 # Test binary, build with `go test -c`
 *.test
 
