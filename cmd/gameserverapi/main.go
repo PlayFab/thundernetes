@@ -18,6 +18,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
+
+	_ "github.com/playfab/thundernetes/cmd/gameserverapi/docs"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 var (
@@ -35,6 +39,14 @@ const (
 	LabelBuildName            = "BuildName"
 )
 
+// @title          GameServer API
+// @version        1.0
+// @description    This is a service for managing game server and game server builds
+// @termsOfService http://swagger.io/terms/
+// @license.name   Apache 2.0
+// @license.url    http://www.apache.org/licenses/LICENSE-2.0.html
+// @host           localhost:5001
+// @BasePath       /
 func main() {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
@@ -114,6 +126,7 @@ func setupRouter() *gin.Engine {
 	r.GET(fmt.Sprintf("%s/gameserverbuilds/:namespace/:buildName/gameserverdetails", urlprefix), listGameServerDetailsForBuild)
 	r.GET(fmt.Sprintf("%s/gameserverdetails/:namespace/:gameServerDetailName", urlprefix), getGameServerDetail)
 	r.GET("/healthz", healthz)
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	return r
 }
 
@@ -144,6 +157,15 @@ func listGameServeBuilds(c *gin.Context) {
 	}
 }
 
+// @Summary get a game server build by buildName and namespace
+// @ID get-game-server-build-by-buildName&namespace
+// @Produce json
+// @Param namespace path string true "namespaceParam"
+// @Param buildName path string true "buildNameParam"
+// @Success 200 {object} mpsv1alpha1.GameServerBuild
+// @Failure 404 {object} error
+// @Failure 500 {object} error
+// @Router /api/v1/gameserverbuilds/{namespace}/{buildName} [get]
 func getGameServerBuild(c *gin.Context) {
 	var gsb mpsv1alpha1.GameServerBuild
 	namespace := c.Param(namespaceParam)
