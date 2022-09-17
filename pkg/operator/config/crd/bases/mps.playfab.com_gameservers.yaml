@@ -7246,6 +7246,15 @@ spec:
                 description: Ports is a concatenated list of the ports this game server
                   listens to
                 type: string
+              prevstate:
+                description: The Previously known manually set state
+                enum:
+                - Initializing
+                - Active
+                - StandingBy
+                - Crashed
+                - GameCompleted
+                type: string
               publicIP:
                 description: PublicIP is the PublicIP of the game server
                 type: string
