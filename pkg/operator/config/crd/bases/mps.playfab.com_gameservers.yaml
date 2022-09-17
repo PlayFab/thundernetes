@@ -7246,7 +7246,7 @@ spec:
                 description: Ports is a concatenated list of the ports this game server
                   listens to
                 type: string
-              prevstate:
+              prevState:
                 description: The Previously known manually set state
                 enum:
                 - Initializing

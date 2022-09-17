@@ -81,7 +81,7 @@ type GameServerStatus struct {
 	// State defines the state of the game server (Initializing, StandingBy, Active etc.)
 	State GameServerState `json:"state,omitempty"`
 	// The Previously known manually set state
-	PrevState GameServerState `json:"prevstate,omitempty"`
+	PrevState GameServerState `json:"prevState,omitempty"`
 	// PublicIP is the PublicIP of the game server
 	PublicIP string `json:"publicIP,omitempty"`
 	// Ports is a concatenated list of the ports this game server listens to

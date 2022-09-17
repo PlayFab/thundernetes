@@ -160,7 +160,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			initializingCount++
 		} else if gs.Status.State == mpsv1alpha1.GameServerStateStandingBy && gs.Status.Health == mpsv1alpha1.GameServerHealthy {
 			standingByCount++
-			if gs.Status.PrevState != gs.Status.State {
+			if gs.Status.State != gs.Status.PrevState {
 				timeToStandBySum += float64(gs.Status.ReachedStandingByOn.Sub(gs.CreationTimestamp.Time).Milliseconds())
 				recentStandingByCount++
 			}
