@@ -50,7 +50,7 @@ const (
 // The game server process tells the NodeAgent about its state (if it's Initializing or StandingBy)
 // and NodeAgent tells the game server if it has been allocated (its state having been converted to Active)
 type NodeAgentManager struct {
-	gameServerMap             *sync.Map // we use a sync map instead of a regular map since this will be updated by multiple goroutines
+	gameServerMap             *sync.Map // map[GameServerName]GameServerInfo, to be updated concurrently
 	dynamicClient             dynamic.Interface
 	watchStopper              chan struct{}
 	nodeName                  string
@@ -283,7 +283,8 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 // gameServerDeleted is called when a GameServer CR is deleted
 func (n *NodeAgentManager) gameServerDeleted(objUnstructured interface{}) {
 	// https://github.com/PlayFab/thundernetes/issues/395
-	// obj can be a cache.DeletedFinalStateUnknown
+	// obj can be a cache.DeletedFinalStateUnknown.
+	// Delete was not observed by the watcher but is removed from kube-apiserver. This is the last known state and the object no longer exists.
 	// https://pkg.go.dev/k8s.io/client-go/tools/cache#DeletedFinalStateUnknown
 	var obj *unstructured.Unstructured
 	obj, ok := objUnstructured.(*unstructured.Unstructured)
