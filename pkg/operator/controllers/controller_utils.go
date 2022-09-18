@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -69,6 +70,18 @@ func randString(n int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+// Determine whether to use an existing saved time variables or the current time for state duration
+func getStateDuration(endTime *metav1.Time, startTime *metav1.Time) float64 {
+	var stateDuration float64
+	// If the end time state is missing, use the current time
+	if endTime == nil {
+		stateDuration = math.Abs(float64(time.Since(startTime.Time).Milliseconds()))
+	} else {
+		stateDuration = math.Abs(float64(endTime.Time.Sub(startTime.Time).Milliseconds()))
+	}
+	return stateDuration
 }
 
 // GetNodeDetails returns the Public IP of the node and the node age in days

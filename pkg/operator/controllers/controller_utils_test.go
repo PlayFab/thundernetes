@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"time"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -189,6 +190,18 @@ var _ = Describe("Utilities tests", func() {
 			Expect(isNodeGameServerNode(node)).To(BeTrue())
 			node.Labels[LabelGameServerNode] = "nottrue"
 			Expect(isNodeGameServerNode(node)).To(BeFalse())
+		})
+		It("should return a positive time duration", func() {
+			var startTime *metav1.Time
+			startTime.Time = time.Now()
+
+			var endTime *metav1.Time
+			endTime.Time = time.Now().Add(3 * time.Second)
+
+			Expect(getStateDuration(endTime, startTime)).To(BeAssignableToTypeOf(float64(0)))
+			Expect(getStateDuration(nil, startTime)).To(BeAssignableToTypeOf(float64(0)))
+			Expect(getStateDuration(startTime, endTime)).To(BeNumerically(">=", 0))
+			Expect(getStateDuration(endTime, nil)).Error()
 		})
 	})
 })
