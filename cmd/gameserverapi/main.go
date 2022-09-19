@@ -284,6 +284,15 @@ func deleteGameServer(c *gin.Context) {
 
 }
 
+// @Summary patch GameServerBuild by buildName and namespace
+// @ID path-gameserverbuild-by-buildname-and-namespace
+// @Produce json
+// @Param namespace path string true "buildNameParam"
+// @Param namespace path string true "namespaceParam"
+// @Success 200
+// @Failure 404 {object} error
+// @Failure 500 {object} error
+// @Router /gameservers/{buildNameParam}/{namespaceParam} [put]
 func patchGameServerBuild(c *gin.Context) {
 	var gsb mpsv1alpha1.GameServerBuild
 	namespace := c.Param(namespaceParam)
