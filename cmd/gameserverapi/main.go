@@ -135,6 +135,13 @@ func setupRouter() *gin.Engine {
 	return r
 }
 
+// @Summary Create a GameServerBuild
+// @ID create-gameserverbuild
+// @Produce json
+// @Param data body mpsv1alpha1.GameServerBuild true "gsb"
+// @Success 201 {object} mpsv1alpha1.GameServerBuild
+// @Failure 500 {object} error
+// @Router /gameserverbuilds [post]
 func createGameServerBuild(c *gin.Context) {
 	var gsb mpsv1alpha1.GameServerBuild
 	err := c.BindJSON(&gsb)
@@ -151,6 +158,12 @@ func createGameServerBuild(c *gin.Context) {
 	c.JSON(http.StatusCreated, gsb)
 }
 
+// @Summary get list of GameServerBuilds
+// @ID get-list-gameserverbuilds
+// @Produce json
+// @Success 200 {object} mpsv1alpha1.GameServerBuildList
+// @Failure 500 {object} error
+// @Router /gameserverbuilds [get]
 func listGameServeBuilds(c *gin.Context) {
 	var gsbList mpsv1alpha1.GameServerBuildList
 	err := kubeClient.List(ctx, &gsbList)
@@ -193,7 +206,7 @@ func getGameServerBuild(c *gin.Context) {
 // @Success 200 {object} mpsv1alpha1.GameServerList
 // @Failure 404 {object} error
 // @Failure 500 {object} error
-// @Router /gameservers/ [get]
+// @Router /gameservers [get]
 func listGameServers(c *gin.Context) {
 	var gsList mpsv1alpha1.GameServerList
 	err := kubeClient.List(ctx, &gsList)
@@ -289,10 +302,11 @@ func deleteGameServer(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "buildNameParam"
 // @Param namespace path string true "namespaceParam"
-// @Success 200
+// @Success 200 {object} mpsv1alpha1.GameServerBuild
+// @Failure 400 {object} error
 // @Failure 404 {object} error
 // @Failure 500 {object} error
-// @Router /gameservers/{buildNameParam}/{namespaceParam} [put]
+// @Router /gameservers/{buildNameParam}/{namespaceParam} [patch]
 func patchGameServerBuild(c *gin.Context) {
 	var gsb mpsv1alpha1.GameServerBuild
 	namespace := c.Param(namespaceParam)
@@ -349,6 +363,15 @@ func patchGameServerBuild(c *gin.Context) {
 	}
 }
 
+// @Summary delete GameServerBuild by buildName and namespace
+// @ID path-gameserverbuild-by-buildname-and-namespace
+// @Produce json
+// @Param namespace path string true "buildNameParam"
+// @Param namespace path string true "namespaceParam"
+// @Success 200 {object} map[string]string
+// @Failure 404 {object} error
+// @Failure 500 {object} error
+// @Router /gameservers/{buildNameParam}/{namespaceParam} [delete]
 func deleteGameServerBuild(c *gin.Context) {
 	var gsb mpsv1alpha1.GameServerBuild
 	namespace := c.Param(namespaceParam)
