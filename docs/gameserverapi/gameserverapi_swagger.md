@@ -19,7 +19,7 @@ swag init -g cmd/gameserverapi/main.go --parseDependency
 
 > **_NOTE_**: _--parseDependency_ is used to generate model definitions that inherit or depends on other type definitions. If the dependency depth is too high, use the _--parseDepth_ flag and set it to the required depth.
 
-Swagger Host and BasePath are set automatically using gin context during CORSMiddleware injection. To change this behavior, please refer to the code below in [main.go](../../cmd/gameserverapi/main.go)
+Swagger Host and BasePath are set automatically using gin context during CORSMiddleware injection. To change this behavior, please refer to the code below in [main.go](https://github.com/PlayFab/thundernetes/blob/main/cmd/gameserverapi/main.go)
 
 ```go
 func setSwaggerInfo(c *gin.Context) {
