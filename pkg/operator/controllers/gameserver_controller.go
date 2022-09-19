@@ -155,7 +155,10 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			}
 			// updating GameServer with the new state
 			if err := r.Status().Patch(ctx, &gs, patch); err != nil {
-				return ctrl.Result{}, err
+				// return error only if it is "NotFound"
+				if !apierrors.IsNotFound(err) {
+					return ctrl.Result{}, err
+				}
 			}
 			return ctrl.Result{}, nil
 		}
