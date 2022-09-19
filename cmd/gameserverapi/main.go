@@ -226,7 +226,7 @@ func listGameServers(c *gin.Context) {
 // @Success 200 {object} mpsv1alpha1.GameServerList
 // @Failure 404 {object} error
 // @Failure 500 {object} error
-// @Router gameserverbuilds/{namespaceParam}/{buildNameParam}/gameservers [get]
+// @Router /gameserverbuilds/{namespace}/{buildName}/gameservers [get]
 func listGameServersForBuild(c *gin.Context) {
 	buildName := c.Param(buildNameParam)
 	var gsList mpsv1alpha1.GameServerList
@@ -251,7 +251,7 @@ func listGameServersForBuild(c *gin.Context) {
 // @Success 200 {object} mpsv1alpha1.GameServer
 // @Failure 404 {object} error
 // @Failure 500 {object} error
-// @Router /gameservers/{namespaceParam}/{gameServerNameParam} [get]
+// @Router /gameservers/{namespace}/{gameServerName} [get]
 func getGameServer(c *gin.Context) {
 	gameServerName := c.Param(gameServerNameParam)
 	namespace := c.Param(namespaceParam)
@@ -277,7 +277,7 @@ func getGameServer(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Failure 404 {object} error
 // @Failure 500 {object} error
-// @Router /gameservers/{namespaceParam}/{gameServerNameParam} [delete]
+// @Router /gameservers/{namespace}/{gameServerName} [delete]
 func deleteGameServer(c *gin.Context) {
 	gameServerName := c.Param(gameServerNameParam)
 	namespace := c.Param(namespaceParam)
@@ -307,7 +307,7 @@ func deleteGameServer(c *gin.Context) {
 // @Failure 400 {object} error
 // @Failure 404 {object} error
 // @Failure 500 {object} error
-// @Router /gameserverbuilds/{namespaceParam}/{buildNameParam} [patch]
+// @Router /gameserverbuilds/{namespace}/{buildName} [patch]
 func patchGameServerBuild(c *gin.Context) {
 	var gsb mpsv1alpha1.GameServerBuild
 	namespace := c.Param(namespaceParam)
@@ -372,7 +372,7 @@ func patchGameServerBuild(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Failure 404 {object} error
 // @Failure 500 {object} error
-// @Router /gameserverbuilds/{namespaceParam}/{buildNameParam} [delete]
+// @Router /gameserverbuilds/{namespace}/{buildName} [delete]
 func deleteGameServerBuild(c *gin.Context) {
 	var gsb mpsv1alpha1.GameServerBuild
 	namespace := c.Param(namespaceParam)
@@ -403,7 +403,7 @@ func deleteGameServerBuild(c *gin.Context) {
 // @Success 200 {object} mpsv1alpha1.GameServerDetailList
 // @Failure 404 {object} error
 // @Failure 500 {object} error
-// @Router /gameserverbuilds/{namespaceParam}/{buildNameParam}/gameserverdetails [get]
+// @Router /gameserverbuilds/{namespace}/{buildName}/gameserverdetails [get]
 func listGameServerDetailsForBuild(c *gin.Context) {
 	buildName := c.Param(buildNameParam)
 	var gsdList mpsv1alpha1.GameServerDetailList
@@ -428,7 +428,7 @@ func listGameServerDetailsForBuild(c *gin.Context) {
 // @Success 200 {object} mpsv1alpha1.GameServerDetail
 // @Failure 404 {object} error
 // @Failure 500 {object} error
-// @Router /gameserverbuilds/{namespace}/{gameServerDetailNameParam} [get]
+// @Router /gameserverbuilds/{namespace}/{gameServerDetailName} [get]
 func getGameServerDetail(c *gin.Context) {
 	gameServerDetailName := c.Param(gameServerDetailNameParam)
 	namespace := c.Param(namespaceParam)
