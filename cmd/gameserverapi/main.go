@@ -255,6 +255,15 @@ func getGameServer(c *gin.Context) {
 	}
 }
 
+// @Summary delete GameServer by GameServerName and namespace
+// @ID delete-gameserver-by-gameservername-and-namespace
+// @Produce json
+// @Param namespace path string true "gameServerNameParam"
+// @Param namespace path string true "namespaceParam"
+// @Success 200 {object} map[string]string
+// @Failure 404 {object} error
+// @Failure 500 {object} error
+// @Router /gameservers/{gameServerNameParam}/{namespaceParam} [delete]
 func deleteGameServer(c *gin.Context) {
 	gameServerName := c.Param(gameServerNameParam)
 	namespace := c.Param(namespaceParam)
