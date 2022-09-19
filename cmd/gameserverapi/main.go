@@ -205,6 +205,14 @@ func listGameServers(c *gin.Context) {
 	}
 }
 
+// @Summary get list of GameServers for a given build
+// @ID get-list-gameservers-by-build
+// @Produce json
+// @Param namespace path string true "buildNameParam"
+// @Success 200 {object} mpsv1alpha1.GameServerList
+// @Failure 404 {object} error
+// @Failure 500 {object} error
+// @Router /gameservers/{buildNameParam} [get]
 func listGameServersForBuild(c *gin.Context) {
 	buildName := c.Param(buildNameParam)
 	var gsList mpsv1alpha1.GameServerList
