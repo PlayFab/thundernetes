@@ -72,16 +72,13 @@ func randString(n int) string {
 	return string(b)
 }
 
-// Determine whether to use an existing saved time variables or the current time for state duration
+// getStateDuration determine whether to use an existing saved time variables or the current time for state duration
 func getStateDuration(endTime *metav1.Time, startTime *metav1.Time) float64 {
-	var stateDuration float64
 	// If the end time state is missing, use the current time
 	if endTime == nil {
-		stateDuration = math.Abs(float64(time.Since(startTime.Time).Milliseconds()))
-	} else {
-		stateDuration = math.Abs(float64(endTime.Time.Sub(startTime.Time).Milliseconds()))
+		return math.Abs(float64(time.Since(startTime.Time).Milliseconds()))
 	}
-	return stateDuration
+	return math.Abs(float64(endTime.Time.Sub(startTime.Time).Milliseconds()))
 }
 
 // GetNodeDetails returns the Public IP of the node and the node age in days
