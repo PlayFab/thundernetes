@@ -39,6 +39,7 @@ namespace netcore
                     Console.WriteLine($"Argument: {arg}");
                 } 
             }
+
             CreateHostBuilder(args).Build().Run();
         }
 

@@ -153,7 +153,6 @@ var _ = Describe("GameServerAPI tests", func() {
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
 
 		// make sure this GameServer is not returned any more
-		// a finalizer runs so it will not disappear at once
 		Eventually(func() int {
 			r, err := client.Get(fmt.Sprintf("%s/gameservers/%s/%s", url, testNamespace, gsName))
 			Expect(err).ToNot(HaveOccurred())

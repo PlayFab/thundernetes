@@ -50,7 +50,7 @@ const (
 // The game server process tells the NodeAgent about its state (if it's Initializing or StandingBy)
 // and NodeAgent tells the game server if it has been allocated (its state having been converted to Active)
 type NodeAgentManager struct {
-	gameServerMap             *sync.Map // we use a sync map instead of a regular map since this will be updated by multiple goroutines
+	gameServerMap             *sync.Map // map[GameServerName]GameServerInfo, to be updated concurrently
 	dynamicClient             dynamic.Interface
 	watchStopper              chan struct{}
 	nodeName                  string
@@ -111,10 +111,10 @@ func (n *NodeAgentManager) runHeartbeatTimeCheckerLoop() {
 // HeartbeatTimeChecker checks that heartbeats are still being sent for each GameServerInfo
 // in the local gameServerMap, if not it will send a patch to mark those GameServers as unhealthy,
 // it follows these two rules:
-// 1. if the server hasn't sent its first heartbeat, it has FirstHeartbeatTimeout
-//    milliseconds since its creation before being marked as unhealthy
-// 2. if the server has sent its first heartbeat, it has HeartbeatTimeout milliseconds
-//    since its last heartbeat before being marked as unhealthy
+//  1. if the server hasn't sent its first heartbeat, it has FirstHeartbeatTimeout
+//     milliseconds since its creation before being marked as unhealthy
+//  2. if the server has sent its first heartbeat, it has HeartbeatTimeout milliseconds
+//     since its last heartbeat before being marked as unhealthy
 func (n *NodeAgentManager) HeartbeatTimeChecker() {
 	n.gameServerMap.Range(func(key interface{}, value interface{}) bool {
 		currentTime := n.nowFunc().UnixMilli()
@@ -282,7 +282,15 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 
 // gameServerDeleted is called when a GameServer CR is deleted
 func (n *NodeAgentManager) gameServerDeleted(objUnstructured interface{}) {
-	obj := objUnstructured.(*unstructured.Unstructured)
+	// https://github.com/PlayFab/thundernetes/issues/395
+	// obj can be a cache.DeletedFinalStateUnknown.
+	// Delete was not observed by the watcher but is removed from kube-apiserver. This is the last known state and the object no longer exists.
+	// https://pkg.go.dev/k8s.io/client-go/tools/cache#DeletedFinalStateUnknown
+	var obj *unstructured.Unstructured
+	obj, ok := objUnstructured.(*unstructured.Unstructured)
+	if !ok {
+		obj = objUnstructured.(cache.DeletedFinalStateUnknown).Obj.(*unstructured.Unstructured)
+	}
 
 	gameServerName := obj.GetName()
 	gameServerNamespace := obj.GetNamespace()
