@@ -155,7 +155,8 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			}
 			// updating GameServer with the new state
 			if err := r.Status().Patch(ctx, &gs, patch); err != nil {
-				// return error only if it is "NotFound"
+				// there is a chance that we have arrived here while the GameServer has been deleted
+				// in this case, .Patch will fail with NotFound error and we can safely ignore it
 				if !apierrors.IsNotFound(err) {
 					return ctrl.Result{}, err
 				}
