@@ -24,4 +24,4 @@ installfilesdev
 .uptodate
 
 # allocator compiled plugin
-kubectl-gameserver-allocate
+kubectl-gameserver
