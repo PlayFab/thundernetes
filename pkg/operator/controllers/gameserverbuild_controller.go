@@ -283,7 +283,8 @@ func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1
 }
 
 func SendAppInsightsTelemtry(gsbName string, pendingCount int) {
-	// It can be any non-empty value for testing the changes according to the azure-sdk-go for applicationInsights.
+	// Instrumentation key can be any non-empty value for testing the changes according to the azure-sdk-go for applicationInsights.
+	// https://github.com/microsoft/ApplicationInsights-Go/blob/b13a0f9b864a5bc54376980702557f7a25785cdd/README.md
 	telemetryConfig := appinsights.NewTelemetryConfiguration("<instrumentation key>")
 
 	// Configure how many items can be sent in one call to the data collector:
