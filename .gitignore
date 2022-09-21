@@ -25,3 +25,6 @@ installfilesdev
 
 # vscode settings
 .vscode
+
+# allocator compiled plugin
+kubectl-gameserver

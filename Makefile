@@ -114,3 +114,6 @@ clean:
 	docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
 	rm -rf -- $(UPTODATE_FILES) $(EXES) .cache dist
 	go clean ./...
+
+kubectl-allocator-plugin:
+	./cmd/allocator/build-plugin.sh
