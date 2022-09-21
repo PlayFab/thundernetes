@@ -8970,6 +8970,42 @@ spec:
           defaultMode: 420
           secretName: webhook-server-cert
 ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: thundernetes-nodeagent-network-policy
+  namespace: thundernetes-system
+spec:
+  podSelector:
+    matchLabels:
+      name: nodeagent
+  policyTypes:
+    - Ingress
+  ingress: 
+    - from:
+      - podSelector: # matches all pods with this label in any namespace
+          matchLabels:
+            OwningOperator: thundernetes
+        namespaceSelector: {}
+      - namespaceSelector: # matches all pods in the monitoring namespace
+          matchLabels:
+            kubernetes.io/metadata.name: monitoring
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thundernetes-gameserver-health-service
+  namespace: thundernetes-system
+spec:
+  clusterIP: None # Headless service to get nodeagent pod IP directly
+  selector:
+    name: nodeagent
+  ports:
+    - protocol: TCP
+      port: 56001
+      targetPort: 56001
+  internalTrafficPolicy: Local # Routes traffic to pods only on the same node
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -8995,7 +9031,9 @@ spec:
             fieldRef:
               fieldPath: status.hostIP
         - name: LOG_LEVEL
-          value: info
+          value: debug
+        - name: LOG_EVERY_HEARTBEAT
+          value: "true"
         image: ghcr.io/playfab/thundernetes-nodeagent:0.5.0
         livenessProbe:
           httpGet:
@@ -9006,7 +9044,7 @@ spec:
         name: nodeagent
         ports:
         - containerPort: 56001
-          hostPort: 56001
+          hostPort: 56001 # this isn't needed anymore since the gameservers will have a service name instead of an IP
           name: nodeagentport
         resources:
           limits:
