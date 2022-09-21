@@ -18,7 +18,7 @@ The GameServer API is a RESTful API service that facilitates access to Thunderne
 We provide a [Docker image](https://github.com/PlayFab/thundernetes/pkgs/container/thundernetes-gameserverapi) with the API, you have to deploy it into your cluster along with Thundernetes. We also have an [example YAML file](https://github.com/PlayFab/thundernetes/tree/main/samples/gameserverapi) for the deployment, all you have to do is run:
 
 <div class="code-block-container">
-    <pre class="code-block-text-input prettyprint lang-bash">kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/gameserverapi/gameserverapi.yaml</pre>
+    <pre id="code-block-text-input" class="code-block-text-input prettyprint lang-bash">kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/gameserverapi/gameserverapi.yaml</pre>
     <button title="Copy to clipboard" onclick="copyToClipboard()" class="code-block-clipboard-btn">    
         <img class="code-block-clipboard-icon" src="../assets/images/copy-regular.svg"/>
     </button>

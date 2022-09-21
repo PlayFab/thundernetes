@@ -19,7 +19,7 @@ You can run any game server that supports the [PlayFab GameServer SDK](https://g
 The GameServerBuild template allows you to set custom Annotations and/or Labels along with the Pod specification. This is possible since GameServerBuild includes the entire PodTemplateSpec. Labels and Annotations are copied to the GameServers and the Pods in the GameServerBuild. Check the following YAML for an example:
 
 <div class="code-block-container">
-  <pre class="code-block-text-input prettyprint lang-bash">
+  <pre id="code-block-text-input" class="code-block-text-input prettyprint lang-bash">
 apiVersion: mps.playfab.com/v1alpha1
 kind: GameServerBuild
 metadata:
@@ -46,7 +46,7 @@ spec:
             protocol: TCP # your game server port protocol
             name: gameport # required field    
   </pre>
-  <button title="Copy to clipboard" onclick="copyToClipboard()" class="code-block-clipboard-btn">
+  <button title="Copy to clipboard" onclick="copyToClipboard()" class="code-block-clipboard-btn" >
       <img class="code-block-clipboard-icon" src="./assets/images/copy-regular.svg"/>
   </button>
 </div>
