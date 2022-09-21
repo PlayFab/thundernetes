@@ -1,0 +1,24 @@
+.code-block-container {
+    border: none !important;
+    background-color: rgb(245, 246, 250);
+    border-radius: 3px;
+    padding: 10px;
+    display: flex;
+    width: -webkit-fill-available;
+}
+.code-block-text-input {
+    overflow-y:hidden;
+    border: none !important;
+    margin: 0px 10px 0px 0px !important;
+    border-radius: 3px;
+    font-size: small;
+    width: -webkit-fill-available;
+}
+.code-block-clipboard-btn {
+    width: 30px;
+    height: 30px;
+}
+.code-block-clipboard-icon {
+    width: 20px;
+    height: 20px;
+}
