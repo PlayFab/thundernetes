@@ -4,6 +4,10 @@ title: Frequently Asked Questions
 nav_order: 15
 ---
 
+<link rel="stylesheet" type="text/css" href="./assets/css/code-block.css" media="screen" />
+<script src="./assets/js/code-block.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
+
 # Frequently Asked Questions
 
 ## Can I run a Unity or Unreal game server on Thundernetes?
@@ -14,7 +18,8 @@ You can run any game server that supports the [PlayFab GameServer SDK](https://g
 
 The GameServerBuild template allows you to set custom Annotations and/or Labels along with the Pod specification. This is possible since GameServerBuild includes the entire PodTemplateSpec. Labels and Annotations are copied to the GameServers and the Pods in the GameServerBuild. Check the following YAML for an example:
 
-```yaml
+<div class="code-block-container">
+  <pre id="code-block-text-input" class="code-block-text-input prettyprint lang-bash">
 apiVersion: mps.playfab.com/v1alpha1
 kind: GameServerBuild
 metadata:
@@ -39,8 +44,12 @@ spec:
           ports:
           - containerPort: 80 # your game server port
             protocol: TCP # your game server port protocol
-            name: gameport # required field
-```
+            name: gameport # required field    
+  </pre>
+  <button title="Copy to clipboard" onclick="copyToClipboard()" class="code-block-clipboard-btn" >
+      <img class="code-block-clipboard-icon" src="./assets/images/copy-regular.svg"/>
+  </button>
+</div>
 
 ## Can I run my game server pods in a non-default namespace?
 
