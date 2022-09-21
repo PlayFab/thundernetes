@@ -71,5 +71,13 @@ var (
 			Help:      "Number of GameServers allocations",
 		},
 		[]string{"BuildName"},
+	),
+	AllocationsTimeTakenDuration = registry.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: 	"thundernetes",
+			Name: 		"allocations_time_taken_duration",
+			Help: 		"Average time it took to allocate newest set of GameServers"
+		},
+		[]string{"BuildName"}
 	)
 )
