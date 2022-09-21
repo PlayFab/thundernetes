@@ -23,7 +23,9 @@ import (
 	"runtime"
 	"sort"
 	"sync"
+	"time"
 
+	"github.com/microsoft/ApplicationInsights-Go/appinsights"
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -272,11 +274,32 @@ func (r *GameServerBuildReconciler) updateStatus(ctx context.Context, gsb *mpsv1
 	}
 
 	CurrentGameServerGauge.WithLabelValues(gsb.Name, PendingServerStatus).Set(float64(pendingCount))
+	SendAppInsightsTelemtry(gsb.Name, pendingCount)
 	CurrentGameServerGauge.WithLabelValues(gsb.Name, InitializingServerStatus).Set(float64(initializingCount))
 	CurrentGameServerGauge.WithLabelValues(gsb.Name, StandingByServerStatus).Set(float64(standingByCount))
 	CurrentGameServerGauge.WithLabelValues(gsb.Name, ActiveServerStatus).Set(float64(activeCount))
 
 	return ctrl.Result{}, nil
+}
+
+func SendAppInsightsTelemtry(gsbName string, pendingCount int) {
+	// It can be any non-empty value for testing the changes according to the azure-sdk-go for applicationInsights.
+	telemetryConfig := appinsights.NewTelemetryConfiguration("<instrumentation key>")
+
+	// Configure how many items can be sent in one call to the data collector:
+	telemetryConfig.MaxBatchSize = 8192
+
+	// Configure the maximum delay before sending queued telemetry:
+	telemetryConfig.MaxBatchInterval = 20 * time.Second
+
+	client := appinsights.NewTelemetryClientFromConfig(telemetryConfig)
+
+	metric := appinsights.NewMetricTelemetry("ThunderMetricsStandingByServers", 3)
+	// This metric should appear inside appInsights.
+	client.Track(metric)
+
+	// Logs tested
+	log.Log.Info("ThundermetricsNameCreated", "gsb", gsbName, "gs", "TestValue")
 }
 
 // SetupWithManager sets up the controller with the Manager.
