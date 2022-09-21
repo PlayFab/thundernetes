@@ -201,12 +201,16 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			pendingCleanUpCount++
 			timeToDeleteSum += getStateDuration(gs.DeletionTimestamp, &gs.CreationTimestamp)
 		}
+
 		if gs.Status.State != gs.Status.PrevState {
 			patch := client.MergeFrom(gs.DeepCopy())
 			gs.Status.PrevState = gs.Status.State
+
 			// updating GameServer's previous state
 			if err := r.Status().Patch(ctx, &gs, patch); err != nil {
-				return ctrl.Result{}, err
+				if !apierrors.IsNotFound(err) {
+					return ctrl.Result{}, err
+				}
 			}
 		}
 	}
@@ -262,7 +266,6 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				errCh <- err
 				return
 			}
-			newgs.Status.PrevState = mpsv1alpha1.GameServerStateInitializing
 			if err := r.Create(ctx, newgs); err != nil {
 				errCh <- err
 				return
