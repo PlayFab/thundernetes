@@ -10,9 +10,9 @@ nav_order: 2
 
 This sample, located [here](https://github.com/PlayFab/thundernetes/tree/main/samples/openarena), is based on the popular open source FPS game [OpenArena](https://openarena.ws/smfnews.php). You can install it using this script:
 
-```bash
+{% include code-block-start.md %}
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/openarena/sample.yaml
-```
+{% include code-block-end.md %}
 
 To connect to an active server, you need to download the OpenArena client from [here](https://openarena.ws/download.php?view.4).
 

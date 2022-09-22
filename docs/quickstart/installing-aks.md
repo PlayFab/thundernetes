@@ -18,7 +18,7 @@ Once your cluster is created, you can [open the necessary ports to the Internet]
 
 Alternatively, you can use the following [Azure CLI](https://docs.microsoft.com/cli/azure/) commands to create an Azure Kubernetes Service (AKS) cluster with a Public IP per Node.
 
-```bash
+{% include code-block-start.md %}
 az login # you don't need to do this if you're using Azure Cloud shell
 # you should modify these values with your preferred ones
 AKS_RESOURCE_GROUP=thundernetes # name of the resource group AKS will be installed
@@ -38,7 +38,7 @@ export KUBECONFIG=~/.kube/config-thundernetes
 kubectl cluster-info # get cluster information
 kubectl get nodes # get list of nodes
 kubectl get pods -n kube-system # get list of pods on the system namespace
-```
+{% include code-block-end.md %}
 
 Last command requires you to use `kubectl`, the CLI tool for Kubernetes. Check the [instructions](https://kubernetes.io/docs/tasks/tools/#kubectl) about how to download and use it.
 
@@ -58,7 +58,7 @@ To allow traffic to these ports, you need to perform the following steps *after 
 
 Alternatively, you can use the following command, after setting the `$RESOURCE_GROUP_WITH_AKS_RESOURCES` and `$NSG_NAME` variables with proper values:
 
-```bash
+{% include code-block-start.md %}
 az network nsg rule create \
   --resource-group $RESOURCE_GROUP_WITH_AKS_RESOURCES \
   --nsg-name $NSG_NAME \
@@ -69,6 +69,6 @@ az network nsg rule create \
   --priority 1000 \
   --source-port-range "*" \
   --destination-port-range 10000-12000
-```
+{% include code-block-end.md %}
 
 Once you make sure cluster has been installed and operates smoothly, you can proceed to the [installing Thundernetes](./installing-thundernetes.md) section.

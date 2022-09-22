@@ -20,7 +20,7 @@ To run LocalMultiplayerAgent to test your game servers for Thundernetes, you'll 
 - You should run `SetupLinuxContainersOnWindows.ps1` Powershell file which will create a Docker network called "PlayFab". This is necessary so that your containers running on a separate network namespace can communicate with LocalMultiplayerAgent, running on the host's network namespace.
 - You should properly configure your *LocalMultiplayerSettings.json* file. Below you can see a sample, included in `MultiplayerSettingsLinuxContainersOnWindowsSample.json`:
 
-```json
+{% include code-block-start.md %}
 {
     "RunContainer": true,
     "OutputFolder": "C:\\output\\UnityServerLinux",
@@ -57,7 +57,7 @@ To run LocalMultiplayerAgent to test your game servers for Thundernetes, you'll 
         "InitialPlayers": [ "Player1", "Player2" ]
     }
 }
-```
+{% include code-block-end.md %}
 
 > _**NOTE**_: Some notes:
 > 1. You must set `RunContainer` to true.

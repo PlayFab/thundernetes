@@ -17,7 +17,7 @@ When ready, open your network-enabled multiplayer Unreal server project, and con
 
 At a minimum, you would need to call the `SetDefaultServerHostPort()` to get the port your server should listen to and `ReadyForPlayers()` method to transition your server to the StandingBy state.
 
-```cpp
+{% include code-block-start.md %}
 #if UE_SERVER
     UGSDKUtils::SetDefaultServerHostPort();
 #endif
@@ -29,11 +29,11 @@ void U[YourGameInstanceClassName]::OnStart()
     UE_LOG(LogPlayFabGSDKGameInstance, Warning, TEXT("Reached onStart!"));
     UGSDKUtils::ReadyForPlayers();
 }
-```
+{% include code-block-end.md %}
 
 To create your container image to use on Kubernetes, you should build a "Linux Dedicated Server" and then use a Dockerfile similar to the following:
 
-```
+{% include code-block-start.md %}
 FROM ubuntu:18.04
 
 # Unreal refuses to run as root user, so we must create a user to run as
@@ -48,7 +48,7 @@ WORKDIR /server
 COPY --chown=ue:ue . /server
 USER root
 CMD su ue -c ./ShooterServer.sh
-```
+{% include code-block-end.md %}
 
 ### Samples
 

@@ -26,7 +26,7 @@ To integrate with GSDK, follow the guide for the programming language/environmen
 
 To run your game server on Thundernetes, you need to create a [GameServerBuild](../gameserverbuild.md).
 
-```yaml
+{% include code-block-start.md %}
 apiVersion: mps.playfab.com/v1alpha1
 kind: GameServerBuild
 metadata:
@@ -42,25 +42,25 @@ spec:
   template:
     spec:
       containers:
-        - image: <containerRegistryUrl>/<containerImage>:<tag>
-          name: <containerName>
+        - image: &lt;containerRegistryUrl&gt;/&lt;containerImage&gt;:&lt;tag&gt;
+          name: &lt;containerName&gt;
           ports:
-          - containerPort: <portName> # your game server port
-            protocol: <TCP or UDP> # your game server port protocol
+          - containerPort: &lt;portName&gt; # your game server port
+            protocol: &lt;TCP or UDP&gt; # your game server port protocol
             name: gameport # required field
-```
+{% include code-block-end.md %}
 
 You can call this file `gameserverbuild.yaml`.
 
 - To configure this GameServerBuild to run on your cluster, you should run the following command:
 
-```bash
+{% include code-block-start.md %}
 kubectl apply -f /path/to/gameserverbuild.yaml
-```
+{% include code-block-end.md %}
 
 - Running `kubectl get gsb` and `kubectl get gs` should show something like this:
 
-```bash
+{% include code-block-start.md %}
 dgkanatsios@desktopdigkanat:digkanat$ kubectl get gsb
 NAME                     STANDBY   ACTIVE   CRASHES   HEALTH
 gameserverbuild-sample   2/2       0        0         Healthy
@@ -68,7 +68,7 @@ dgkanatsios@desktopdigkanat:digkanat$ kubectl get gs
 NAME                           HEALTH    STATE        PUBLICIP     PORTS      SESSIONID
 gameserverbuild-sample-rtgnm   Healthy   StandingBy   172.18.0.2   80:14913
 gameserverbuild-sample-spdob   Healthy   StandingBy   172.18.0.2   80:14208
-```
+{% include code-block-end.md %}
 
 Congratulations, your game server is up and running on Thundernetes!
 

@@ -11,7 +11,7 @@ By default, Pods are scheduled using the [Kubernetes scheduler](https://kubernet
 
 To instruct the Kubernetes scheduler to try and schedule Pods into as few Nodes as possible you can use something like the following:
 
-``` yaml
+{% include code-block-start.md %}
   template:
     spec:
       affinity:
@@ -26,6 +26,6 @@ To instruct the Kubernetes scheduler to try and schedule Pods into as few Nodes 
                   values:
                   - "85ffe8da-c82f-4035-86c5-9d2b5f42d6f6"
               topologyKey: "kubernetes.io/hostname"
-``` 
+{% include code-block-end.md %} 
 
 To test this behavior check the [sample-nodeaffinity.yaml](https://github.com/PlayFab/thundernetes/tree/main/samples/netcore/sample-nodeaffinity.yaml) file.

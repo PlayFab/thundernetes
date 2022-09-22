@@ -13,17 +13,17 @@ To test your local code you have 2 options: you can run the code in a local kind
 
 This command will run the e2e tests locally, and it won't delete the cluster after it's done, so you can either deploy more GameServerBuilds or check the ones used for the tests under the `e2e` namespace.
 
-```bash
+{% include code-block-start.md %}
 make clean deletekindcluster builddockerlocal createkindcluster e2elocal
-```
+{% include code-block-end.md %}
 
 ## Run the controller unit tests locally
 
 To tun the controller unit tests locally, you should go to the `pkg/operator` directory and run the following command:
 
-```bash
+{% include code-block-start.md %}
 make test
-```
+{% include code-block-end.md %}
 
 Make sure to not run them while kind cluster is up, since there will be port collisions and the tests will fail.
 
