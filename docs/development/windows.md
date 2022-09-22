@@ -16,7 +16,7 @@ Thundernetes now supports game servers running on Windows containers, you can re
 - Now you can install Thundernetes on your cluster using any of the files on the `installfilesdev` directory.
 - If you want to deploy a Windows game server on Thundernetes make sure to include the following on the game server build YAML file, we use this to know how to deploy the game servers correctly:
 
-```yaml
+{% include code-block-start.md %}
 apiVersion: mps.playfab.com/v1alpha1
 kind: GameServerBuild
 metadata:
@@ -28,4 +28,4 @@ spec:
         nodeSelector:
           kubernetes.io/os: windows
     ...
-```
+{% include code-block-end.md %}

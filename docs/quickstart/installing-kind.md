@@ -19,7 +19,7 @@ After that, you can optionally specify ports to test your game server by sending
 
 Save this content to a file called `kind-config.yaml`. This configuration will create a cluster with a single node.
 
-```yaml
+{% include code-block-start.md %}
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -38,15 +38,15 @@ nodes:
     hostPort: 10001
     listenAddress: "0.0.0.0"
     protocol: tcp
-```
+{% include code-block-end.md %}
 
 * Run `kind create cluster --config /path/to/kind-config.yaml`
 * Install kubectl ([instructions](https://kubernetes.io/docs/tasks/tools/#kubectl)) to manage your Kubernetes cluster
 * Once it succeeds, run `kubectl cluster-info` to verify that the cluster is running. You should get something like this:
 
-```bash
+{% include code-block-start.md %}
 Kubernetes control plane is running at https://127.0.0.1:34253
 CoreDNS is running at https://127.0.0.1:34253/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
-```
+{% include code-block-end.md %}
 
 Once you make sure cluster has been installed and operates smoothly, you can proceed to the [installing Thundernetes](./installing-thundernetes.md) section.

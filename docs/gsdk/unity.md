@@ -17,7 +17,7 @@ You can drag the `PlayFabSDK` folder to your Unity project or you can use the pr
 
 The minimum work you need to is call the `PlayFabMultiplayerAgentAPI.Start()` when your server is initializing and then call the `PlayFabMultiplayerAgentAPI.ReadyForPlayers();` when your server is ready for players to connect.
 
-```csharp
+{% include code-block-start.md %}
 StartCoroutine(ReadyForPlayers());
 ...
 }
@@ -27,16 +27,16 @@ IEnumerator ReadyForPlayers()
     yield return new WaitForSeconds(.5f);
     PlayFabMultiplayerAgentAPI.ReadyForPlayers();
 }
-```
+{% include code-block-end.md %}
 
 To create your container image to use on Kubernetes, you should build a "Linux Dedicated Server" and then use a Dockerfile similar to the following:
 
-```
+{% include code-block-start.md %}
 FROM ubuntu:18.04
 WORKDIR /game
 ADD . .
 CMD ["/game/UnityServer.x86_64", "-nographics", "-batchmode", "-logfile"]
-```
+{% include code-block-end.md %}
 
 ### Samples
 

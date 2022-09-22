@@ -22,16 +22,16 @@ Your game server should *NOT* be integrated with GSDK, since the `wrappingGsdk` 
 
 As soon as you create an Azure Files account, create a Files share and copy your game server there. You should make sure that Kubernetes knows how to authenticate to your Azure Storage account. One way to do that is create a [Kubernetes Secret](https://kubernetes.io/docs/concepts/configuration/secret/) using the below script:
 
-```bash
+{% include code-block-start.md %}
 SECRET_NAME=azure-secret # name of the Kubernetes secret object
 SHARE_NAME=thundernetesshare # name of the Azure Files share
 ACCOUNT_KEY=YOUR_ACCOUNT_KEY # key for your Azure Storage account
 kubectl create secret generic $SECRET_NAME --from-literal=azurestorageaccountname=$SHARE_NAME --from-literal=azurestorageaccountkey=$ACCOUNT_KEY
-```
+{% include code-block-end.md %}
 
 When the secret is created, you are ready to create your Thundernetes GameServerBuild. The `containers' part of the YAML should look like this:
 
-```yaml
+{% include code-block-start.md %}
 containers:
   - image: ghcr.io/playfab/mpswrapper:0.1.0 
     name: mpswrapper
@@ -49,7 +49,7 @@ volumes:
     secretName: azure-secret
     shareName: fakegame # the share name of the Azure Files account where you placed your game files
     readOnly: false
-```
+{% include code-block-end.md %}
 
 ### Links
 
