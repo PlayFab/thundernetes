@@ -1,13 +1,22 @@
 window.onload = function(){
     document.querySelectorAll('.code-block-clipboard-btn').forEach(elm =>
         elm.onclick = function (event) {
-            const source = event.target;
-            let sourceContainer = source.nodeName == "IMG" ?  source.parentNode.parentNode : source.parentNode;
+            const sourceBtn = event.target.nodeName == "IMG" ? event.target.parentNode : event.target;
+            let sourceContainer = sourceBtn.parentNode;
             const targetCodeBlock = sourceContainer.firstChild;
             copyToClipboard(targetCodeBlock);
+            doCheckAnimation(sourceBtn);
         }
     );
 };
+
+function doCheckAnimation(sourceBtn) {
+    let icon = sourceBtn.childNodes[1];
+    icon.src = "/thundernetes/assets/images/check-solid.svg";
+    setTimeout(function(){
+        icon.src = "/thundernetes/assets/images/copy-regular.svg";
+    }, 1000);
+}
 
 function copyToClipboard(targetCodeBlock) {
     const codeBlockChildNodes = targetCodeBlock.childNodes;
