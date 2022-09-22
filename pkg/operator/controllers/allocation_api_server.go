@@ -345,6 +345,9 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 		}
 		s.logger.Info("Allocated GameServer", "name", gs2.Name, "sessionID", args.SessionID, "buildID", args.BuildID, "ip", gs2.Status.PublicIP, "ports", gs2.Status.Ports)
 		AllocationsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
+		if i > 0 {
+			AllocationsRetriesCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
+		}
 		AllocationsTimeTakenDuration.WithLabelValues(gs2.Labels[LabelBuildName]).Set(float64(time.Since(timeToAllocateStartTime).Milliseconds()))
 		return
 	}
