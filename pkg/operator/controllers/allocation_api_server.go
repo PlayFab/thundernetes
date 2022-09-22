@@ -318,10 +318,13 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 		if err != nil {
 			if apierrors.IsConflict(err) {
 				s.logger.Info("conflict error patching game server", "error", err, "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
+				Allocations500ErrorsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
 			} else if apierrors.IsNotFound(err) {
 				s.logger.Info("error not found patching game server", "error", err, "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
+				Allocations404ErrorsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
 			} else {
 				s.logger.Error(err, "uknown error patching game server", "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
+				Allocations500ErrorsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
 			}
 			// in case of any error, trigger a reconciliation for this GameServer object
 			// so it's re-added to the queue
@@ -341,6 +344,7 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 		err = json.NewEncoder(w).Encode(rs)
 		if err != nil {
 			internalServerError(w, s.logger, err, "encode json response")
+			Allocations500ErrorsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
 			return
 		}
 		s.logger.Info("Allocated GameServer", "name", gs2.Name, "sessionID", args.SessionID, "buildID", args.BuildID, "ip", gs2.Status.PublicIP, "ports", gs2.Status.Ports)
