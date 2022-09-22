@@ -11,6 +11,8 @@ To test your local code you have 2 options: you can run the code in a local kind
 
 ## Run end to end tests locally
 
+First of all, you need to install `kustomize`. You can do it by running `make -C pkg/operator kustomize`.
+
 This command will run the e2e tests locally, and it won't delete the cluster after it's done, so you can either deploy more GameServerBuilds or check the ones used for the tests under the `e2e` namespace.
 
 {% include code-block-start.md %}
