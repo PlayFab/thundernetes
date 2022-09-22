@@ -80,4 +80,12 @@ var (
 		},
 		[]string{"BuildName"},
 	)
+	AllocationsRetriesCounter = registry.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "thundernetes",
+			Name:      "allocations_retried",
+			Help:      "The number of times allocation had to be retried",
+		},
+		[]string{"BuildName"},
+	)
 )
