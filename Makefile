@@ -97,6 +97,7 @@ create-install-files:
 	IMAGE_NAME_NODE_AGENT=$(NS)$(IMAGE_NAME_NODE_AGENT) \
 	IMAGE_NAME_NODE_AGENT_WIN=$(NS)$(IMAGE_NAME_NODE_AGENT_WIN) \
 	LOG_LEVEL=info \
+	LISTENING_PORT=5000 \
 	make -C pkg/operator create-install-files
 
 create-install-files-dev:
@@ -108,6 +109,7 @@ create-install-files-dev:
 	IMAGE_NAME_NODE_AGENT=$(NS)$(IMAGE_NAME_NODE_AGENT) \
 	IMAGE_NAME_NODE_AGENT_WIN=$(NS)$(IMAGE_NAME_NODE_AGENT_WIN) \
 	LOG_LEVEL=debug \
+	LISTENING_PORT=5000 \
 	make -C pkg/operator create-install-files
 
 clean:

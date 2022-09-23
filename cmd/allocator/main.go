@@ -19,11 +19,12 @@ type AllocationResult struct {
 }
 
 var (
-	ip       string
-	certFile string
-	keyFile  string
-	tlsSet   bool
-	ar       *AllocationResult
+	ip            string
+	certFile      string
+	keyFile       string
+	tlsSet        bool
+	listeningPort string
+	ar            *AllocationResult
 )
 
 func main() {
@@ -40,15 +41,16 @@ func main() {
 	} else if strings.Compare(args[1], "allocate") == 0 {
 		fmt.Println("Beginning the allocate process")
 
+		//pulls ip and port into output
 		cmd := exec.Command("kubectl", "get", "svc", "-n", "thundernetes-system", "thundernetes-controller-manager",
-			"-o", "jsonpath='{.status.loadBalancer.ingress[0].ip}'")
+			"-o", "jsonpath='{.status.loadBalancer.ingress[0].ip}','{.spec.ports[0].port}'")
 
 		output, err := cmd.CombinedOutput()
 
+		//if there's an error it's likely because no path
 		if err != nil {
 			log.Println("Is required to have kubectl on your $PATH")
 			log.Fatal(string(output))
-
 		}
 
 		if len(args) < 5 { // if no more arguments are provided
@@ -61,7 +63,18 @@ func main() {
 			tlsSet = true
 		}
 
-		if len(output) < 3 { // basically if we don't have a valid IP
+		//Read output until comma for ip
+		var s strings.Builder
+		for i := 0; i < len(output); i++ {
+			if output[i] == ',' {
+				ip = s.String()
+				s.Reset()
+			}
+			s.WriteString(string(output[i]))
+		}
+		listeningPort = s.String()
+
+		if len(ip) < 3 { // basically if we don't have a valid IP
 			if tlsSet == true {
 				ip = "https://127.0.0.1"
 				cert, err := tls.LoadX509KeyPair(certFile, keyFile)
@@ -137,7 +150,7 @@ func allocateTls(ip string, buildID string, sessionID string, cert tls.Certifica
 	})
 
 	postBodyBytes := bytes.NewBuffer(postBody)
-	resp, err := client.Post(ip+":5000/api/v1/allocate", "application/json", postBodyBytes)
+	resp, err := client.Post(ip+":"+listeningPort+"/api/v1/allocate", "application/json", postBodyBytes)
 
 	//Handle Error
 	if err != nil {
@@ -182,7 +195,7 @@ func allocateNoTls(ip string, buildID string, sessionID string) (*AllocationResu
 	})
 
 	postBodyBytes := bytes.NewBuffer(postBody)
-	resp, err := client.Post(ip+":5000/api/v1/allocate", "application/json", postBodyBytes)
+	resp, err := client.Post(ip+":"+listeningPort+"/api/v1/allocate", "application/json", postBodyBytes)
 
 	//Handle Error
 	if err != nil {
