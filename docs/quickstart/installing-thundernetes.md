@@ -13,13 +13,21 @@ Follow the steps below to install Thundernetes on your Kubernetes cluster.
 
 Once you have a Kubernetes cluster up and running, you need to install [cert-manager](https://cert-manager.io). Cert-manager is a certificate controller for Kubernetes and it is needed for the webhooks used to validate your GameServerBuilds.
 
+The following will install `cert-manager` v1.8.0:
+
+```bash
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/1.8.0/cert-manager.yaml
+```
+
+If you feel adventurous, you may try installing the latest version of `cert-manager`, however there are no guarantees in this case. Thundernetes install is only tested against the pinned version.
+
 ```bash
 # Get the latest cert-manager release version number
 VERSION=$(curl -s https://api.github.com/repos/cert-manager/cert-manager/releases/latest \
     | grep '"tag_name":' \
     | sed -E 's/.*"([^"]+)".*/\1/')
 
-# Install cert-manager
+# Install latest cert-manager
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/$VERSION/cert-manager.yaml
 ```
 
