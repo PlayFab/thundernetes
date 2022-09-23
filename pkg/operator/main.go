@@ -62,6 +62,7 @@ type Config struct {
 	MaxPort                                int32  `env:"MAX_PORT" envDefault:"12000"`
 	InitContainerImageLinux                string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE,notEmpty"`
 	InitContainerImageWin                  string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE_WIN,notEmpty"`
+	ListeningPort                          int32  `env:"LISTENING_PORT" envDefault:"5000"`
 }
 
 var (
@@ -124,7 +125,7 @@ func main() {
 	crt, key := getCrtKeyIfTlsEnabled(k8sClient, cfg)
 
 	// initialize the allocation API service, which is also a controller. So we add it to the manager
-	aas := controllers.NewAllocationApiServer(crt, key, mgr.GetClient())
+	aas := controllers.NewAllocationApiServer(crt, key, mgr.GetClient(), cfg.ListeningPort)
 	if err = aas.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create HTTP allocation API Server", "Allocation API Server", "HTTP Allocation API Server")
 		os.Exit(1)
