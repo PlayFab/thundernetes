@@ -21,7 +21,7 @@ You need to specify these properties in your GameServerBuild YAML file:
 
 Here you can see a sample YAML file:
 
-```yaml
+{% include code-block-start.md %}
 apiVersion: mps.playfab.com/v1alpha1
 kind: GameServerBuild
 metadata:
@@ -47,7 +47,7 @@ spec:
           ports:
           - containerPort: 7777 # port that you want to expose
             name: gameport # name of the port that you want to expose. 
-```
+{% include code-block-end.md %}
 
 In general, the only fields that you should change after the GameServerBuild is created are the standingBy and the max ones. The other fields should be considered immutable.
 

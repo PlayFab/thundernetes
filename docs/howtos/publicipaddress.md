@@ -11,7 +11,7 @@ External code (e.g. your matchmaker or lobby service) can easily get the Public 
 
 You can easily get the Public IP address by calling one of the following web sites from inside your game server:
 
-```
+{% include code-block-start.md %}
 curl http://canhazip.com
 curl http://whatismyip.akamai.com/
 curl https://4.ifcfg.me/
@@ -24,6 +24,6 @@ curl wgetip.com
 curl ip.tyk.nu
 curl bot.whatismyipaddress.com
 wget -q -O - checkip.dyndns.org | sed -e 's/[^[:digit:]\|.]//g'
-```
+{% include code-block-end.md %}
 
 The above methods work since the Node hosting your Pod has a Public IP, which is returned by all of the above web services.

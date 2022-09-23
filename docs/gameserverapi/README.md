@@ -13,9 +13,9 @@ The GameServer API is a RESTful API service that facilitates access to Thunderne
 
 We provide a [Docker image](https://github.com/PlayFab/thundernetes/pkgs/container/thundernetes-gameserverapi) with the API, you have to deploy it into your cluster along with Thundernetes. We also have an [example YAML file](https://github.com/PlayFab/thundernetes/tree/main/samples/gameserverapi) for the deployment, all you have to do is run:
 
-```bash
+{% include code-block-start.md %}
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/gameserverapi/gameserverapi.yaml
-```
+{% include code-block-end.md %}
 
 This example uses a LoadBalancer to expose the application, so it will be assigned an external IP (this doesn't work locally unless you have a local implementation of a LoadBalancer, you can use [port forwarding](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/) instead).
 

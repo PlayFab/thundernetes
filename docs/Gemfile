@@ -24,3 +24,5 @@ gem "jekyll-remote-theme", "~> 0.4.3"
 gem "just-the-docs", "~> 0.3.3"
 
 gem "html-proofer", "~> 4.3.0"
+
+gem "webrick", "~> 1.7"

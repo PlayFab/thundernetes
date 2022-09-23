@@ -11,19 +11,19 @@ Allocating a GameServer will transition its state from "StandingBy" to "Active" 
 
 If you are running Thundernetes on a cloud service like Azure Kubernetes Service, you can use the following commands to allocate a game server (below is using [Windows Subsystem for Linux](https://docs.microsoft.com/windows/wsl/install)
 
-```bash
+{% include code-block-start.md %}
 # grab the IP of the external load balancer that is used to route traffic to the allocation API service
 IP=$(kubectl get svc -n thundernetes-system thundernetes-controller-manager -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 # do the allocation call. Make sure the buildID is the same as the one that you created your Build with
 # the sessionID is a unique identifier (GUID) that you can use to track the game server session
 curl -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f6","sessionID":"ac1b7082-d811-47a7-89ae-fe1a9c48a6da"}' http://${IP}:5000/api/v1/allocate
-```
+{% include code-block-end.md %}
 
 If you are running Thundernetes on [kind](installing-kind.md) your IP can be replaced with localhost and you only need to run the following:
 
-```bash
+{% include code-block-start.md %}
 curl -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f6","sessionID":"ac1b7082-d811-47a7-89ae-fe1a9c48a6da"}' http://localhost:5000/api/v1/allocate
-```
+{% include code-block-end.md %}
 
 The arguments to the allocation call are two:
 
@@ -34,25 +34,25 @@ The arguments to the allocation call are two:
 
 Result of the allocate call is the IP/Port of the server in JSON format.
 
-```bash
+{% include code-block-start.md %}
 {"IPV4Address":"52.183.89.4","Ports":"80:10000","SessionID":"ac1b7082-d811-47a7-89ae-fe1a9c48a6da"}
-```
+{% include code-block-end.md %}
 
 You can now use the IP/Port to connect to the allocated game server. The [.NET Core game server](sample-dotnet.md) we use exposes a `/Hello` endpoint that returns the hostname of the container.
 
-```bash
+{% include code-block-start.md %}
 curl http://52.183.89.4:10000/Hello
 Hello from fake GameServer with hostname gameserverbuild-sample-netcore-mveex
-```
+{% include code-block-end.md %}
 
 At the same time, you can check your game servers using `kubectl get gs`. Our sample games request 2 standingBy and 4 maximum servers. The allocation call caused one StandingBy server to transition to Active. So, Thundernetes created an extra GameServer, which eventually reached the StandingBy state. We can now see that we have 2 StandingBy and 1 Active. We can also see the SessionID of the Active GameServer.
 
-```bash
+{% include code-block-start.md %}
 NAME                                   HEALTH    STATE        PUBLICIP      PORTS      SESSIONID
 gameserverbuild-sample-netcore-ayxzh   Healthy   StandingBy   52.183.89.4   80:10001
 gameserverbuild-sample-netcore-mveex   Healthy   Active       52.183.89.4   80:10000   ac1b7082-d811-47a7-89ae-fe1a9c48a6da
 gameserverbuild-sample-netcore-pxrqx   Healthy   StandingBy   52.183.89.4   80:10002
-```
+{% include code-block-end.md %}
 
 [![Allocating a Game Server](../assets/images/allocation.png)](../assets/images/allocation.png)
 

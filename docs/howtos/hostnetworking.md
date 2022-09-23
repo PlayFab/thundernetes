@@ -13,7 +13,7 @@ You **have to** use the generated port when you instantiate your game server pro
 
 To grab the port number, you should use the [GSDK](../gsdk/README.md) `GetGameServerConnectionInfo` method. This is the code for the C# GSDK, code for other GSDKs would be similar:
 
-```csharp
+{% include code-block-start.md %}
 string ListeningPortKey = "gameport"; // IMPORTANT: this must be the same name with the one in the YAML file, for this port
 var gameServerConnectionInfo = GameserverSDK.GetGameServerConnectionInfo();
 var portInfo = gameServerConnectionInfo.GamePortsConfiguration.Where(x=>x.Name == ListeningPortKey);
@@ -22,6 +22,6 @@ if(portInfo.Count() == 0)
     throw new Exception("No port info found for " + ListeningPortKey);
 }
 var port = portInfo.Single().ServerListeningPort;
-```
+{% include code-block-end.md %}
 
 > _**NOTE**_: It is necessary to provide a `containerPort` value in the GameServerBuild YAML, since it is required for GameServerBuild validation (specifically, the way the PodTemplate is validated on Kubernetes). However, as mentioned, this provided value is not used since it's overwritten by the `hostPort` value.

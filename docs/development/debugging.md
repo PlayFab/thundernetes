@@ -11,19 +11,21 @@ To test your local code you have 2 options: you can run the code in a local kind
 
 ## Run end to end tests locally
 
+First of all, you need to install `kustomize`. You can do it by running `make -C pkg/operator kustomize`.
+
 This command will run the e2e tests locally, and it won't delete the cluster after it's done, so you can either deploy more GameServerBuilds or check the ones used for the tests under the `e2e` namespace.
 
-```bash
+{% include code-block-start.md %}
 make clean deletekindcluster builddockerlocal createkindcluster e2elocal
-```
+{% include code-block-end.md %}
 
 ## Run the controller unit tests locally
 
 To tun the controller unit tests locally, you should go to the `pkg/operator` directory and run the following command:
 
-```bash
+{% include code-block-start.md %}
 make test
-```
+{% include code-block-end.md %}
 
 Make sure to not run them while kind cluster is up, since there will be port collisions and the tests will fail.
 
@@ -41,5 +43,5 @@ To test your changes to Thundernetes on a Kubernetes cluster, you can use the fo
 - Run `make clean build push` to build the container images and push them to your container registry
 - Run `create-install-files-dev` to create the install files for the cluster
 - Checkout the `installfilesdev` folder for the generated install files. This file is included in .gitignore so it will never be committed.
-- Test your changes as required.
+- Test your changes as required. For example, to install Thundernetes controller, you can do `kubectl apply -f installfilesdev/operator_with_monitoring.yaml` and then you can install any of the samples on the `samples` folder.
 - single command: `NS=docker.io/<repo>/ make clean build push create-install-files-dev`
