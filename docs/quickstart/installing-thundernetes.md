@@ -16,7 +16,7 @@ Once you have a Kubernetes cluster up and running, you need to install [cert-man
 The following will install `cert-manager` v1.8.0:
 
 ```bash
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/1.8.0/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-manager.yaml
 ```
 
 If you feel adventurous, you may try installing the latest version of `cert-manager`, however there are no guarantees in this case. Thundernetes install is only tested against the pinned version.
