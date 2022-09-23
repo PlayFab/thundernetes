@@ -1,3 +1,4 @@
+
 apiVersion: mps.playfab.com/v1alpha1
 kind: GameServerBuild
 metadata:
@@ -5,8 +6,8 @@ metadata:
 spec:
   titleID: "1E04" # required
   buildID: "85ffe8da-c82f-4035-86c5-9d2b5f42d6f7" # must be a GUID
-  standingBy: 1 # required
-  max: 16 # required
+  standingBy: 0 # required
+  max: 50 # required
   portsToExpose:
     - 27960
   template:

@@ -46,6 +46,8 @@ function scale_up() {
 echo "Added function scale_up(gsb_name, replicas)"
 
 function scale_clear(){
-    kubectl get gs -o=jsonpath='{range .items[?(@.status.state=="Active")]}{.metadata.name}{"\n"}' | xargs -I {} kubectl delete gs {}
+    gsb_name=$1
+
+    kubectl scale gsb $gsb_name --replicas 0
 }
 echo "Added function scale_clear()"
