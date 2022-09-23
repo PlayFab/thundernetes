@@ -8997,7 +8997,6 @@ metadata:
   name: thundernetes-gameserver-health-service
   namespace: thundernetes-system
 spec:
-  clusterIP: None # Headless service to get nodeagent pod IP directly
   selector:
     name: nodeagent
   ports:
