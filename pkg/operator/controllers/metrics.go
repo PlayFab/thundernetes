@@ -112,4 +112,12 @@ var (
 		},
 		[]string{"BuildName"},
 	)
+	Allocations409ErrorsCounter = registry.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "thundernetes",
+			Name:      "allocations_409",
+			Help:      "The number of 409 (request conflict) errors during allocation",
+		},
+		[]string{"BuildName"},
+	)
 )

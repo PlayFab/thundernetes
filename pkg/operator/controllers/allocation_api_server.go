@@ -291,6 +291,7 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 		if gs == nil {
 			// pop from queue returned nil, this means no more game servers in this build
 			tooManyRequestsError(w, s.logger, fmt.Errorf("not enough standingBy"), "there are not enough standingBy servers")
+			Allocations429ErrorsCounter.WithLabelValues(args.BuildID).Inc()
 			return
 		}
 
@@ -318,7 +319,7 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 		if err != nil {
 			if apierrors.IsConflict(err) {
 				s.logger.Info("conflict error patching game server", "error", err, "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
-				Allocations500ErrorsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
+				Allocations409ErrorsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
 			} else if apierrors.IsNotFound(err) {
 				s.logger.Info("error not found patching game server", "error", err, "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
 				Allocations404ErrorsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
