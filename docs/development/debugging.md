@@ -13,6 +13,8 @@ To test your local code you have 2 options: you can run the code in a local kind
 
 First of all, you need to install `kustomize`. You can do it by running `make -C pkg/operator kustomize`.
 
+Next, you need to install `kind`. You can do this by running `make installkind` in the main project folder
+
 This command will run the e2e tests locally, and it won't delete the cluster after it's done, so you can either deploy more GameServerBuilds or check the ones used for the tests under the `e2e` namespace.
 
 {% include code-block-start.md %}
@@ -41,7 +43,7 @@ To test your changes to Thundernetes on a Kubernetes cluster, you can use the fo
 - The Makefile on the root of the project contains a variable `NS` that points to the container registry that you use during development. So you'd need to either set the variable in your environment (`export NS=<your-container-registry>`) or set it before calling `make` (like `NS=<your-container-registry> make build push`).
 - Login to your container registry (`docker login`)
 - Run `make clean build push` to build the container images and push them to your container registry
-- Run `create-install-files-dev` to create the install files for the cluster
+- Run `make create-install-files-dev` to create the install files for the cluster
 - Checkout the `installfilesdev` folder for the generated install files. This file is included in .gitignore so it will never be committed.
 - Test your changes as required. For example, to install Thundernetes controller, you can do `kubectl apply -f installfilesdev/operator_with_monitoring.yaml` and then you can install any of the samples on the `samples` folder.
 - single command: `NS=docker.io/<repo>/ make clean build push create-install-files-dev`
