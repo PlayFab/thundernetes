@@ -196,7 +196,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// we also need to check if we are above the max
 	// this can happen if the user modifies the spec.Max during the GameServerBuild's lifetime
 	if nonActiveGameServersCount+activeCount > gsb.Spec.Max {
-		totalNumberOfGameServersToDelete = int(math.Min(float64(totalNumberOfGameServersToDelete+(nonActiveGameServersCount+activeCount-gsb.Spec.Max)), maxNumberOfGameServersToDelete))
+		totalNumberOfGameServersToDelete += int(math.Min(float64(totalNumberOfGameServersToDelete+(nonActiveGameServersCount+activeCount-gsb.Spec.Max)), maxNumberOfGameServersToDelete))
 	}
 	if totalNumberOfGameServersToDelete > 0 {
 		err := r.deleteNonActiveGameServers(ctx, &gsb, &gameServers, totalNumberOfGameServersToDelete)
