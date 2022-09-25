@@ -51,6 +51,7 @@ type AllocationResult struct {
 }
 
 type buildState struct {
+	pendingCount      int
 	initializingCount int
 	activeCount       int
 	standingByCount   int
@@ -369,7 +370,9 @@ func verifyGameServerBuild(ctx context.Context, kubeClient client.Client, state 
 	if err := kubeClient.Get(ctx, types.NamespacedName{Name: state.buildName, Namespace: testNamespace}, &gameServerBuild); err != nil {
 		return err
 	}
-
+	if gameServerBuild.Status.CurrentPending != state.pendingCount {
+		return fmt.Errorf("expected %d pending, got %d", state.pendingCount, gameServerBuild.Status.CurrentPending)
+	}
 	if gameServerBuild.Status.CurrentInitializing != state.initializingCount {
 		return fmt.Errorf("expected %d initializing, got %d", state.initializingCount, gameServerBuild.Status.CurrentInitializing)
 	}
