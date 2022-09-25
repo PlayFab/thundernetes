@@ -38,7 +38,7 @@ The preferred way to configure the forecaster is to create a ConfigMap as the sa
 
 Example configuration:
 
-```yaml
+{% include code-block-start.md %}
   targetGameServerBuildName: "gameserverbuild-sample-netcore"
   targetGameServerBuildNamespace: "default"
   queryUrl: "http://prometheus-operated.monitoring:9090"
@@ -49,7 +49,7 @@ Example configuration:
   forecastedPoints: 10
   k8s:
     runInCluster: true
-```
+{% include code-block-end.md %}
 
 ### Server load simulation
 

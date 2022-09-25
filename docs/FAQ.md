@@ -14,7 +14,7 @@ You can run any game server that supports the [PlayFab GameServer SDK](https://g
 
 The GameServerBuild template allows you to set custom Annotations and/or Labels along with the Pod specification. This is possible since GameServerBuild includes the entire PodTemplateSpec. Labels and Annotations are copied to the GameServers and the Pods in the GameServerBuild. Check the following YAML for an example:
 
-```yaml
+{% include code-block-start.md %}
 apiVersion: mps.playfab.com/v1alpha1
 kind: GameServerBuild
 metadata:
@@ -39,8 +39,8 @@ spec:
           ports:
           - containerPort: 80 # your game server port
             protocol: TCP # your game server port protocol
-            name: gameport # required field
-```
+            name: gameport # required field    
+{% include code-block-end.md %}
 
 ## Can I run my game server pods in a non-default namespace?
 
@@ -56,7 +56,7 @@ There will be no impact from these lost heartbeats. However, you can ask Kuberne
 
 Kubernetes supports resource constraints when you are creating a Pod ([reference](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)). Essentially, you can specify the amount of CPU and memory that your Pod can request when it starts (requests) as well as the maximum amount of CPU and memory that your Pod can use (limits). To configure resource constraints for your Pod, you can modify the GameServerBuild definition. Since the entire PodSpec is defined in the GameServerBuild definition, you can add these resource constraints to the PodSpec. Take a look at the following example to see how you can modify your GameServerBuild YAML for this purpose:
 
-```yaml
+{% include code-block-start.md %}
 template:
     spec:
       containers:
@@ -73,7 +73,7 @@ template:
             limits:
               cpu: 100m
               memory: 500Mi
-```
+{% include code-block-end.md %}
 
 For a full sample, you can check [here](https://github.com/PlayFab/thundernetes/tree/main/samples/netcore/sample-requestslimits.yaml).
 
@@ -99,7 +99,7 @@ For GameServers we make these ones:
 - Validates that every GameServer has a GameServerBuild as an owner.
 - Validates that the port configuration is correct.
 
-## Can I use ```kubectl scale``` to scale GameServers?
+## Can I use `kubectl scale` to scale GameServers?
 
-Currently we enabled the scale command for changing the number of standingBy GameServers, but it has the side effect of bypassing the validation webhooks. This means you can have a standingBy value thats higher than the max of GameServers allowed. In practice, the controller won't create more GameServers than the max, but it's an inconsistency. We recommend changing the standingBy value using ```kubectl edit``` instead.
+Currently we enabled the scale command for changing the number of standingBy GameServers, but it has the side effect of bypassing the validation webhooks. This means you can have a standingBy value thats higher than the max of GameServers allowed. In practice, the controller won't create more GameServers than the max, but it's an inconsistency. We recommend changing the standingBy value using `kubectl edit` instead.
 

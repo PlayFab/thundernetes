@@ -14,15 +14,15 @@ If you have multiple Thundernetes clusters on different regions, it might be use
 
 In [Thundernetes' main repository](https://github.com/PlayFab/thundernetes/tree/main/cmd/latencyserver) you can find the code for the server and a Dockerfile to build the image. We also provide 2 example YAML files: one for [deploying the server](https://github.com/PlayFab/thundernetes/blob/main/samples/latencyserver/latencyserver.yaml), and another for [deploying a ServiceMonitor](https://github.com/PlayFab/thundernetes/blob/main/samples/latencyserver/monitor.yaml) to crawl the [prometheus metrics](./monitoring.md). All you have to do is run:
 
-```bash
+{% include code-block-start.md %}
 # for the latency server
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/latencyserver/latencyserver.yaml
 
 # for the service monitor
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/latencyserver/monitor.yaml
-```
+{% include code-block-end.md %}
 
-The UDP server runs on the port defined by the ```UDP_SERVER_PORT``` environment variable. A prometheus ```/metrics``` endpoint is also exposed, on the port defined by the ```METRICS_SERVER_PORT``` environment variable, with a counter for the number of successful requests it has received.
+The UDP server runs on the port defined by the `UDP_SERVER_PORT` environment variable. A prometheus `/metrics` endpoint is also exposed, on the port defined by the `METRICS_SERVER_PORT` environment variable, with a counter for the number of successful requests it has received.
 
 ## Deploying the latency server
 
