@@ -333,7 +333,6 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 	// a waitgroup for async deletion calls
 	var wg sync.WaitGroup
 	deletionCalls := 0
-	deletionStartTime := time.Now()
 
 	// we sort the GameServers by state so that we can delete the ones that are empty state or Initializing before we delete the StandingBy ones (if needed)
 	// this is to make sure we don't fall below the desired number of StandingBy during scaling down
@@ -344,7 +343,7 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 		if gs.Status.State == "" || gs.Status.State == mpsv1alpha1.GameServerStateInitializing || gs.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 			deletionCalls++
 			wg.Add(1)
-			go func(deletionStartTime time.Time) {
+			go func() {
 				defer wg.Done()
 				if err := r.deleteGameServer(ctx, &gs); err != nil {
 					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
@@ -356,7 +355,7 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
 				r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 				r.Recorder.Eventf(gsb, corev1.EventTypeNormal, "GameServer deleted", "GameServer %s deleted", gs.Name)
-			}(deletionStartTime)
+			}()
 		}
 	}
 	wg.Wait()
