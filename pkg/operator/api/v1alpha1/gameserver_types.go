@@ -35,6 +35,7 @@ const (
 	GameServerStateActive        GameServerState = "Active"
 	GameServerStateCrashed       GameServerState = "Crashed"
 	GameServerStateGameCompleted GameServerState = "GameCompleted"
+	GameServerStatePodEvicted    GameServerState = "PodEvicted"
 )
 
 const (

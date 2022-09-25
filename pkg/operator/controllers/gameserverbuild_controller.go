@@ -168,6 +168,14 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			GameServersCrashedCounter.WithLabelValues(gsb.Name).Inc()
 			r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Unhealthy", "GameServer %s was deleted because it became unhealthy, state: %s, health: %s", gs.Name, gs.Status.State, gs.Status.Health)
+		} else if gs.Status.State == mpsv1alpha1.GameServerStatePodEvicted {
+			// GameServer pod was evicted
+			if err := r.Delete(ctx, &gs); err != nil {
+				return ctrl.Result{}, err
+			}
+			GameServersEvictedCounter.WithLabelValues(gsb.Name).Inc()
+			r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
+			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Evicted", "GameServer %s was deleted because its Pod got evicted, state: %s, health: %s", gs.Name, gs.Status.State, gs.Status.Health)
 		} else if gs.Status.Health == mpsv1alpha1.GameServerUnhealthy {
 			// all cases where the game server was marked as Unhealthy
 			crashesCount++

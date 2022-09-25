@@ -40,6 +40,14 @@ var (
 		},
 		[]string{"BuildName"},
 	)
+	GameServersEvictedCounter = registry.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "thundernetes",
+			Name:      "gameservers_evicted_total",
+			Help:      "Number of GameServer Pods evicted",
+		},
+		[]string{"BuildName"},
+	)
 	GameServersUnhealthyCounter = registry.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "thundernetes",

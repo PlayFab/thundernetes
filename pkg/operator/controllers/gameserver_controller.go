@@ -148,7 +148,10 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			exitCode := containerStatus.State.Terminated.ExitCode
 			r.Recorder.Eventf(&gs, corev1.EventTypeNormal, "GameServerProcessExited", "GameServer process exited with code %d", exitCode)
 			patch := client.MergeFrom(gs.DeepCopy())
-			if exitCode == 0 {
+			// first, we check if the Pod has been evicted
+			if containerStatus.State.Terminated.Reason == "Evicted" {
+				gs.Status.State = mpsv1alpha1.GameServerStatePodEvicted
+			} else if exitCode == 0 {
 				gs.Status.State = mpsv1alpha1.GameServerStateGameCompleted
 			} else {
 				gs.Status.State = mpsv1alpha1.GameServerStateCrashed
