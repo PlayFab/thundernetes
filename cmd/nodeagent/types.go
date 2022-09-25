@@ -5,6 +5,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -58,6 +59,15 @@ var (
 		Name:      "connected_players",
 		Help:      "Number of connected players per GameServer",
 	}, []string{"namespace", "ServerName", "BuildName"})
+
+	GameServerCreateDuration = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "thundernetes",
+			Name:      "gameserver_create_duration",
+			Help:      "Time taken to create a GameServers",
+		},
+		[]string{"BuildName"},
+	)
 )
 
 // HeartbeatRequest contains data for the heartbeat request coming from the GSDK running alongside GameServer
@@ -101,9 +111,10 @@ type GameServerInfo struct {
 	GameServerNamespace   string
 	ConnectedPlayersCount int
 	Mutex                 *sync.RWMutex
-	GsUid                 types.UID // UID of the GameServer object
-	CreationTime          int64     // time when this GameServerInfo was created in the nodeagent
-	LastHeartbeatTime     int64     // time since the nodeagent received a heartbeat from this GameServer
-	MarkedUnhealthy       bool      // if the GameServer was marked unhealthy by a heartbeat condition, used to avoid repeating the patch
-	BuildName             string    // the name of the GameServerBuild that this GameServer belongs to
+	GsUid                 types.UID    // UID of the GameServer object
+	CreationTime          int64        // time when this GameServerInfo was created in the nodeagent
+	CreationTimeStamp     *metav1.Time // time when the GameServer was created
+	LastHeartbeatTime     int64        // time since the nodeagent received a heartbeat from this GameServer
+	MarkedUnhealthy       bool         // if the GameServer was marked unhealthy by a heartbeat condition, used to avoid repeating the patch
+	BuildName             string       // the name of the GameServerBuild that this GameServer belongs to
 }

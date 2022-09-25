@@ -24,14 +24,6 @@ var (
 		},
 		[]string{"BuildName"},
 	)
-	GameServersCreatedDuration = registry.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "thundernetes",
-			Name:      "gameservers_create_duration",
-			Help:      "Average time it took to create a the newest set of GameServers",
-		},
-		[]string{"BuildName"},
-	)
 	GameServersStandByReconcileDuration = registry.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "thundernetes",
@@ -45,22 +37,6 @@ var (
 			Namespace: "thundernetes",
 			Name:      "gameservers_sessionended_total",
 			Help:      "Number of GameServer sessions ended",
-		},
-		[]string{"BuildName"},
-	)
-	GameServersEndedDuration = registry.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "thundernetes",
-			Name:      "gameservers_end_duration",
-			Help:      "Time it took to delete a set of non-active GameServers",
-		},
-		[]string{"BuildName"},
-	)
-	GameServersCleanUpDuration = registry.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "thundernetes",
-			Name:      "gameservers_clean_up_duration",
-			Help:      "Average time it took to clean up all completed or unhealthy GameServers",
 		},
 		[]string{"BuildName"},
 	)

@@ -3,12 +3,15 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
@@ -102,6 +105,15 @@ func isValidStateTransition(old, new GameState) bool {
 // getLogger returns a logger for the specified game server name and namespace
 func getLogger(gameServerName, gameServerNamespace string) *log.Entry {
 	return log.WithFields(log.Fields{"GameServerName": gameServerName, "GameServerNamespace": gameServerNamespace})
+}
+
+// getStateDuration determine whether to use an existing saved time variables or the current time for state duration
+func getStateDuration(endTime *metav1.Time, startTime *metav1.Time) float64 {
+	// If the end time state is missing, use the current time
+	if endTime == nil {
+		return math.Abs(float64(time.Since(startTime.Time).Milliseconds()))
+	}
+	return math.Abs(float64(endTime.Time.Sub(startTime.Time).Milliseconds()))
 }
 
 // sanitize removes new line characters from the string
