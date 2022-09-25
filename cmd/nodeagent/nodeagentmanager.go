@@ -458,7 +458,10 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 				status.ReachedInitializingOn = &now
 			} else if hb.CurrentGameState == GameStateStandingBy {
 				status.ReachedStandingByOn = &now
-				GameServerCreateDuration.WithLabelValues(gsd.BuildName).Set(getStateDuration(status.ReachedStandingByOn, gsd.CreationTimeStamp))
+				// emit duration if creationTimeStamp was able to be saved
+				if gsd.CreationTimeStamp != nil {
+					GameServerCreateDuration.WithLabelValues(gsd.BuildName).Set(getStateDuration(status.ReachedStandingByOn, gsd.CreationTimeStamp))
+				}
 			}
 		}
 
