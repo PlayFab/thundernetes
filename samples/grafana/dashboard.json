@@ -1803,7 +1803,7 @@
         "type": "prometheus",
         "uid": "P1809F7CD0C75ACF3"
       },
-      "description": "The time it has taken to begin the initialization of every needed GameServer in the latest reconciliation loop.",
+      "description": "The time it has taken to create a batch of GameServer objects.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1882,14 +1882,14 @@
             "uid": "P1809F7CD0C75ACF3"
           },
           "editorMode": "builder",
-          "expr": "thundernetes_gameservers_reconcile_standby_duration",
+          "expr": "thundernetes_gameservers_batch_creation_duration",
           "hide": false,
           "legendFormat": "{{BuildName}}-{{instance}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "GameServer StandBy Reconciliation Time",
+      "title": "GameServer Object Batch Creation Time",
       "type": "timeseries"
     }
   ],
@@ -1908,6 +1908,6 @@
   "timezone": "",
   "title": "Thundernetes GameServer Demo",
   "uid": "T9KjuZOnz",
-  "version": 4,
+  "version": 5,
   "weekStart": ""
 }
