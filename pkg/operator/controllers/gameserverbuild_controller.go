@@ -208,14 +208,14 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// an error channel for the go routines to write errors
 	errCh := make(chan error, maxNumberOfGameServersToAdd)
 	// Time how long it takes to trigger new standby gameservers
-	standByReconcileStartTime := time.Now()
+	serverBatchCreateStartTime := time.Now()
 	// a waitgroup for async create calls
 	var wg sync.WaitGroup
 	for i := 0; i < gsb.Spec.StandingBy-nonActiveGameServersCount &&
 		i+nonActiveGameServersCount+activeCount < gsb.Spec.Max &&
 		i < maxNumberOfGameServersToAdd; i++ {
 		wg.Add(1)
-		go func(standByStartTime time.Time) {
+		go func(serverBatchCreateStartTime time.Time) {
 			defer wg.Done()
 			newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
 			if err != nil {
@@ -229,8 +229,8 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			r.expectations.addGameServerToUnderCreationMap(gsb.Name, newgs.Name)
 			GameServersCreatedCounter.WithLabelValues(gsb.Name).Inc()
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Creating", "Creating GameServer %s", newgs.Name)
-			GameServersStandByReconcileDuration.WithLabelValues(gsb.Name).Set(float64(time.Since(standByStartTime).Milliseconds()))
-		}(standByReconcileStartTime)
+			GameServerBatchCreationDuration.WithLabelValues(gsb.Name).Set(float64(time.Since(serverBatchCreateStartTime).Milliseconds()))
+		}(serverBatchCreateStartTime)
 	}
 	wg.Wait()
 	if len(errCh) > 0 {

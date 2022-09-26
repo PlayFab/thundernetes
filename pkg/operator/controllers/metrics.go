@@ -24,11 +24,11 @@ var (
 		},
 		[]string{"BuildName"},
 	)
-	GameServersStandByReconcileDuration = registry.NewGaugeVec(
+	GameServerBatchCreationDuration = registry.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "thundernetes",
-			Name:      "gameservers_reconcile_standby_duration",
-			Help:      "Time it took to begin initialization for all new GameServers",
+			Name:      "gameservers_batch_creation_duration",
+			Help:      "Time it took the controller to create a requested number of GameServer objects",
 		},
 		[]string{"BuildName"},
 	)
