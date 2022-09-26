@@ -1673,7 +1673,8 @@
         "y": 27
       },
       "id": 37,
-      "interval": "0.01",
+      "interval": "10",
+      "maxDataPoints": 596,
       "options": {
         "legend": {
           "calcs": [],
@@ -1692,8 +1693,8 @@
             "type": "prometheus",
             "uid": "P1809F7CD0C75ACF3"
           },
-          "editorMode": "builder",
-          "expr": "avg_over_time(thundernetes_gameserver_standing_by_duration[5m])",
+          "editorMode": "code",
+          "expr": "",
           "hide": false,
           "legendFormat": "{{BuildName}}-{{instance}}",
           "range": true,
@@ -1797,100 +1798,6 @@
       ],
       "title": "Average Time Until GameServer Reaches Initialization",
       "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
-      "description": "The time it has taken to create a batch of GameServer objects.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "Time (milliseconds)",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineWidth": 3,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 35
-      },
-      "id": 38,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "editorMode": "builder",
-          "expr": "thundernetes_gameservers_batch_creation_duration",
-          "hide": false,
-          "legendFormat": "{{BuildName}}-{{instance}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "GameServer Object Batch Creation Time",
-      "type": "timeseries"
     }
   ],
   "refresh": false,
@@ -1908,6 +1815,6 @@
   "timezone": "",
   "title": "Thundernetes GameServer Demo",
   "uid": "T9KjuZOnz",
-  "version": 5,
+  "version": 2,
   "weekStart": ""
 }

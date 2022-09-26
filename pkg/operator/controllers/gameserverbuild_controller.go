@@ -23,7 +23,6 @@ import (
 	"runtime"
 	"sort"
 	"sync"
-	"time"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -207,15 +206,13 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// we attempt to create the missing number of game servers, but we don't want to create more than the max
 	// an error channel for the go routines to write errors
 	errCh := make(chan error, maxNumberOfGameServersToAdd)
-	// Time how long it takes to trigger new standby gameservers
-	serverBatchCreateStartTime := time.Now()
 	// a waitgroup for async create calls
 	var wg sync.WaitGroup
 	for i := 0; i < gsb.Spec.StandingBy-nonActiveGameServersCount &&
 		i+nonActiveGameServersCount+activeCount < gsb.Spec.Max &&
 		i < maxNumberOfGameServersToAdd; i++ {
 		wg.Add(1)
-		go func(serverBatchCreateStartTime time.Time) {
+		go func() {
 			defer wg.Done()
 			newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
 			if err != nil {
@@ -229,8 +226,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			r.expectations.addGameServerToUnderCreationMap(gsb.Name, newgs.Name)
 			GameServersCreatedCounter.WithLabelValues(gsb.Name).Inc()
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Creating", "Creating GameServer %s", newgs.Name)
-			GameServerBatchCreationDuration.WithLabelValues(gsb.Name).Set(float64(time.Since(serverBatchCreateStartTime).Milliseconds()))
-		}(serverBatchCreateStartTime)
+		}()
 	}
 	wg.Wait()
 	if len(errCh) > 0 {

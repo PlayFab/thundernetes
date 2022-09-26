@@ -24,14 +24,6 @@ var (
 		},
 		[]string{"BuildName"},
 	)
-	GameServerBatchCreationDuration = registry.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "thundernetes",
-			Name:      "gameservers_batch_creation_duration",
-			Help:      "Time it took the controller to create a requested number of GameServer objects",
-		},
-		[]string{"BuildName"},
-	)
 	GameServersSessionEndedCounter = registry.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "thundernetes",
