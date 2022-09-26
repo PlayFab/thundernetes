@@ -220,7 +220,6 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 		// or that the NodeAgent crashed and we're having a new instance
 		// in any case, we're adding the details to the map
 		logger.Infof("GameServer %s/%s does not exist in cache, we're creating it", gameServerNamespace, gameServerName)
-
 		gsdi = &GameServerInfo{
 			GameServerNamespace: gameServerNamespace,
 			Mutex:               &sync.RWMutex{},
