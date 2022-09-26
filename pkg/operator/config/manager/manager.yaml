@@ -45,7 +45,7 @@ spec:
             - name: API_SERVICE_SECURITY
               value: ${API_SERVICE_SECURITY}
             - name: LISTENING_PORT
-              value: "${LISTENING_PORT}" #This is currently broken. After kustomize runs, double quotes are removed and can't be escaped
+              value: ${STR_LISTENING_PORT}
             - name: THUNDERNETES_INIT_CONTAINER_IMAGE
               value: ${IMAGE_NAME_INIT_CONTAINER}:${IMAGE_TAG}
             - name: THUNDERNETES_INIT_CONTAINER_IMAGE_WIN
@@ -77,8 +77,8 @@ spec:
               cpu: 1000m
               memory: 500Mi
           ports:
-            - containerPort: ${LISTENING_PORT}
-              hostPort: ${LISTENING_PORT}
+            - containerPort: ${INT_LISTENING_PORT}
+              hostPort: ${INT_LISTENING_PORT}
             - containerPort: 8080
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
@@ -92,8 +92,8 @@ spec:
     control-plane: controller-manager
   ports:
     - protocol: TCP
-      port: ${LISTENING_PORT}
-      targetPort: ${LISTENING_PORT}
+      port: ${INT_LISTENING_PORT}
+      targetPort: ${INT_LISTENING_PORT}
   type: LoadBalancer
 ---
 apiVersion: v1
