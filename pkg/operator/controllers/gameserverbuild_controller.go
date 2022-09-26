@@ -141,7 +141,6 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// calculate counts by state so we can update .status accordingly
 	var activeCount, standingByCount, crashesCount, initializingCount, pendingCount int
-
 	for i := 0; i < len(gameServers.Items); i++ {
 		gs := gameServers.Items[i]
 
@@ -158,7 +157,6 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			if err := r.Delete(ctx, &gs); err != nil {
 				return ctrl.Result{}, err
 			}
-
 			GameServersSessionEndedCounter.WithLabelValues(gsb.Name).Inc()
 			r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Exited", "GameServer %s session completed", gs.Name)
@@ -188,7 +186,6 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Evaluate desired number of servers against actual
 	var totalNumberOfGameServersToDelete int = 0
-
 	// user has decreased standingBy numbers
 	if nonActiveGameServersCount > gsb.Spec.StandingBy {
 		totalNumberOfGameServersToDelete += int(math.Min(float64(nonActiveGameServersCount-gsb.Spec.StandingBy), maxNumberOfGameServersToDelete))
@@ -210,7 +207,6 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// we attempt to create the missing number of game servers, but we don't want to create more than the max
 	// an error channel for the go routines to write errors
 	errCh := make(chan error, maxNumberOfGameServersToAdd)
-
 	// Time how long it takes to trigger new standby gameservers
 	standByReconcileStartTime := time.Now()
 	// a waitgroup for async create calls
@@ -237,7 +233,6 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}(standByReconcileStartTime)
 	}
 	wg.Wait()
-
 	if len(errCh) > 0 {
 		return ctrl.Result{}, <-errCh
 	}
@@ -333,7 +328,6 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 	// a waitgroup for async deletion calls
 	var wg sync.WaitGroup
 	deletionCalls := 0
-
 	// we sort the GameServers by state so that we can delete the ones that are empty state or Initializing before we delete the StandingBy ones (if needed)
 	// this is to make sure we don't fall below the desired number of StandingBy during scaling down
 	sort.Sort(ByState(gameServers.Items))
