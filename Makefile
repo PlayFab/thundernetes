@@ -1,5 +1,6 @@
 
 NS ?= ghcr.io/playfab/
+LISTENINGPORT ?= 5005
 
 export IMAGE_NAME_OPERATOR=thundernetes-operator
 export IMAGE_NAME_NODE_AGENT=thundernetes-nodeagent
@@ -97,7 +98,8 @@ create-install-files:
 	IMAGE_NAME_NODE_AGENT=$(NS)$(IMAGE_NAME_NODE_AGENT) \
 	IMAGE_NAME_NODE_AGENT_WIN=$(NS)$(IMAGE_NAME_NODE_AGENT_WIN) \
 	LOG_LEVEL=info \
-	LISTENING_PORT=5000 \
+	STR_LISTENING_PORT=\"$(LISTENINGPORT)\" \
+	INT_LISTENING_PORT=$(LISTENINGPORT) \
 	make -C pkg/operator create-install-files
 
 create-install-files-dev:
@@ -109,7 +111,8 @@ create-install-files-dev:
 	IMAGE_NAME_NODE_AGENT=$(NS)$(IMAGE_NAME_NODE_AGENT) \
 	IMAGE_NAME_NODE_AGENT_WIN=$(NS)$(IMAGE_NAME_NODE_AGENT_WIN) \
 	LOG_LEVEL=debug \
-	LISTENING_PORT=5000 \
+	STR_LISTENING_PORT=\"$(LISTENINGPORT)\" \
+	INT_LISTENING_PORT=$(LISTENINGPORT) \
 	make -C pkg/operator create-install-files
 
 clean:
