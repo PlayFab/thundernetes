@@ -220,15 +220,12 @@ func (n *NodeAgentManager) gameServerCreatedOrUpdated(obj *unstructured.Unstruct
 		// or that the NodeAgent crashed and we're having a new instance
 		// in any case, we're adding the details to the map
 		logger.Infof("GameServer %s/%s does not exist in cache, we're creating it", gameServerNamespace, gameServerName)
-		// save actual gameserver creation time
-		creationTimeStamp := obj.GetCreationTimestamp()
 
 		gsdi = &GameServerInfo{
 			GameServerNamespace: gameServerNamespace,
 			Mutex:               &sync.RWMutex{},
 			GsUid:               obj.GetUID(),
 			CreationTime:        n.nowFunc().UnixMilli(),
-			CreationTimeStamp:   &creationTimeStamp,
 			BuildName:           gameServerBuildName,
 			MarkedUnhealthy:     false,
 			// we're not adding details about health/state since the NodeAgent might have crashed
@@ -456,12 +453,12 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 			now := metav1.Time{Time: n.nowFunc()}
 			if hb.CurrentGameState == GameStateInitializing {
 				status.ReachedInitializingOn = &now
+				timeDif := time.Now().UnixMilli() - gsd.CreationTime
+				GameServerReachedInitializingDuration.WithLabelValues(gsd.BuildName).Set(float64(timeDif))
 			} else if hb.CurrentGameState == GameStateStandingBy {
 				status.ReachedStandingByOn = &now
-				// emit duration if creationTimeStamp was able to be saved
-				if gsd.CreationTimeStamp != nil {
-					GameServerCreateDuration.WithLabelValues(gsd.BuildName).Set(getStateDuration(status.ReachedStandingByOn, gsd.CreationTimeStamp))
-				}
+				timeDif := time.Now().UnixMilli() - gsd.CreationTime
+				GameServerReachedStandingByDuration.WithLabelValues(gsd.BuildName).Set(float64(timeDif))
 			}
 		}
 

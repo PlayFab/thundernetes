@@ -84,15 +84,14 @@ There is a custom Grafana dashboard example that visualizes some of this data in
 | --- | --- | --- |
 | gameserver_states | Gauge | nodeagent |
 | connected_players | Gauge | nodeagent |
+| gameserver_initialization_duration | Gauge | nodeagent |
+| gameserver_standing_by_duration | Gauge | nodeagent |
 | gameservers_current_state_per_build | Gauge | controller-manager |
 | gameservers_created_total | Counter | controller-manager |
-| gameservers_create_duration | Gauge | controller-manager |
 | gameservers_reconcile_standby_duration | Gauge | controller-manager | 
 | gameservers_sessionended_total | Counter | controller-manager |
 | gameservers_crashed_total | Counter | controller-manager |
 | gameservers_deleted_total | Counter | controller-manager |
-| gameservers_end_duration | Gauge | controller-manager |
-| gameservers_clean_up_duration | Gauge | controller-manager |
 | allocations_total | Counter | controller-manager |
 
 ## More pictures

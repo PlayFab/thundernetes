@@ -5,7 +5,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -60,11 +59,20 @@ var (
 		Help:      "Number of connected players per GameServer",
 	}, []string{"namespace", "ServerName", "BuildName"})
 
-	GameServerCreateDuration = promauto.NewGaugeVec(
+	GameServerReachedStandingByDuration = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "thundernetes",
-			Name:      "gameserver_create_duration",
-			Help:      "Time taken to create a GameServers",
+			Name:      "gameserver_standing_by_duration",
+			Help:      "Time taken for a GameServer to reach StandingBy",
+		},
+		[]string{"BuildName"},
+	)
+
+	GameServerReachedInitializingDuration = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "thundernetes",
+			Name:      "gameserver_initialization_duration",
+			Help:      "Time taken for a GameServer to reach initialization",
 		},
 		[]string{"BuildName"},
 	)
@@ -111,10 +119,9 @@ type GameServerInfo struct {
 	GameServerNamespace   string
 	ConnectedPlayersCount int
 	Mutex                 *sync.RWMutex
-	GsUid                 types.UID    // UID of the GameServer object
-	CreationTime          int64        // time when this GameServerInfo was created in the nodeagent
-	CreationTimeStamp     *metav1.Time // time when the GameServer was created
-	LastHeartbeatTime     int64        // time since the nodeagent received a heartbeat from this GameServer
-	MarkedUnhealthy       bool         // if the GameServer was marked unhealthy by a heartbeat condition, used to avoid repeating the patch
-	BuildName             string       // the name of the GameServerBuild that this GameServer belongs to
+	GsUid                 types.UID // UID of the GameServer object
+	CreationTime          int64     // time when this GameServerInfo was created in the nodeagent
+	LastHeartbeatTime     int64     // time since the nodeagent received a heartbeat from this GameServer
+	MarkedUnhealthy       bool      // if the GameServer was marked unhealthy by a heartbeat condition, used to avoid repeating the patch
+	BuildName             string    // the name of the GameServerBuild that this GameServer belongs to
 }
