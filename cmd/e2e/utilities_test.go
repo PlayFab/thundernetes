@@ -490,7 +490,8 @@ func verifyPods(ctx context.Context, kubeClient client.Client, state buildState)
 		if pod.Status.Phase != corev1.PodRunning && len(pod.Status.ContainerStatuses) > 0 {
 			for i := 0; i < len(pod.Status.ContainerStatuses); i++ {
 				if !pod.Status.ContainerStatuses[i].Ready {
-					s += fmt.Sprintf("-(State: %v)", pod.Status.ContainerStatuses[i].State)
+					s += fmt.Sprintf("-(State: %v) ", pod.Status.ContainerStatuses[i].State)
+					s += fmt.Sprintf("-(Conditions: %v) ", pod.Status.Conditions)
 				}
 			}
 		}
