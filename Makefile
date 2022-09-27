@@ -1,7 +1,7 @@
 
 NS ?= ghcr.io/playfab/
 
-export LISTENING_PORT=5005
+export LISTENING_PORT=5000
 export IMAGE_NAME_OPERATOR=thundernetes-operator
 export IMAGE_NAME_NODE_AGENT=thundernetes-nodeagent
 export IMAGE_NAME_NODE_AGENT_WIN=thundernetes-nodeagent-win
