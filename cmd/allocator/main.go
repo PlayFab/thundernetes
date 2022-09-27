@@ -43,7 +43,7 @@ func main() {
 
 		//pulls ip and port into output
 		cmd := exec.Command("kubectl", "get", "svc", "-n", "thundernetes-system", "thundernetes-controller-manager",
-			"-o", "jsonpath='{.status.loadBalancer.ingress[0].ip}','{.spec.ports[0].port}'")
+			"-o", "jsonpath={.status.loadBalancer.ingress[0].ip},{.spec.ports[0].port}")
 
 		output, err := cmd.CombinedOutput()
 

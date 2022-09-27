@@ -44,7 +44,7 @@ export FAKE_TLS_PUBLIC=/tmp/${RANDOM}.pem
 openssl req -x509 -newkey rsa:4096 -nodes -keyout ${FAKE_TLS_PRIVATE} -out ${FAKE_TLS_PUBLIC} -days 365 -subj '/CN=localhost'
 
 echo "-----Compiling, building and deploying the operator to local Kubernetes cluster-----"
-IMG=${IMAGE_NAME_OPERATOR}:${IMAGE_TAG} API_SERVICE_SECURITY=usetls make -C "${DIR}"/../pkg/operator deploye2e
+IMG=${IMAGE_NAME_OPERATOR}:${IMAGE_TAG} API_SERVICE_SECURITY=usetls INT_LISTENING_PORT=${LISTENING_PORT} STR_LISTENING_PORT=\"${LISTENING_PORT}\" make -C "${DIR}"/../pkg/operator deploye2e
 
 echo "-----Deploying GameServer API-----"
 cd cmd/gameserverapi/deployment/default
