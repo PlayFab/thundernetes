@@ -2,4 +2,6 @@
 
 Check the [quickstart](https://github.com/PlayFab/thundernetes/blob/main/docs/quickstart.md) on how to run the Minecraft sample on thundernetes.
 
-This image is based on the itzg/minecraft-server docker image, but modified to initiate the server with the GSDK wrapper, since Minecraft is not an OSS. The modified dockerfile can be found [here](https://github.com/rnjohn/docker-minecraft-server-gsdk).
+This image is based on the itzg/minecraft-server [docker image](https://hub.docker.com/r/itzg/minecraft-server), which provides a Minecraft Server that will automatically download the latest stable version at startup. And it can also run/upgrade to any specific version or the latest snapshot. What I did was to modify the Dockerfile to retrieve the built GSDK wrapper from the GSDK wrapper docker image and copy it into the MC one, and then execute the wrapper along the script to start the server. The modified dockerfile can be found [here](https://github.com/rnjohn/docker-minecraft-server-gsdk).
+
+According to [itzg](https://github.com/itzg), the container will download the latest version of the "vanilla" Minecraft: Java Edition server provided by Mojang. The VERSION and the TYPE can be configured to create many variations of desired Minecraft server. In the itzg original [GitHub repo](https://github.com/itzg/docker-minecraft-server) you can find much more info in how does the container work and how to add more options on top of it, like plugins and mods.

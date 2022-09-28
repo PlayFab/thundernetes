@@ -13,7 +13,7 @@ spec:
   template:
     spec:
       containers:
-        - image: rnjohn/minecraft-server-test
+        - image: rnjohn/minecraft-server-test:latest
           name: thundernetes-sample-minecraft
           ports:
           - containerPort: 25565 # your game server port

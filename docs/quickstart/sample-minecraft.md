@@ -3,7 +3,7 @@ layout: default
 title: Minecraft sample
 parent: Samples
 grand_parent: Quickstart
-nav_order: 2
+nav_order: 3
 ---
 
 # Minecraft sample
