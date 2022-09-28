@@ -14,6 +14,6 @@ This sample, located [here](https://github.com/PlayFab/thundernetes/tree/main/sa
 kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/samples/minecraft/sample.yaml
 {% include code-block-end.md %}
 
-To connect to an active server, you need to own a Minecraft Bedrock Edition copy (paid) from [here](https://www.minecraft.net/en-us/get-minecraft).
+To connect to an active server, you need to own a Minecraft Java Edition copy (paid) from [here](https://www.minecraft.net/en-us/get-minecraft).
 
 To allocate a game server (convert its state to active) and scale your GameServerBuild, you can check [here](allocation-scaling.md).
