@@ -1,6 +1,6 @@
-# Minecraft GSDK sample for thundernetes
+# Minecraft GSDK sample for Thundernetes
 
-Check the [quickstart](https://github.com/PlayFab/thundernetes/blob/main/docs/quickstart.md) on how to run the Minecraft sample on thundernetes.
+Check the [quickstart](https://github.com/PlayFab/thundernetes/blob/main/docs/quickstart.md) on how to run the Minecraft sample on Thundernetes.
 
 This image is based on the itzg/minecraft-server [docker image](https://hub.docker.com/r/itzg/minecraft-server), which provides a Minecraft Server that will automatically download the latest stable version at startup. And it can also run/upgrade to any specific version or the latest snapshot. What I did was to modify the Dockerfile to retrieve the built GSDK wrapper from the GSDK wrapper docker image and copy it into the MC one, and then execute the wrapper along the script to start the server. The modified dockerfile can be found [here](https://github.com/rnjohn/docker-minecraft-server-gsdk).
 
