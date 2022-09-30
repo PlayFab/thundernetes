@@ -1,0 +1,24 @@
+apiVersion: mps.playfab.com/v1alpha1
+kind: GameServerBuild
+metadata:
+  name: gameserverbuild-sample-minecraft
+spec:
+  titleID: "1E03" # required
+  buildID: "85ffe8da-c82f-4035-86c5-9d2b5f42d6f8" # must be a GUID
+  standingBy: 2 # required
+  max: 4 # required
+  crashesToMarkUnhealthy: 5 # optional, default is 5. It is the number of crashes needed to mark the build unhealthy
+  portsToExpose:
+    - 25565
+  template:
+    spec:
+      containers:
+        - image: rnjohn/minecraft-server-test:latest
+          name: thundernetes-sample-minecraft
+          ports:
+          - containerPort: 25565 # your game server port
+            protocol: TCP # your game server port protocol
+            name: gameport # required field
+          env:
+            - name: EULA
+              value: "true"
