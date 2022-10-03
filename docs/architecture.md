@@ -40,9 +40,9 @@ We are using [kind](https://kind.sigs.k8s.io/) and Kubernetes [client-go](https:
 
 Thundernetes exposes various metrics regarding GameServer management in [Prometheus](https://prometheus.io) format. To view them, you can forward traffic to port 8080 of the controller via:
 
-```bash
+{% include code-block-start.md %}
 kubectl port-forward -n thundernetes-system deployments/thundernetes-controller-manager 8080:8080
-```
+{% include code-block-end.md %}
 
 Then, you can use your browser and point it to `http://localhost:8080/metrics` to view the metrics.
 

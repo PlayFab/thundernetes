@@ -74,9 +74,9 @@ section of the Thundernetes repository.
 
 To get the latest code for Thundernetes run the following in a terminal:
 
-```bash
+{% include code-block-start.md %}
 git clone https://github.com/PlayFab/thundernetes.git
-```
+{% include code-block-end.md %}
 
 ### Tools
 

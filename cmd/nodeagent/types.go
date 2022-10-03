@@ -58,6 +58,24 @@ var (
 		Name:      "connected_players",
 		Help:      "Number of connected players per GameServer",
 	}, []string{"namespace", "ServerName", "BuildName"})
+
+	GameServerReachedStandingByDuration = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "thundernetes",
+			Name:      "gameserver_standing_by_duration",
+			Help:      "Time taken for a GameServer to reach StandingBy",
+		},
+		[]string{"BuildName"},
+	)
+
+	GameServerReachedInitializingDuration = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "thundernetes",
+			Name:      "gameserver_initialization_duration",
+			Help:      "Time taken for a GameServer to reach initialization",
+		},
+		[]string{"BuildName"},
+	)
 )
 
 // HeartbeatRequest contains data for the heartbeat request coming from the GSDK running alongside GameServer
