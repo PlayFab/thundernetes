@@ -8,10 +8,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -30,7 +28,7 @@ import (
 )
 
 var connectedPlayers = []string{"Amie", "Ken", "Dimitris"} // this should the same as in the netcore sample
-var listeningPort string
+var allocationAPISVCPort string
 
 const (
 	testNamespace                      = "e2e"
@@ -272,16 +270,9 @@ func allocate(buildID, sessionID string, cert tls.Certificate) error {
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport}
 
-	//Block of code to make port grabbing dynamic
-	cmd := exec.Command("kubectl", "get", "svc", "-n", "thundernetes-system", "thundernetes-controller-manager",
-		"-o", "jsonpath={.spec.ports[0].port}")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Println("Port could not be found to run e2e test")
-		log.Fatal(err)
-	}
-	listeningPort := string(output)
-	//Trim the quotes that are pulled
+	//Grabs the port from the running service
+	svc := corev1.Service{}
+	allocationAPISVCPort = string(svc.Spec.Ports[0].Port)
 
 	postBody, _ := json.Marshal(map[string]interface{}{
 		"buildID":        buildID,
@@ -290,7 +281,7 @@ func allocate(buildID, sessionID string, cert tls.Certificate) error {
 		"initialPlayers": []string{"player1", "player2"},
 	})
 	postBodyBytes := bytes.NewBuffer(postBody)
-	resp, err := client.Post("https://localhost:"+listeningPort+"/api/v1/allocate", "application/json", postBodyBytes)
+	resp, err := client.Post("https://localhost:"+allocationAPISVCPort+"/api/v1/allocate", "application/json", postBodyBytes)
 	//Handle Error
 	if err != nil {
 		return err

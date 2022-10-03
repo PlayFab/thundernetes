@@ -44,7 +44,7 @@ spec:
               value: ${LOG_LEVEL}
             - name: API_SERVICE_SECURITY
               value: ${API_SERVICE_SECURITY}
-            - name: LISTENING_PORT
+            - name: ALLOC_API_SVC_PORT
               value: ${STR_LISTENING_PORT}
             - name: THUNDERNETES_INIT_CONTAINER_IMAGE
               value: ${IMAGE_NAME_INIT_CONTAINER}:${IMAGE_TAG}

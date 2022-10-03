@@ -19,12 +19,12 @@ type AllocationResult struct {
 }
 
 var (
-	ip            string
-	certFile      string
-	keyFile       string
-	tlsSet        bool
-	listeningPort string
-	ar            *AllocationResult
+	ip                   string
+	certFile             string
+	keyFile              string
+	tlsSet               bool
+	allocationAPISVCPort string
+	ar                   *AllocationResult
 )
 
 func main() {
@@ -72,7 +72,7 @@ func main() {
 			}
 			s.WriteString(string(output[i]))
 		}
-		listeningPort = s.String()
+		allocationAPISVCPort = s.String()
 
 		if len(ip) < 3 { // basically if we don't have a valid IP
 			if tlsSet == true {
@@ -150,7 +150,7 @@ func allocateTls(ip string, buildID string, sessionID string, cert tls.Certifica
 	})
 
 	postBodyBytes := bytes.NewBuffer(postBody)
-	resp, err := client.Post(ip+":"+listeningPort+"/api/v1/allocate", "application/json", postBodyBytes)
+	resp, err := client.Post(ip+":"+allocationAPISVCPort+"/api/v1/allocate", "application/json", postBodyBytes)
 
 	//Handle Error
 	if err != nil {
@@ -195,7 +195,7 @@ func allocateNoTls(ip string, buildID string, sessionID string) (*AllocationResu
 	})
 
 	postBodyBytes := bytes.NewBuffer(postBody)
-	resp, err := client.Post(ip+":"+listeningPort+"/api/v1/allocate", "application/json", postBodyBytes)
+	resp, err := client.Post(ip+":"+allocationAPISVCPort+"/api/v1/allocate", "application/json", postBodyBytes)
 
 	//Handle Error
 	if err != nil {
