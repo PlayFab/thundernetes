@@ -17,17 +17,18 @@ import (
 
 var _ = Describe("allocation API service input validation tests", func() {
 	const (
-		buildName1     string = "testbuild"
-		buildNamespace string = "default"
-		buildID1       string = "acb84898-cf73-46e2-8057-314ac557d85d"
-		sessionID1     string = "d5f075a4-517b-4bf4-8123-dfa0021aa169"
-		gsName         string = "testgs"
+		buildName1           string = "testbuild"
+		buildNamespace       string = "default"
+		buildID1             string = "acb84898-cf73-46e2-8057-314ac557d85d"
+		sessionID1           string = "d5f075a4-517b-4bf4-8123-dfa0021aa169"
+		gsName               string = "testgs"
+		allocationApiSvcPort int32  = 5000
 	)
 
 	It("empty body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", nil)
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, nil, int32(5000))
+		h := NewAllocationApiServer(nil, nil, nil, allocationApiSvcPort)
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -38,7 +39,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 	It("GET method should return error", func() {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/allocate", nil)
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, nil, int32(5000))
+		h := NewAllocationApiServer(nil, nil, nil, allocationApiSvcPort)
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -49,7 +50,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 	It("bad body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString("{\"foo\":\"bar\"}"))
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, nil, int32(5000))
+		h := NewAllocationApiServer(nil, nil, nil, allocationApiSvcPort)
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -60,7 +61,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 	It("buildID should be a GUID", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString("{\"buildID\":\"NOT_A_GUID\",\"sessionID\":\"9bb3bbb2-5031-42fd-8982-5a3f76ef2c8a\"}"))
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, nil, int32(5000))
+		h := NewAllocationApiServer(nil, nil, nil, allocationApiSvcPort)
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -71,7 +72,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 	It("should return NotFound on an empty list", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString("{\"sessionID\":\"9bb3bbb2-5031-42fd-8982-5a3f76ef2c8a\",\"buildID\":\"9bb3bbb2-5031-42fd-8982-5a3f76ef2c8a\"}"))
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, testNewSimpleK8sClient(), int32(5000))
+		h := NewAllocationApiServer(nil, nil, testNewSimpleK8sClient(), allocationApiSvcPort)
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -85,7 +86,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", sessionID1, buildID1)))
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, client, int32(5000))
+		h := NewAllocationApiServer(nil, nil, client, allocationApiSvcPort)
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -105,7 +106,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", sessionID1, buildID1)))
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, client, int32(5000))
+		h := NewAllocationApiServer(nil, nil, client, allocationApiSvcPort)
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()

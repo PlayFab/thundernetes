@@ -28,7 +28,7 @@ import (
 )
 
 var connectedPlayers = []string{"Amie", "Ken", "Dimitris"} // this should the same as in the netcore sample
-var allocationAPISVCPort string
+var allocationApiSvcPort string
 
 const (
 	testNamespace                      = "e2e"
@@ -272,7 +272,7 @@ func allocate(buildID, sessionID string, cert tls.Certificate) error {
 
 	//Grabs the port from the running service
 	svc := corev1.Service{}
-	allocationAPISVCPort = string(svc.Spec.Ports[0].Port)
+	allocationApiSvcPort = string(svc.Spec.Ports[0].Port)
 
 	postBody, _ := json.Marshal(map[string]interface{}{
 		"buildID":        buildID,
@@ -281,7 +281,7 @@ func allocate(buildID, sessionID string, cert tls.Certificate) error {
 		"initialPlayers": []string{"player1", "player2"},
 	})
 	postBodyBytes := bytes.NewBuffer(postBody)
-	resp, err := client.Post("https://localhost:"+allocationAPISVCPort+"/api/v1/allocate", "application/json", postBodyBytes)
+	resp, err := client.Post("https://localhost:"+allocationApiSvcPort+"/api/v1/allocate", "application/json", postBodyBytes)
 	//Handle Error
 	if err != nil {
 		return err
