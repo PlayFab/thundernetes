@@ -6,11 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
-	"os/exec"
-	"strconv"
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
@@ -26,20 +23,11 @@ var _ = Describe("allocation API service input validation tests", func() {
 		sessionID1     string = "d5f075a4-517b-4bf4-8123-dfa0021aa169"
 		gsName         string = "testgs"
 	)
-	//Block of code to make port grabbing dynamic
-	cmd := exec.Command("kubectl", "get", "svc", "-n", "thundernetes-system", "thundernetes-controller-manager",
-		"-o", "jsonpath='{.spec.ports[0].port}'")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Println("Port could not be found to run e2e test")
-		log.Fatal(err)
-	}
-	port, _ := strconv.ParseInt(string(output), 6, 32)
 
 	It("empty body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", nil)
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, nil, int32(port))
+		h := NewAllocationApiServer(nil, nil, nil, int32(5000))
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -50,7 +38,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 	It("GET method should return error", func() {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/allocate", nil)
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, nil, int32(port))
+		h := NewAllocationApiServer(nil, nil, nil, int32(5000))
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -61,7 +49,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 	It("bad body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString("{\"foo\":\"bar\"}"))
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, nil, int32(port))
+		h := NewAllocationApiServer(nil, nil, nil, int32(5000))
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -72,7 +60,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 	It("buildID should be a GUID", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString("{\"buildID\":\"NOT_A_GUID\",\"sessionID\":\"9bb3bbb2-5031-42fd-8982-5a3f76ef2c8a\"}"))
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, nil, int32(port))
+		h := NewAllocationApiServer(nil, nil, nil, int32(5000))
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -83,7 +71,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 	It("should return NotFound on an empty list", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString("{\"sessionID\":\"9bb3bbb2-5031-42fd-8982-5a3f76ef2c8a\",\"buildID\":\"9bb3bbb2-5031-42fd-8982-5a3f76ef2c8a\"}"))
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, testNewSimpleK8sClient(), int32(port))
+		h := NewAllocationApiServer(nil, nil, testNewSimpleK8sClient(), int32(5000))
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -97,7 +85,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", sessionID1, buildID1)))
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, client, int32(port))
+		h := NewAllocationApiServer(nil, nil, client, int32(5000))
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
@@ -117,7 +105,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", sessionID1, buildID1)))
 		w := httptest.NewRecorder()
-		h := NewAllocationApiServer(nil, nil, client, int32(port))
+		h := NewAllocationApiServer(nil, nil, client, int32(5000))
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
