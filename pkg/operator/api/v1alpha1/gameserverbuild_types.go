@@ -25,7 +25,7 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 // Important: Run "make" and "make manifests" to regenerate code after modifying this file
 
-//+kubebuilder:validation:Enum=Healthy;Unhealthy
+// +kubebuilder:validation:Enum=Healthy;Unhealthy
 // GameServerBuildHealth describes the health of the game server build
 type GameServerBuildHealth string
 
