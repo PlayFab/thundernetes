@@ -114,7 +114,7 @@ var _ = Describe("Regular GameServerBuild", func() {
 
 		// allocate a game server
 		sessionID := uuid.New().String()
-		err = allocate(testBuildWithUnhealthyGameServersID, sessionID, cert)
+		err = allocate(testBuildWithUnhealthyGameServersID, sessionID, testBuildWithUnhealthyGameServersName, cert, ctx, kubeClient)
 		Expect(err).ToNot(HaveOccurred())
 
 		// so we now should have 1 active and 3 standingBy

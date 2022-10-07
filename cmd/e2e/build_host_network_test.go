@@ -69,7 +69,7 @@ var _ = Describe("Build with hostnetwork", func() {
 
 		// allocate a game server
 		sessionID2 := uuid.New().String()
-		err = allocate(testBuildWithHostNetworkID, sessionID2, cert)
+		err = allocate(testBuildWithHostNetworkID, sessionID2, testBuildWithHostNetworkName, cert, ctx, kubeClient)
 		Expect(err).ToNot(HaveOccurred())
 
 		// so we now should have 1 active and 3 standingBy

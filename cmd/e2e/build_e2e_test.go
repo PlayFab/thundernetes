@@ -86,7 +86,7 @@ var _ = Describe("E2E Build", func() {
 
 		// allocating
 		sessionID1 := uuid.New().String()
-		Expect(allocate(test1BuildID, sessionID1, cert)).To(Succeed())
+		Expect(allocate(test1BuildID, sessionID1, testBuild1Name, cert, ctx, kubeClient)).To(Succeed())
 
 		Eventually(func(g Gomega) {
 			state := buildState{
@@ -103,7 +103,7 @@ var _ = Describe("E2E Build", func() {
 		Expect(validateThatAllocatedServersHaveReadyForPlayersUnblocked(ctx, kubeClient, coreClient, test1BuildID, 1)).To(Succeed())
 
 		// allocating with same session ID, no more actives
-		Expect(allocate(test1BuildID, sessionID1, cert)).To(Succeed())
+		Expect(allocate(test1BuildID, sessionID1, testBuild1Name, cert, ctx, kubeClient)).To(Succeed())
 
 		Eventually(func(g Gomega) {
 			state := buildState{
@@ -119,7 +119,7 @@ var _ = Describe("E2E Build", func() {
 
 		// allocating with a new session ID
 		sessionID2 := uuid.New().String()
-		Expect(allocate(test1BuildID, sessionID2, cert)).To(Succeed())
+		Expect(allocate(test1BuildID, sessionID2, testBuild1Name, cert, ctx, kubeClient)).To(Succeed())
 
 		Eventually(func(g Gomega) {
 			state := buildState{
@@ -137,7 +137,7 @@ var _ = Describe("E2E Build", func() {
 
 		// allocating with a new session ID - we should have 3 actives
 		sessionID3 := uuid.New().String()
-		Expect(allocate(test1BuildID, sessionID3, cert)).To(Succeed())
+		Expect(allocate(test1BuildID, sessionID3, testBuild1Name, cert, ctx, kubeClient)).To(Succeed())
 
 		Eventually(func(g Gomega) {
 			state := buildState{
@@ -155,7 +155,7 @@ var _ = Describe("E2E Build", func() {
 
 		// allocating with a new session ID - 4 actives
 		sessionID4 := uuid.New().String()
-		Expect(allocate(test1BuildID, sessionID4, cert)).To(Succeed())
+		Expect(allocate(test1BuildID, sessionID4, testBuild1Name, cert, ctx, kubeClient)).To(Succeed())
 
 		Eventually(func(g Gomega) {
 			state := buildState{
@@ -173,7 +173,7 @@ var _ = Describe("E2E Build", func() {
 
 		// allocating with a new session ID - we have 0 standing by so we should get a 429
 		sessionID5 := uuid.New().String()
-		Expect(allocate(test1BuildID, sessionID5, cert)).To(Equal(fmt.Errorf("%s 429", invalidStatusCode)))
+		Expect(allocate(test1BuildID, sessionID5, testBuild1Name, cert, ctx, kubeClient)).To(Equal(fmt.Errorf("%s 429", invalidStatusCode)))
 
 		// updating with 3 max - we never kill actives so we should stay with 4 actives
 		gsb = &mpsv1alpha1.GameServerBuild{}

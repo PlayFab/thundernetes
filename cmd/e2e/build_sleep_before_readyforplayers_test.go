@@ -65,7 +65,7 @@ var _ = Describe("Build which sleeps before calling GSDK ReadyForPlayers", func(
 
 		// allocate a game server
 		sessionID2 := uuid.New().String()
-		err = allocate(testBuildSleepBeforeReadyForPlayersID, sessionID2, cert)
+		err = allocate(testBuildSleepBeforeReadyForPlayersID, sessionID2, testBuildSleepBeforeReadyForPlayersName, cert, ctx, kubeClient)
 		Expect(err).ToNot(HaveOccurred())
 
 		// so we now should have 1 active and 3 standingBy
