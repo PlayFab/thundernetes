@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 // Package v1alpha1 contains API Schema definitions for the mps v1alpha1 API group
-//+kubebuilder:object:generate=true
-//+groupName=mps.playfab.com
+// +kubebuilder:object:generate=true
+// +groupName=mps.playfab.com
 package v1alpha1
 
 import (
