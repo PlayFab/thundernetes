@@ -276,7 +276,7 @@ func allocate(buildID, sessionID string, cert tls.Certificate) error {
 		"initialPlayers": []string{"player1", "player2"},
 	})
 	postBodyBytes := bytes.NewBuffer(postBody)
-	resp, err := client.Post("https://localhost:5000/api/v1/allocate", "application/json", postBodyBytes)
+	resp, err := client.Post("https://localhost:"+allocationApiSvcPort+"/api/v1/allocate", "application/json", postBodyBytes)
 	//Handle Error
 	if err != nil {
 		return err
