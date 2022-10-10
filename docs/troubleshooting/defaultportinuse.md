@@ -44,7 +44,7 @@ End to end tests also run and listen on port 5000. Once you complete the above y
 ## Verify changes
 
 Once these changes are made and thundernetes is running, you can verify the port within the logs using the following:
-`kubectl -n thundernetes-system logs thundernetes-controller-manager-79485c74cb-rftsf | grep addr`
+`kubectl -n thundernetes-system logs {thundernetes-controller-manager} | grep addr`
 
 Resulting in the following output:
 `2022-10-07T17:01:07Z    INFO    allocation-api  serving allocation API service  {"addr": ":5005", "port": 5005}`
