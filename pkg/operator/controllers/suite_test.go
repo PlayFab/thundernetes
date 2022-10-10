@@ -113,7 +113,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	// allocation api service is a controller, so add it to the manager
-	testAllocationApiServer = NewAllocationApiServer(nil, nil, k8sManager.GetClient(), 5000)
+	testAllocationApiServer = NewAllocationApiServer(nil, nil, k8sManager.GetClient(), allocationApiSvcPort)
 	err = testAllocationApiServer.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
