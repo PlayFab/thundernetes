@@ -50,7 +50,7 @@ var _ = Describe("test GameServerBuild with allocation tests", Ordered, func() {
 	It("should return 400 with a non-GUID sessionID", func() {
 		// allocating with a non-Guid sessionID, expecting 400
 		sessionID1_5 := "notAGuid"
-		Expect(allocate(testBuildAllocationID, sessionID1_5, testBuildAllocationName, cert, ctx, kubeClient)).To(Equal(fmt.Errorf("%s 400", invalidStatusCode)))
+		Expect(allocate(testBuildAllocationID, sessionID1_5, cert)).To(Equal(fmt.Errorf("%s 400", invalidStatusCode)))
 		Eventually(func(g Gomega) {
 			state := buildState{
 				buildName:       testBuildAllocationName,
@@ -66,7 +66,7 @@ var _ = Describe("test GameServerBuild with allocation tests", Ordered, func() {
 	It("should return 400 with a non-GUID BuildID", func() {
 		// allocating with a non-Guid BuildID, expecting 400
 		sessionID1_6 := uuid.New().String()
-		Expect(allocate("not_a_guid", sessionID1_6, testBuildAllocationName, cert, ctx, kubeClient)).To(Equal(fmt.Errorf("%s 400", invalidStatusCode)))
+		Expect(allocate("not_a_guid", sessionID1_6, cert)).To(Equal(fmt.Errorf("%s 400", invalidStatusCode)))
 		Eventually(func(g Gomega) {
 			state := buildState{
 				buildName:       testBuildAllocationName,
@@ -82,7 +82,7 @@ var _ = Describe("test GameServerBuild with allocation tests", Ordered, func() {
 	It("should return 404 with a non-existent BuildID", func() {
 		// allocating on non-existent BuildID, expecting 404
 		sessionID1_7 := uuid.New().String()
-		Expect(allocate(uuid.New().String(), sessionID1_7, testBuildAllocationName, cert, ctx, kubeClient)).To(Equal(fmt.Errorf("%s 404", invalidStatusCode)))
+		Expect(allocate(uuid.New().String(), sessionID1_7, cert)).To(Equal(fmt.Errorf("%s 404", invalidStatusCode)))
 		Eventually(func(g Gomega) {
 			state := buildState{
 				buildName:       testBuildAllocationName,
@@ -98,7 +98,7 @@ var _ = Describe("test GameServerBuild with allocation tests", Ordered, func() {
 	It("should allocate properly and get one active", func() {
 		// allocating correctly, expecting one active
 		sessionID1_2 := uuid.New().String()
-		Expect(allocate(testBuildAllocationID, sessionID1_2, testBuildAllocationName, cert, ctx, kubeClient)).To(Succeed())
+		Expect(allocate(testBuildAllocationID, sessionID1_2, cert)).To(Succeed())
 		Eventually(func(g Gomega) {
 			state := buildState{
 				buildName:       testBuildAllocationName,
@@ -117,7 +117,7 @@ var _ = Describe("test GameServerBuild with allocation tests", Ordered, func() {
 
 	It("should fail to allocate with wrong TLS certificate", func() {
 		sessionID1_8 := uuid.New().String()
-		err := allocate(testBuildAllocationID, sessionID1_8, testBuildAllocationName, fakeCert, ctx, kubeClient)
+		err := allocate(testBuildAllocationID, sessionID1_8, fakeCert)
 		Expect(err.Error()).To(ContainSubstring("tls: bad certificate"))
 		Eventually(func(g Gomega) {
 			state := buildState{

@@ -28,7 +28,6 @@ import (
 )
 
 var connectedPlayers = []string{"Amie", "Ken", "Dimitris"} // this should the same as in the netcore sample
-var allocationApiSvcPort string
 
 const (
 	testNamespace                      = "e2e"
@@ -260,7 +259,7 @@ func getContainerLogs(ctx context.Context, coreClient *kubernetes.Clientset, pod
 }
 
 // allocate sends a POST request for allocation to the Thundernetes allocation service
-func allocate(buildID, sessionID, buildName string, cert tls.Certificate, ctx context.Context, kubeClient client.Client) error {
+func allocate(buildID, sessionID string, cert tls.Certificate) error {
 	// curl --key ~/private.pem --cert ~/public.pem --insecure -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f5","sessionID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f5"}' https://${IP}:5000/api/v1/allocate
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
@@ -269,13 +268,6 @@ func allocate(buildID, sessionID, buildName string, cert tls.Certificate, ctx co
 
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport}
-
-	//Grabs the port from the running service
-	svc := corev1.Service{}
-	if err := kubeClient.Get(ctx, types.NamespacedName{Namespace: testNamespace, Name: buildName}, &svc); err != nil {
-		return err
-	}
-	allocationApiSvcPort = string(svc.Spec.Ports[0].Port)
 
 	postBody, _ := json.Marshal(map[string]interface{}{
 		"buildID":        buildID,
