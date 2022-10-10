@@ -37,9 +37,9 @@ import (
 )
 
 const (
-	assertPollingInterval       = 20 * time.Millisecond
-	assertTimeout               = 2 * time.Second
-	allocationApiSvcPort  int32 = 5000
+	assertPollingInterval = 20 * time.Millisecond
+	assertTimeout         = 2 * time.Second
+	allocationApiSvcPort  = 5000
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to

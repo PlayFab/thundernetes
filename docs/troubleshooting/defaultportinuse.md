@@ -39,7 +39,7 @@ The necessary YAML changes are found within the `manager.yaml` file. A find and 
 Once this file is modified, you can generate new installfiles with `make create-install-files` and verify your changes in `operator.yaml`
 
 ### Development - End to end tests
-End to end tests also run and listen on port 5000. Once you complete the above yaml change, you also need to modify `e2e/kind-config.yaml` to listen on your desired port. The other needed change is modifying allocationApiSvcPort in `allocation_api_server_test.go` 
+End to end tests also run and listen on port 5000. Once you complete the above yaml change, you also need to modify `e2e/kind-config.yaml` to listen on your desired port. The other needed change is modifying allocationApiSvcPort in `pkg/operator/controllers/sute_test.go`
 
 ## Verify changes
 
