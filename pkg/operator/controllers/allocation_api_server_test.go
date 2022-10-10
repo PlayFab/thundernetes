@@ -17,12 +17,11 @@ import (
 
 var _ = Describe("allocation API service input validation tests", func() {
 	const (
-		buildName1           string = "testbuild"
-		buildNamespace       string = "default"
-		buildID1             string = "acb84898-cf73-46e2-8057-314ac557d85d"
-		sessionID1           string = "d5f075a4-517b-4bf4-8123-dfa0021aa169"
-		gsName               string = "testgs"
-		allocationApiSvcPort int32  = 5000
+		buildName1     string = "testbuild"
+		buildNamespace string = "default"
+		buildID1       string = "acb84898-cf73-46e2-8057-314ac557d85d"
+		sessionID1     string = "d5f075a4-517b-4bf4-8123-dfa0021aa169"
+		gsName         string = "testgs"
 	)
 
 	It("empty body should return error", func() {
