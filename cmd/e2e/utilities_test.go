@@ -24,6 +24,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -276,7 +277,7 @@ func allocate(buildID, sessionID string, cert tls.Certificate) error {
 		"initialPlayers": []string{"player1", "player2"},
 	})
 	postBodyBytes := bytes.NewBuffer(postBody)
-	resp, err := client.Post("https://localhost:"+allocationApiSvcPort+"/api/v1/allocate", "application/json", postBodyBytes)
+	resp, err := client.Post(fmt.Sprintf("https://localhost:%d/api/v1/allocate", allocationApiSvcPort), "application/json", postBodyBytes)
 	//Handle Error
 	if err != nil {
 		return err
@@ -554,4 +555,16 @@ func createTestBuild(buildName, buildID, img string) *mpsv1alpha1.GameServerBuil
 			},
 		},
 	}
+}
+
+// getAllocationApiSvcPort returns the allocation API service port
+func getAllocationApiSvcPort() int32 {
+	kubeConfig := ctrl.GetConfigOrDie()
+	kubeClient, err := createKubeClient(kubeConfig)
+	Expect(err).ToNot(HaveOccurred())
+	ctx := context.Background()
+	svc := corev1.Service{}
+	err = kubeClient.Get(ctx, types.NamespacedName{Namespace: "thundernetes-system", Name: "thundernetes-controller-manager"}, &svc)
+	Expect(err).ToNot(HaveOccurred())
+	return svc.Spec.Ports[0].Port
 }

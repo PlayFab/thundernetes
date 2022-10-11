@@ -10,7 +10,8 @@ nav_order: 5
 By default, Thundernetes's Allocation API listens on port 5000 which is opened with the kind config set-up [here](../quickstart/installing-kind.md). This port can already be in use by another service thus causing Thundernetes to fail.
 
 ## Kind Changes
-The first step (if using kind) is changing the `kind-config.yaml` to use the port desired. For example:
+
+The first step (if using kind) is changing the `kind-config.yaml` to use the desired port. For example:
 
 {% include code-block-start.md %}
 kind: Cluster
@@ -34,17 +35,20 @@ nodes:
 {% include code-block-end.md %}
 
 ## YAML Changes
-The necessary YAML changes are found within the `manager.yaml` file. A find and replace of `5000` with `{DESIRED_PORT}` will change where the Allocation API listens. In total, there are 5 instances.
+
+The necessary YAML changes are found within the `manager.yaml` file. A find and replace of `5000` with `{DESIRED_PORT}` will change where the Allocation API listens. 
 
 Once this file is modified, you can generate new installfiles with `make create-install-files` and verify your changes in `operator.yaml`
 
 ### Development - End to end tests
-End to end tests also run and listen on port 5000. Once you complete the above yaml change, you also need to modify `e2e/kind-config.yaml` to listen on your desired port. The other needed change is modifying allocationApiSvcPort in `pkg/operator/controllers/sute_test.go`
+
+End to end tests also run and listen on port 5000. Once you complete the above yaml change, you also need to modify `e2e/kind-config.yaml` to listen on your desired port. The other needed change is modifying allocationApiSvcPort in `pkg/operator/controllers/suite_test.go`
 
 ## Verify changes
 
-Once these changes are made and thundernetes is running, you can verify the port within the logs using the following:
+Once these changes are made and Thundernetes is running, you can verify the port within the logs using the following:
 `kubectl -n thundernetes-system logs {thundernetes-controller-manager} | grep addr`
 
 Resulting in the following output:
+
 `2022-10-07T17:01:07Z    INFO    allocation-api  serving allocation API service  {"addr": ":5005", "port": 5005}`
