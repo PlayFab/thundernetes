@@ -452,8 +452,12 @@ func (n *NodeAgentManager) updateHealthAndStateIfNeeded(ctx context.Context, hb 
 			now := metav1.Time{Time: n.nowFunc()}
 			if hb.CurrentGameState == GameStateInitializing {
 				status.ReachedInitializingOn = &now
+				timeDif := time.Now().UnixMilli() - gsd.CreationTime
+				GameServerReachedInitializingDuration.WithLabelValues(gsd.BuildName).Set(float64(timeDif))
 			} else if hb.CurrentGameState == GameStateStandingBy {
 				status.ReachedStandingByOn = &now
+				timeDif := time.Now().UnixMilli() - gsd.CreationTime
+				GameServerReachedStandingByDuration.WithLabelValues(gsd.BuildName).Set(float64(timeDif))
 			}
 		}
 

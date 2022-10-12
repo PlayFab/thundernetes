@@ -2,7 +2,7 @@
 layout: default
 title: Game server is stuck
 parent: Troubleshooting
-nav_order: 2
+nav_order: 1
 ---
 
 # What should we do if a GameServer gets stuck? 
@@ -13,4 +13,4 @@ If you want to delete the Pod, you can use the kubectl command `kubectl delete g
 
 ❗ Do not directly delete the Pod. It will be deleted automatically when the GameServer is deleted.
 
-❗ Do not manually overwrite GameServer.status details, this will create issues during controller reconciliation. 
+❗ Do not manually overwrite GameServer.status fields, this will create issues during controller reconciliation. 

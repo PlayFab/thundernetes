@@ -60,6 +60,7 @@ type Config struct {
 	LogLevel                               string `env:"LOG_LEVEL" envDefault:"info"`
 	MinPort                                int32  `env:"MIN_PORT" envDefault:"10000"`
 	MaxPort                                int32  `env:"MAX_PORT" envDefault:"12000"`
+	AllocationApiSvcPort                   int32  `env:"ALLOC_API_SVC_PORT" envDefault:"5000"`
 	InitContainerImageLinux                string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE,notEmpty"`
 	InitContainerImageWin                  string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE_WIN,notEmpty"`
 }
@@ -82,6 +83,7 @@ func main() {
 	if err := env.Parse(cfg); err != nil {
 		log.Fatal(err, "Cannot load configuration from environment variables")
 	}
+	allocationApiSvcPort := cfg.AllocationApiSvcPort
 
 	// load the rest of the configuration from command-line flags
 	var metricsAddr string
@@ -124,7 +126,7 @@ func main() {
 	crt, key := getCrtKeyIfTlsEnabled(k8sClient, cfg)
 
 	// initialize the allocation API service, which is also a controller. So we add it to the manager
-	aas := controllers.NewAllocationApiServer(crt, key, mgr.GetClient())
+	aas := controllers.NewAllocationApiServer(crt, key, mgr.GetClient(), int32(allocationApiSvcPort))
 	if err = aas.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create HTTP allocation API Server", "Allocation API Server", "HTTP Allocation API Server")
 		os.Exit(1)

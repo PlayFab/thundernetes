@@ -155,16 +155,16 @@ func (r *GameServerBuild) validateStandingBy() *field.Error {
 
 // validatePortsToExposeInternal validates portsToExpose slice
 // it performs the following validations
-// - if a port number is in portsToExpose, there must be at least one
-//    matching port in the pod containers spec
-//    This part of validation is skipped if the GameServer has HostNetwork enabled
-//    This can happen when the user creates a multi-container GameServer with hostNetwork enabled
-//    and has selected a hostPort for an existing container
-// - if a port number is in portsToExpose, the matching ports in the
-//    pod containers spec must have a name. This is because the name will be used by the GSDK to reference the port
-// - if a port number is in portsToExpose, the matching ports in the
-//    pod containers spec must not have a hostPort
-//    We set validateHostPort to true only for GameServerBuild validation. When the GameServer is created, we assign a HostPort so no need for validation
+//   - if a port number is in portsToExpose, there must be at least one
+//     matching port in the pod containers spec
+//     This part of validation is skipped if the GameServer has HostNetwork enabled
+//     This can happen when the user creates a multi-container GameServer with hostNetwork enabled
+//     and has selected a hostPort for an existing container
+//   - if a port number is in portsToExpose, the matching ports in the
+//     pod containers spec must have a name. This is because the name will be used by the GSDK to reference the port
+//   - if a port number is in portsToExpose, the matching ports in the
+//     pod containers spec must not have a hostPort
+//     We set validateHostPort to true only for GameServerBuild validation. When the GameServer is created, we assign a HostPort so no need for validation
 func validatePortsToExposeInternal(name string, spec *corev1.PodSpec, portsToExpose []int32, validateHostPort bool) field.ErrorList {
 	var portsGroupedByNumber = make(map[int32][]corev1.ContainerPort)
 	for i := 0; i < len(spec.Containers); i++ {

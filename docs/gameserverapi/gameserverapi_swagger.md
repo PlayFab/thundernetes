@@ -32,6 +32,6 @@ func setSwaggerInfo(c *gin.Context) {
 ## Browse Swagger
 
 Run the code and browse the following URL to use swagger -
-<https://{$IP}:5001/swagger/index.html> or in case of localhost - <http://localhost:5001/swagger/index.html>
+`https://{$IP}:5001/swagger/index.html` or in case of localhost - `http://localhost:5001/swagger/index.html`
 
 !["GameServer API Swagger"](../assets/images/gameserverapi_swagger.png "GameServer API Swagger")

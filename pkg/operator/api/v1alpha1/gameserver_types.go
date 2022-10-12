@@ -21,11 +21,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//+kubebuilder:validation:Enum=Healthy;Unhealthy
+// +kubebuilder:validation:Enum=Healthy;Unhealthy
 // GameServerHealth describes the health of the game server
 type GameServerHealth string
 
-//+kubebuilder:validation:Enum=Initializing;Active;StandingBy;Crashed;GameCompleted
+// +kubebuilder:validation:Enum=Initializing;Active;StandingBy;Crashed;GameCompleted
 // GameServerState describes the state of the game server
 type GameServerState string
 
