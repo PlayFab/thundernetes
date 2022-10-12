@@ -2,7 +2,7 @@
 layout: default
 title: Controller/NodeAgent logs
 parent: Troubleshooting
-nav_order: 4
+nav_order: 3
 ---
 
 # How can I get access to the controller and the NodeAgent logs and status? 

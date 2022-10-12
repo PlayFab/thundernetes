@@ -9,11 +9,12 @@ import (
 )
 
 var (
-	img          string
-	certFile     string
-	keyFile      string
-	fakeCertFile string
-	fakeKeyFile  string
+	img                  string
+	certFile             string
+	keyFile              string
+	fakeCertFile         string
+	fakeKeyFile          string
+	allocationApiSvcPort int32
 )
 
 func TestEndToEnd(t *testing.T) {
@@ -34,4 +35,6 @@ var _ = BeforeSuite(func() {
 	Expect(fakeCertFile).ToNot(BeEmpty())
 	fakeKeyFile = os.Getenv("FAKE_TLS_PRIVATE")
 	Expect(fakeKeyFile).ToNot(BeEmpty())
+	allocationApiSvcPort = getAllocationApiSvcPort()
+	Expect(allocationApiSvcPort).ToNot(BeZero())
 })

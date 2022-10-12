@@ -7,7 +7,7 @@ nav_order: 15
 
 ## Uninstalling Thundernetes
 
-You should first remove all your GameServerBuilds. Since each GameServer has a finalizer, removing the controller before removing GameServer instances will make the GameServer instances get stuck if you try to delete them.
+You should first remove all your GameServerBuilds. This will remove all GameServers and the corresponding Pods.
 
 {% include code-block-start.md %}
 kubectl delete gsb --all -A # this will delete all GameServerBuilds from all namespaces, which in turn will delete all GameServers

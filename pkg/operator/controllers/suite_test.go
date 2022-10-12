@@ -39,6 +39,7 @@ import (
 const (
 	assertPollingInterval = 20 * time.Millisecond
 	assertTimeout         = 2 * time.Second
+	allocationApiSvcPort  = 5000
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -112,7 +113,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	// allocation api service is a controller, so add it to the manager
-	testAllocationApiServer = NewAllocationApiServer(nil, nil, k8sManager.GetClient())
+	testAllocationApiServer = NewAllocationApiServer(nil, nil, k8sManager.GetClient(), allocationApiSvcPort)
 	err = testAllocationApiServer.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

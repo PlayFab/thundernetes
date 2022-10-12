@@ -27,8 +27,6 @@ import (
 )
 
 const (
-	// listeningPort is the port the API server will listen on
-	listeningPort   = 5000
 	allocationTries = 3
 	// statusSessionId is the field name used to index GameServer objects by their session ID
 	statusSessionId string = "status.sessionID"
@@ -48,17 +46,19 @@ type AllocationApiServer struct {
 	gameServerQueue *GameServersQueue
 	// events is a buffered channel of GenericEvent
 	// it is used to re-enqueue GameServer objects that their allocation failed for whatever reason
-	events chan event.GenericEvent
-	logger logr.Logger
+	events        chan event.GenericEvent
+	logger        logr.Logger
+	listeningPort int32
 }
 
-func NewAllocationApiServer(crt, key []byte, cl client.Client) *AllocationApiServer {
+func NewAllocationApiServer(crt, key []byte, cl client.Client, port int32) *AllocationApiServer {
 	return &AllocationApiServer{
-		CrtBytes: crt,
-		KeyBytes: key,
-		Client:   cl,
-		events:   make(chan event.GenericEvent, 100),
-		logger:   log.Log.WithName("allocation-api"),
+		CrtBytes:      crt,
+		KeyBytes:      key,
+		Client:        cl,
+		events:        make(chan event.GenericEvent, 100),
+		logger:        log.Log.WithName("allocation-api"),
+		listeningPort: port,
 	}
 }
 
@@ -68,7 +68,7 @@ func NewAllocationApiServer(crt, key []byte, cl client.Client) *AllocationApiSer
 func (s *AllocationApiServer) Start(ctx context.Context) error {
 	addr := os.Getenv("API_LISTEN")
 	if addr == "" {
-		addr = fmt.Sprintf(":%d", listeningPort)
+		addr = fmt.Sprintf(":%d", s.listeningPort)
 	}
 
 	// create the queue for game servers
@@ -77,7 +77,7 @@ func (s *AllocationApiServer) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/allocate", s.handleAllocationRequest)
 
-	s.logger.Info("serving allocation API service", "addr", addr, "port", listeningPort)
+	s.logger.Info("serving allocation API service", "addr", addr, "port", s.listeningPort)
 
 	srv := &http.Server{
 		Addr:              addr,
