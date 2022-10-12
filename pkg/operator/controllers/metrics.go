@@ -76,7 +76,7 @@ var (
 		prometheus.GaugeOpts{
 			Namespace: "thundernetes",
 			Name:      "allocations_time_taken_duration",
-			Help:      "Average time it took to allocate newest set of GameServers",
+			Help:      "Average time it took to allocate a GameServer",
 		},
 		[]string{"BuildName"},
 	)
