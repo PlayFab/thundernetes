@@ -74,6 +74,63 @@ The aforementioned scripts install Thundernetes with unauthenticated access to t
 
 You need to create/configure the certificate that will be used to protect the allocation API service. A properly configured certificate (signed by a well-known CA) is recommended for production environments.
 
+There are two ways to generate a certificate.
+
+#### Using cert-manager to generate certificates
+
+Since cert-manager is already installed in the cluster, it can be used to generate a certificate for mTLS authentication. This is the recommended approach.
+
+First of all, you need to create the namespace `thundernetes-system`:
+
+{% include code-block-start.md %}
+kubectl create namespace thundernetes-system
+{% include code-block-end.md %}
+
+Then, you need to create a [certificate request](https://cert-manager.io/docs/concepts/certificaterequest/):
+
+{% include code-block-start.md %}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: thundernetes-alloc-api-cert
+  namespace: thundernetes-system
+spec:
+  dnsNames:
+    - thundernetes-controller-manager.thundernetes-system.svc
+    - thundernetes-controller-manager.thundernetes-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: thundernetes-selfsigned-issuer
+  secretName: tls-secret
+{% include code-block-end.md %}
+
+**Note:** Be careful in setting up properly the namespace (`thundernetes-system`) and the name of the secret (`tls-secret`). Thundernetes controller searches there to find the certificate values. Moreover, `thundernetes-selfsigned-issuer` is the name of the [self-signed issuer](https://cert-manager.io/docs/configuration/selfsigned/) that is installed with Thundernetes. Check the [cert-manager documentation](https://cert-manager.io/docs/concepts/issuer/) for more information on how to configure the issuer.
+
+Save the above file in your machine and apply it using `kubectl apply -f filename.yaml`. Since there is no certificate issuer on the cluster, the certificate will not be created just yet.
+
+Let's install Thundernetes configured with mTLS authentication.
+
+{% include code-block-start.md %}
+kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator_with_security.yaml
+{% include code-block-end.md %}
+
+To make sure that our certificate has been configured correctly, run `kubectl get certificate -n thundernetes-system`.
+
+```bash
+NAME                          READY   SECRET                AGE
+thundernetes-alloc-api-cert   True    tls-secret            20m
+thundernetes-serving-cert     True    webhook-server-cert   19m
+```
+
+The `thundernetes-serving-cert` was created during Thundernetes installation and it is used by the webhook validation service. If both certificates are ready, you can grab the `thundernetes-alloc-api-cert` values and use them to connect to the allocation API service.
+
+{% include code-block-start.md %}
+kubectl --namespace thundernetes-system get secret tls-secret -o jsonpath --template '{.data.tls\.crt}' | base64 --decode > tls.crt
+kubectl --namespace thundernetes-system get secret tls-secret -o jsonpath --template '{.data.tls\.key}' | base64 --decode > tls.key
+{% include code-block-end.md %}
+
+#### Using your own certificate
+
 For testing purposes, you can generate a self-signed certificate and use it to secure the allocation API service. You can use OpenSSL to create a self-signed certificate and key (of course, this scenario is not recommended for production).
 
 {% include code-block-start.md %}
@@ -96,22 +153,6 @@ kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/ins
 
 **Note:** The two installation files (operator.yaml and operator_with_security.yaml) are identical except for the API_SERVICE_SECURITY environment variable that is passed into the controller container.
 
-### Using cert-manager to generate certificates
+### Next steps
 
-{% include code-block-start.md %}
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: thundernetes-alloc-api-cert
-  namespace: thundernetes-system
-spec:
-  dnsNames:
-    - thundernetes-controller-manager.thundernetes-system.svc
-    - thundernetes-controller-manager.thundernetes-system.svc.cluster.local
-  issuerRef:
-    kind: Issuer
-    name: thundernetes-selfsigned-issuer
-  secretName: tls-secret
-{% include code-block-end.md %}
-
-**Note:** You will need to restart the controller after generating the certificate in this way, so that it can pick up the new certificate.
+Check the [.NET sample](sample-dotnet.md) document to learn how to test your installation by using our fake .NET game server sample.

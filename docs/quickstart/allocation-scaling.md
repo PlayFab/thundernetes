@@ -34,18 +34,24 @@ The arguments to the allocation call are two:
 
 Result of the allocate call is the IP/Port of the server in JSON format.
 
-{% include code-block-start.md %}
+```json
 {"IPV4Address":"52.183.89.4","Ports":"80:10000","SessionID":"ac1b7082-d811-47a7-89ae-fe1a9c48a6da"}
-{% include code-block-end.md %}
+```
 
-You can now use the IP/Port to connect to the allocated game server. The [.NET Core game server](sample-dotnet.md) we use exposes a `/Hello` endpoint that returns the hostname of the container.
+You can now use the IP/Port to connect to the allocated game server. The [.NET game server](sample-dotnet.md) we use exposes a `/Hello` endpoint that returns the hostname of the container.
 
 {% include code-block-start.md %}
 curl http://52.183.89.4:10000/Hello
 Hello from fake GameServer with hostname gameserverbuild-sample-netcore-mveex
 {% include code-block-end.md %}
 
-At the same time, you can check your game servers using `kubectl get gs`. Our sample games request 2 standingBy and 4 maximum servers. The allocation call caused one StandingBy server to transition to Active. So, Thundernetes created an extra GameServer, which eventually reached the StandingBy state. We can now see that we have 2 StandingBy and 1 Active. We can also see the SessionID of the Active GameServer.
+**Note:** If you use mTLS authentication, you should include the crt and key files in the curl command. For example:
+
+{% include code-block-start.md %}
+curl --key tls.key --cert tls.crt --insecure -H 'Content-Type: application/json' -d '{"buildID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f6","sessionID":"85ffe8da-c82f-4035-86c5-9d2b5f42d6f5"}' https://${IP}:5000/api/v1/allocate
+{% include code-block-end.md %}
+
+You can check the state of your game servers using `kubectl get gameservers` or `kubectl get gs`. Our sample games request 2 standingBy and 4 maximum servers. The allocation call caused one StandingBy server to transition to Active. So, Thundernetes created an extra GameServer, which eventually reached the StandingBy state. We can now see that we have 2 StandingBy and 1 Active. We can also see the SessionID of the Active GameServer.
 
 {% include code-block-start.md %}
 NAME                                   HEALTH    STATE        PUBLICIP      PORTS      SESSIONID
