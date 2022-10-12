@@ -1,17 +1,17 @@
 ---
 layout: default
-title: Port 5000 is already in use
+title: Controller port 5000
 parent: Troubleshooting
-nav_order: 5
+nav_order: 4
 ---
 
-# How can I change the port that Thundernetes uses?
+# How can I change the port that Thundernetes uses for the Allocation API service?
 
-By default, Thundernetes's Allocation API listens on port 5000 which is opened with the kind config set-up [here](../quickstart/installing-kind.md). This port can already be in use by another service thus causing Thundernetes to fail.
+By default, Thundernetes's Allocation API service listens on port 5000. Locally, it opens with the kind config set-up [here](../quickstart/installing-kind.md). This port can already be in use by another service thus causing Thundernetes to fail.
 
 ## Kind Changes
 
-The first step (if using kind) is changing the `kind-config.yaml` to use the desired port. For example:
+To use an alternate port, the first step is changing the `kind-config.yaml` to use the desired port. For example:
 
 {% include code-block-start.md %}
 kind: Cluster
