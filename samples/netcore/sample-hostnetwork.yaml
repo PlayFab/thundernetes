@@ -19,7 +19,7 @@ spec:
     spec:
       hostNetwork: true # this sample uses host networking
       containers:
-        - image: ghcr.io/playfab/thundernetes-netcore:0.5.0
+        - image: ghcr.io/playfab/thundernetes-netcore:0.6.0
           name: thundernetes-sample-netcore
           ports:
           - protocol: TCP # your game server port protocol

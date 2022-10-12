@@ -36,7 +36,7 @@ spec:
       - args:
         - "-config-file=/data/config.yaml"
         - "-config-expand-env=true"
-        image: ghcr.io/playfab/thundernetes-standby-forecaster:0.5.0
+        image: ghcr.io/playfab/thundernetes-standby-forecaster:0.6.0
         imagePullPolicy: IfNotPresent        
         name: simulator
         ports:
