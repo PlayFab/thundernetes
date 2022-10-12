@@ -95,3 +95,23 @@ kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/ins
 {% include code-block-end.md %}
 
 **Note:** The two installation files (operator.yaml and operator_with_security.yaml) are identical except for the API_SERVICE_SECURITY environment variable that is passed into the controller container.
+
+### Using cert-manager to generate certificates
+
+{% include code-block-start.md %}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: thundernetes-alloc-api-cert
+  namespace: thundernetes-system
+spec:
+  dnsNames:
+    - thundernetes-controller-manager.thundernetes-system.svc
+    - thundernetes-controller-manager.thundernetes-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: thundernetes-selfsigned-issuer
+  secretName: tls-secret
+{% include code-block-end.md %}
+
+**Note:** You will need to restart the controller after generating the certificate in this way, so that it can pick up the new certificate.
