@@ -280,6 +280,8 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 		return
 	}
 
+	timeToAllocateStartTime := time.Now()
+
 	// allocation using the heap
 	for i := 0; i < allocationTries; i++ {
 		if i > 0 {
@@ -289,6 +291,7 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 		if gs == nil {
 			// pop from queue returned nil, this means no more game servers in this build
 			tooManyRequestsError(w, s.logger, fmt.Errorf("not enough standingBy"), "there are not enough standingBy servers")
+			Allocations429ErrorsCounter.WithLabelValues(args.BuildID).Inc()
 			return
 		}
 
@@ -316,10 +319,13 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 		if err != nil {
 			if apierrors.IsConflict(err) {
 				s.logger.Info("conflict error patching game server", "error", err, "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
+				Allocations409ErrorsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
 			} else if apierrors.IsNotFound(err) {
 				s.logger.Info("error not found patching game server", "error", err, "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
+				Allocations404ErrorsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
 			} else {
 				s.logger.Error(err, "uknown error patching game server", "sessionID", args.SessionID, "buildID", args.BuildID, "retry", i)
+				Allocations500ErrorsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
 			}
 			// in case of any error, trigger a reconciliation for this GameServer object
 			// so it's re-added to the queue
@@ -339,10 +345,15 @@ func (s *AllocationApiServer) handleAllocationRequest(w http.ResponseWriter, r *
 		err = json.NewEncoder(w).Encode(rs)
 		if err != nil {
 			internalServerError(w, s.logger, err, "encode json response")
+			Allocations500ErrorsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
 			return
 		}
 		s.logger.Info("Allocated GameServer", "name", gs2.Name, "sessionID", args.SessionID, "buildID", args.BuildID, "ip", gs2.Status.PublicIP, "ports", gs2.Status.Ports)
 		AllocationsCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
+		if i > 0 {
+			AllocationsRetriesCounter.WithLabelValues(gs2.Labels[LabelBuildName]).Inc()
+		}
+		AllocationsTimeTakenDuration.WithLabelValues(gs2.Labels[LabelBuildName]).Set(float64(time.Since(timeToAllocateStartTime).Milliseconds()))
 		return
 	}
 

@@ -72,4 +72,52 @@ var (
 		},
 		[]string{"BuildName"},
 	)
+	AllocationsTimeTakenDuration = registry.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "thundernetes",
+			Name:      "allocations_time_taken_duration",
+			Help:      "Average time it took to allocate a GameServer",
+		},
+		[]string{"BuildName"},
+	)
+	AllocationsRetriesCounter = registry.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "thundernetes",
+			Name:      "allocations_retried",
+			Help:      "The number of times allocation had to be retried",
+		},
+		[]string{"BuildName"},
+	)
+	Allocations429ErrorsCounter = registry.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "thundernetes",
+			Name:      "allocations_429",
+			Help:      "The number of 429 (too many requests) errors during allocation",
+		},
+		[]string{"BuildName"},
+	)
+	Allocations404ErrorsCounter = registry.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "thundernetes",
+			Name:      "allocations_404",
+			Help:      "The number of 404 (not found) errors during allocation",
+		},
+		[]string{"BuildName"},
+	)
+	Allocations500ErrorsCounter = registry.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "thundernetes",
+			Name:      "allocations_500",
+			Help:      "The number of 500 (internal) errors during allocation",
+		},
+		[]string{"BuildName"},
+	)
+	Allocations409ErrorsCounter = registry.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "thundernetes",
+			Name:      "allocations_409",
+			Help:      "The number of 409 (request conflict) errors during allocation",
+		},
+		[]string{"BuildName"},
+	)
 )
