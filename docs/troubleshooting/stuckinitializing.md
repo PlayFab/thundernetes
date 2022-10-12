@@ -2,10 +2,10 @@
 layout: default
 title: Game Server does not transition to StandingBy state
 parent: Troubleshooting
-nav_order: 3
+nav_order: 2
 ---
 
-# My GameServer state stays in empty or Initializing state and does not transition into StandingBy
+# GameServer state stays in empty or Initializing state and does not transition into StandingBy
 
 ❗ Check [here](../gsdk/gameserverlifecycle.md) for more information on GameServer lifecycle.
 
