@@ -11,7 +11,7 @@ It is possible to secure any service in the cluster using a Kubernetes [Ingress]
 
 ## Enabling mTLS for the Game Server API
 
-When you deploy an Ingress you can use annotations to enable the authentication of both the server and the client, all of this will happen at the Ingress level, so you don't have to change any code in the service. Note that this needs you to have a domain you can use for your service. For this, you have to create a Kubernetes Secret containing the server's private and public key, and the public key from the Certificate Authority (CA). For testing purposes, or for private use, you can create your own CA and use it to sign all your certificates. To do all of this you can follow the next steps:
+When you deploy an Ingress you can use annotations to enable the authentication of both the server and the client, all of this will happen at the Ingress level, so you don't have to change any code in the service. Note that this needs you to have a domain you can use for your service. For this, you have to create a Kubernetes Secret containing the server's private and public key, and the public key from the Certificate Authority (CA). For testing purposes, or for private use, you can create your own CA and use it to sign all your certificates. You can easily use [cert-manager to protect the ingress resource](https://cert-manager.io/docs/usage/ingress/) or you can follow these next steps if you prefer to do it manually:
 
 ### Step 1: Install Thundernetes and the Nginx Ingress Controller on your cluster
 
