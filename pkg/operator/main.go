@@ -63,6 +63,8 @@ type Config struct {
 	AllocationApiSvcPort                   int32  `env:"ALLOC_API_SVC_PORT" envDefault:"5000"`
 	InitContainerImageLinux                string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE,notEmpty"`
 	InitContainerImageWin                  string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE_WIN,notEmpty"`
+	MaxNumberOfGameServersToAdd            int32  `env:"MAX_NUM_GS_TO_ADD" envDefault:"20"`
+	MaxNumberOfGameServersToDelete         int32  `env:"MAX_NUM_GS_TO_DEL" envDefault:"20"`
 }
 
 var (
@@ -151,7 +153,7 @@ func main() {
 	}
 
 	// initialize the GameServerBuild controller
-	if err = controllers.NewGameServerBuildReconciler(mgr, portRegistry).SetupWithManager(mgr); err != nil {
+	if err = controllers.NewGameServerBuildReconciler(mgr, portRegistry, int(cfg.MaxNumberOfGameServersToAdd), int(cfg.MaxNumberOfGameServersToDelete)).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GameServerBuild")
 		os.Exit(1)
 	}
