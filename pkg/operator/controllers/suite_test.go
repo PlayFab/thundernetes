@@ -37,9 +37,11 @@ import (
 )
 
 const (
-	assertPollingInterval = 20 * time.Millisecond
-	assertTimeout         = 2 * time.Second
-	allocationApiSvcPort  = 5000
+	assertPollingInterval          = 20 * time.Millisecond
+	assertTimeout                  = 2 * time.Second
+	allocationApiSvcPort           = 5000
+	maxNumberOfGameServersToAdd    = 20
+	maxNumberOfGameServersToDelete = 20
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -98,7 +100,7 @@ var _ = BeforeSuite(func() {
 	err = portRegistry.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (NewGameServerBuildReconciler(k8sManager, portRegistry)).SetupWithManager(k8sManager)
+	err = (NewGameServerBuildReconciler(k8sManager, portRegistry, maxNumberOfGameServersToAdd, maxNumberOfGameServersToDelete)).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	initContainerImageLinux, initContainerImageWin := "testImageLinux", "testImageWin"
