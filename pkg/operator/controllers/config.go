@@ -15,6 +15,6 @@ type Config struct {
 	AllocationApiSvcPort                   int32  `env:"ALLOC_API_SVC_PORT" envDefault:"5000"`
 	InitContainerImageLinux                string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE,notEmpty"`
 	InitContainerImageWin                  string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE_WIN,notEmpty"`
-	MaxNumberOfGameServersToAdd            int  `env:"MAX_NUM_GS_TO_ADD" envDefault:"20"`
-	MaxNumberOfGameServersToDelete         int  `env:"MAX_NUM_GS_TO_DEL" envDefault:"20"`
+	MaxNumberOfGameServersToAdd            int    `env:"MAX_NUM_GS_TO_ADD" envDefault:"20"`
+	MaxNumberOfGameServersToDelete         int    `env:"MAX_NUM_GS_TO_DEL" envDefault:"20"`
 }
