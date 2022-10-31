@@ -46,10 +46,6 @@ spec:
               value: ${API_SERVICE_SECURITY}
             - name: ALLOC_API_SVC_PORT
               value: "5000"
-            - name: MAX_NUM_GS_TO_ADD
-              value: "20"
-            - name: MAX_NUM_GS_TO_DEL
-              value: "20"
             - name: THUNDERNETES_INIT_CONTAINER_IMAGE
               value: ${IMAGE_NAME_INIT_CONTAINER}:${IMAGE_TAG}
             - name: THUNDERNETES_INIT_CONTAINER_IMAGE_WIN
