@@ -74,6 +74,8 @@ var _ = BeforeSuite(func() {
 		ErrorIfCRDPathMissing: true,
 	}
 
+	config := &Config{}
+
 	cfg, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
@@ -100,7 +102,7 @@ var _ = BeforeSuite(func() {
 	err = portRegistry.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (NewGameServerBuildReconciler(k8sManager, portRegistry, maxNumberOfGameServersToAdd, maxNumberOfGameServersToDelete)).SetupWithManager(k8sManager)
+	err = (NewGameServerBuildReconciler(k8sManager, portRegistry, config)).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	initContainerImageLinux, initContainerImageWin := "testImageLinux", "testImageWin"

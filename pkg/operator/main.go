@@ -48,25 +48,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// Config is a struct containing configuration from environment variables
-// source: https://github.com/caarlos0/env
-type Config struct {
-	ApiServiceSecurity                     string `env:"API_SERVICE_SECURITY"`
-	TlsSecretName                          string `env:"TLS_SECRET_NAME" envDefault:"tls-secret"`
-	TlsSecretNamespace                     string `env:"TLS_SECRET_NAMESPACE" envDefault:"thundernetes-system"`
-	TlsCertificateName                     string `env:"TLS_CERTIFICATE_FILENAME" envDefault:"tls.crt"`
-	TlsPrivateKeyFilename                  string `env:"TLS_PRIVATE_KEY_FILENAME" envDefault:"tls.key"`
-	PortRegistryExclusivelyGameServerNodes bool   `env:"PORT_REGISTRY_EXCLUSIVELY_GAME_SERVER_NODES" envDefault:"false"`
-	LogLevel                               string `env:"LOG_LEVEL" envDefault:"info"`
-	MinPort                                int32  `env:"MIN_PORT" envDefault:"10000"`
-	MaxPort                                int32  `env:"MAX_PORT" envDefault:"12000"`
-	AllocationApiSvcPort                   int32  `env:"ALLOC_API_SVC_PORT" envDefault:"5000"`
-	InitContainerImageLinux                string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE,notEmpty"`
-	InitContainerImageWin                  string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE_WIN,notEmpty"`
-	MaxNumberOfGameServersToAdd            int32  `env:"MAX_NUM_GS_TO_ADD" envDefault:"20"`
-	MaxNumberOfGameServersToDelete         int32  `env:"MAX_NUM_GS_TO_DEL" envDefault:"20"`
-}
-
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
@@ -81,7 +62,7 @@ func init() {
 
 func main() {
 	// load configuration from env variables
-	cfg := &Config{}
+	cfg := &controllers.Config{}
 	if err := env.Parse(cfg); err != nil {
 		log.Fatal(err, "Cannot load configuration from environment variables")
 	}
@@ -153,7 +134,7 @@ func main() {
 	}
 
 	// initialize the GameServerBuild controller
-	if err = controllers.NewGameServerBuildReconciler(mgr, portRegistry, int(cfg.MaxNumberOfGameServersToAdd), int(cfg.MaxNumberOfGameServersToDelete)).SetupWithManager(mgr); err != nil {
+	if err = controllers.NewGameServerBuildReconciler(mgr, portRegistry, cfg).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GameServerBuild")
 		os.Exit(1)
 	}
@@ -189,7 +170,7 @@ func main() {
 // initializePortRegistry performs some initialization and creates a new PortRegistry struct
 // the k8sClient is a live API client and is used to get the existing gameservers and the "Ready" Nodes
 // the crClient is the cached controller-runtime client, used to watch for changes to the nodes from inside the PortRegistry
-func initializePortRegistry(k8sClient client.Reader, crClient client.Client, setupLog logr.Logger, cfg *Config) (*controllers.PortRegistry, error) {
+func initializePortRegistry(k8sClient client.Reader, crClient client.Client, setupLog logr.Logger, cfg *controllers.Config) (*controllers.PortRegistry, error) {
 	var gameServers mpsv1alpha1.GameServerList
 	if err := k8sClient.List(context.Background(), &gameServers); err != nil {
 		return nil, err
@@ -230,7 +211,7 @@ func initializePortRegistry(k8sClient client.Reader, crClient client.Client, set
 
 // getTlsSecret returns the TLS secret from the given namespace
 // used in the allocation API service
-func getTlsSecret(k8sClient client.Reader, cfg *Config) ([]byte, []byte, error) {
+func getTlsSecret(k8sClient client.Reader, cfg *controllers.Config) ([]byte, []byte, error) {
 	var secret corev1.Secret
 	err := k8sClient.Get(context.Background(), types.NamespacedName{
 		Name:      cfg.TlsSecretName,
@@ -243,7 +224,7 @@ func getTlsSecret(k8sClient client.Reader, cfg *Config) ([]byte, []byte, error) 
 }
 
 // validateMinMaxPort validates minimum and maximum ports
-func validateMinMaxPort(cfg *Config) (int32, int32, error) {
+func validateMinMaxPort(cfg *controllers.Config) (int32, int32, error) {
 	if cfg.MinPort >= cfg.MaxPort {
 		return 0, 0, errors.New("MIN_PORT cannot be greater or equal than MAX_PORT")
 	}
@@ -275,7 +256,7 @@ func getLogLevel(logLevel string) zapcore.LevelEnabler {
 // for this to happen, user has to set "API_SERVICE_SECURITY" env as "usetls" and set the env "TLS_SECRET_NAMESPACE" with the namespace
 // that contains the Kubernetes Secret with the cert
 // if any of the mentioned conditions are not set, method returns nil
-func getCrtKeyIfTlsEnabled(c client.Reader, cfg *Config) ([]byte, []byte) {
+func getCrtKeyIfTlsEnabled(c client.Reader, cfg *controllers.Config) ([]byte, []byte) {
 	if cfg.ApiServiceSecurity == "usetls" {
 		crt, key, err := getTlsSecret(c, cfg)
 		if err != nil {
