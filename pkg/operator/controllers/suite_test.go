@@ -74,7 +74,12 @@ var _ = BeforeSuite(func() {
 		ErrorIfCRDPathMissing: true,
 	}
 
-	config := &Config{}
+	//If config is passed to a constructor, whatever fields constructor uses need to be defined explicitly
+	//This does not pull values from operator.yaml like it does in main.go
+	config := &Config{
+		MaxNumberOfGameServersToAdd:    20,
+		MaxNumberOfGameServersToDelete: 20,
+	}
 
 	cfg, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
