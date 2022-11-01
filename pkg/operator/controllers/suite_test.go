@@ -76,10 +76,10 @@ var _ = BeforeSuite(func() {
 
 	//If config is passed to a constructor, whatever fields constructor uses need to be defined explicitly
 	//This does not pull values from operator.yaml like it does in main.go
-	//For suite_test the env defaults should be used
+	//For suite_test the env defaults should be used, defined in const above
 	config := &Config{
-		MaxNumberOfGameServersToAdd:    20,
-		MaxNumberOfGameServersToDelete: 20,
+		MaxNumberOfGameServersToAdd:    maxNumberOfGameServersToAdd,
+		MaxNumberOfGameServersToDelete: maxNumberOfGameServersToDelete,
 	}
 
 	cfg, err := testEnv.Start()
