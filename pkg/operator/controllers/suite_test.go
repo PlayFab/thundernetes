@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/caarlos0/env/v6"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -37,11 +38,9 @@ import (
 )
 
 const (
-	assertPollingInterval          = 20 * time.Millisecond
-	assertTimeout                  = 2 * time.Second
-	allocationApiSvcPort           = 5000
-	maxNumberOfGameServersToAdd    = 20
-	maxNumberOfGameServersToDelete = 20
+	assertPollingInterval = 20 * time.Millisecond
+	assertTimeout         = 2 * time.Second
+	allocationApiSvcPort  = 5000
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -77,10 +76,10 @@ var _ = BeforeSuite(func() {
 	//If config is passed to a constructor, whatever fields constructor uses need to be defined explicitly
 	//This does not pull values from operator.yaml like it does in main.go
 	//For suite_test the env defaults should be used, defined in const above
-	config := &Config{
-		MaxNumberOfGameServersToAdd:    maxNumberOfGameServersToAdd,
-		MaxNumberOfGameServersToDelete: maxNumberOfGameServersToDelete,
-	}
+	config := &Config{}
+	err := env.Parse(config)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(config).NotTo(BeNil())
 
 	cfg, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())

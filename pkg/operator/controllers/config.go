@@ -3,7 +3,7 @@ package controllers
 // Config is a struct containing configuration from environment variables
 // source: https://github.com/caarlos0/env
 type Config struct {
-	ApiServiceSecurity                     string `env:"API_SERVICE_SECURITY"`
+	ApiServiceSecurity                     string `env:"API_SERVICE_SECURITY" envDefault:"none"`
 	TlsSecretName                          string `env:"TLS_SECRET_NAME" envDefault:"tls-secret"`
 	TlsSecretNamespace                     string `env:"TLS_SECRET_NAMESPACE" envDefault:"thundernetes-system"`
 	TlsCertificateName                     string `env:"TLS_CERTIFICATE_FILENAME" envDefault:"tls.crt"`
@@ -13,8 +13,8 @@ type Config struct {
 	MinPort                                int32  `env:"MIN_PORT" envDefault:"10000"`
 	MaxPort                                int32  `env:"MAX_PORT" envDefault:"12000"`
 	AllocationApiSvcPort                   int32  `env:"ALLOC_API_SVC_PORT" envDefault:"5000"`
-	InitContainerImageLinux                string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE,notEmpty"`
-	InitContainerImageWin                  string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE_WIN,notEmpty"`
+	InitContainerImageLinux                string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE,notEmpty" envDefault:"ghcr.io/playfab/thundernetes-initcontainer:0.6.0"`
+	InitContainerImageWin                  string `env:"THUNDERNETES_INIT_CONTAINER_IMAGE_WIN,notEmpty" envDefault:"ghcr.io/playfab/thundernetes-initcontainer-win:0.6.0"`
 	MaxNumberOfGameServersToAdd            int    `env:"MAX_NUM_GS_TO_ADD" envDefault:"20"`
 	MaxNumberOfGameServersToDelete         int    `env:"MAX_NUM_GS_TO_DEL" envDefault:"20"`
 }
