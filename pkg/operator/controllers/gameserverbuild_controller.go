@@ -43,14 +43,6 @@ import (
 // value is the number of crashes
 var crashesPerBuild = sync.Map{}
 
-const (
-	// maximum number of GameServers to create per reconcile loop
-	// we have this in place since each create call is synchronous and we want to minimize the time for each reconcile loop
-	maxNumberOfGameServersToAdd = 20
-	// maximum number of GameServers to delete per reconcile loop
-	maxNumberOfGameServersToDelete = 20
-)
-
 // Simple async map implementation using a mutex
 // used to manage the expected GameServer creations and deletions
 type MutexMap struct {
@@ -65,10 +57,11 @@ type GameServerBuildReconciler struct {
 	PortRegistry *PortRegistry
 	Recorder     record.EventRecorder
 	expectations *GameServerExpectations
+	Config       *Config
 }
 
 // NewGameServerBuildReconciler returns a pointer to a new GameServerBuildReconciler
-func NewGameServerBuildReconciler(mgr manager.Manager, portRegistry *PortRegistry) *GameServerBuildReconciler {
+func NewGameServerBuildReconciler(mgr manager.Manager, portRegistry *PortRegistry, cfg *Config) *GameServerBuildReconciler {
 	cl := mgr.GetClient()
 	return &GameServerBuildReconciler{
 		Client:       cl,
@@ -76,6 +69,7 @@ func NewGameServerBuildReconciler(mgr manager.Manager, portRegistry *PortRegistr
 		PortRegistry: portRegistry,
 		Recorder:     mgr.GetEventRecorderFor("GameServerBuild"),
 		expectations: NewGameServerExpectations(cl),
+		Config:       cfg,
 	}
 }
 
@@ -187,12 +181,12 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	var totalNumberOfGameServersToDelete int = 0
 	// user has decreased standingBy numbers
 	if nonActiveGameServersCount > gsb.Spec.StandingBy {
-		totalNumberOfGameServersToDelete += int(math.Min(float64(nonActiveGameServersCount-gsb.Spec.StandingBy), maxNumberOfGameServersToDelete))
+		totalNumberOfGameServersToDelete += int(math.Min(float64(nonActiveGameServersCount-gsb.Spec.StandingBy), float64(r.Config.MaxNumberOfGameServersToDelete)))
 	}
 	// we also need to check if we are above the max
 	// this can happen if the user modifies the spec.Max during the GameServerBuild's lifetime
 	if nonActiveGameServersCount+activeCount > gsb.Spec.Max {
-		totalNumberOfGameServersToDelete += int(math.Min(float64(totalNumberOfGameServersToDelete+(nonActiveGameServersCount+activeCount-gsb.Spec.Max)), maxNumberOfGameServersToDelete))
+		totalNumberOfGameServersToDelete += int(math.Min(float64(totalNumberOfGameServersToDelete+(nonActiveGameServersCount+activeCount-gsb.Spec.Max)), float64(r.Config.MaxNumberOfGameServersToDelete)))
 	}
 	if totalNumberOfGameServersToDelete > 0 {
 		err := r.deleteNonActiveGameServers(ctx, &gsb, &gameServers, totalNumberOfGameServersToDelete)
@@ -205,12 +199,12 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// we're also limiting the number of game servers that are created to avoid issues like this https://github.com/kubernetes-sigs/controller-runtime/issues/1782
 	// we attempt to create the missing number of game servers, but we don't want to create more than the max
 	// an error channel for the go routines to write errors
-	errCh := make(chan error, maxNumberOfGameServersToAdd)
+	errCh := make(chan error, r.Config.MaxNumberOfGameServersToAdd)
 	// a waitgroup for async create calls
 	var wg sync.WaitGroup
 	for i := 0; i < gsb.Spec.StandingBy-nonActiveGameServersCount &&
 		i+nonActiveGameServersCount+activeCount < gsb.Spec.Max &&
-		i < maxNumberOfGameServersToAdd; i++ {
+		i < r.Config.MaxNumberOfGameServersToAdd; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

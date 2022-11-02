@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/caarlos0/env/v6"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -72,6 +73,14 @@ var _ = BeforeSuite(func() {
 		ErrorIfCRDPathMissing: true,
 	}
 
+	//If config is passed to a constructor, whatever fields constructor uses need to be defined explicitly
+	//This does not pull values from operator.yaml like it does in main.go
+	//For suite_test the env defaults should be used, defined in const above
+	config := &Config{}
+	err := env.Parse(config)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(config).NotTo(BeNil())
+
 	cfg, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
@@ -98,7 +107,7 @@ var _ = BeforeSuite(func() {
 	err = portRegistry.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (NewGameServerBuildReconciler(k8sManager, portRegistry)).SetupWithManager(k8sManager)
+	err = (NewGameServerBuildReconciler(k8sManager, portRegistry, config)).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	initContainerImageLinux, initContainerImageWin := "testImageLinux", "testImageWin"
