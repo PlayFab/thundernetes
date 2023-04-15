@@ -23,7 +23,7 @@ var _ = Describe("expectations tests", func() {
 		// create a new expectations struct
 		e := NewGameServerExpectations(client)
 		// create a new GameServerBuild with a single game server
-		err := testCreateGameServerAndBuild(client, gsName1, buildName, buildID, "", mpsv1alpha1.GameServerStateInitializing)
+		_, err := testCreateGameServerAndBuild(client, gsName1, buildName, buildID, "", mpsv1alpha1.GameServerStateInitializing)
 		Expect(err).ToNot(HaveOccurred())
 		// we're calling the add method manually since the actual expectations class is encapsulated in the controller
 		e.addGameServerToUnderCreationMap(buildName, gsName1)
