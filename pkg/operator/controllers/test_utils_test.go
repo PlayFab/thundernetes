@@ -251,11 +251,17 @@ func testGenerateGameServer(buildName, buildID, gsNamespace, gsName string) *mps
 // testNewSimpleK8sClient returns a new fake k8s client
 func testNewSimpleK8sClient() client.Client {
 	cb := fake.NewClientBuilder()
-	return cb.Build()
+	return cb.WithIndex(&mpsv1alpha1.GameServer{}, statusSessionId, func(rawObj client.Object) []string {
+		gs := rawObj.(*mpsv1alpha1.GameServer)
+		return []string{gs.Status.SessionID}
+	}).WithIndex(&mpsv1alpha1.GameServerBuild{}, specBuildId, func(rawObj client.Object) []string {
+		gsb := rawObj.(*mpsv1alpha1.GameServerBuild)
+		return []string{gsb.Spec.BuildID}
+	}).Build()
 }
 
 // testCreateGameServerAndBuild creates a GameServer and GameServerBuild with the given name and ID.
-func testCreateGameServerAndBuild(client client.Client, gameServerName, buildName, buildID, sessionID string, state mpsv1alpha1.GameServerState) error {
+func testCreateGameServerAndBuild(client client.Client, gameServerName, buildName, buildID, sessionID string, state mpsv1alpha1.GameServerState) (*mpsv1alpha1.GameServer, error) {
 	buildNamespace := "default"
 	gsb := mpsv1alpha1.GameServerBuild{
 		ObjectMeta: metav1.ObjectMeta{
@@ -268,7 +274,7 @@ func testCreateGameServerAndBuild(client client.Client, gameServerName, buildNam
 	}
 	err := client.Create(context.Background(), &gsb)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	gs := mpsv1alpha1.GameServer{
 		ObjectMeta: metav1.ObjectMeta{
@@ -286,9 +292,9 @@ func testCreateGameServerAndBuild(client client.Client, gameServerName, buildNam
 	}
 	err = client.Create(context.Background(), &gs)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return &gs, err
 }
 
 // testCreatePod creates a Pod with the given name

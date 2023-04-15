@@ -81,7 +81,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 	})
 	It("should return existing game server when given an existing sessionID", func() {
 		client := testNewSimpleK8sClient()
-		err := testCreateGameServerAndBuild(client, gsName, buildName1, buildID1, sessionID1, mpsv1alpha1.GameServerStateActive)
+		_, err := testCreateGameServerAndBuild(client, gsName, buildName1, buildID1, sessionID1, mpsv1alpha1.GameServerStateActive)
 		Expect(err).ToNot(HaveOccurred())
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", sessionID1, buildID1)))
 		w := httptest.NewRecorder()
@@ -99,13 +99,20 @@ var _ = Describe("allocation API service input validation tests", func() {
 	})
 	It("should allocate a game server", func() {
 		client := testNewSimpleK8sClient()
-		err := testCreateGameServerAndBuild(client, gsName, buildName1, buildID1, "", mpsv1alpha1.GameServerStateStandingBy)
+		gs, err := testCreateGameServerAndBuild(client, gsName, buildName1, buildID1, "", mpsv1alpha1.GameServerStateStandingBy)
 		Expect(err).ToNot(HaveOccurred())
 		err = testCreatePod(client, gsName)
 		Expect(err).ToNot(HaveOccurred())
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", sessionID1, buildID1)))
 		w := httptest.NewRecorder()
 		h := NewAllocationApiServer(nil, nil, client, allocationApiSvcPort)
+		h.gameServerQueue = NewGameServersQueue()
+		h.gameServerQueue.PushToQueue(&GameServerForQueue{
+			Name:            gsName,
+			Namespace:       "default",
+			BuildID:         buildID1,
+			ResourceVersion: gs.ObjectMeta.ResourceVersion,
+		})
 		h.handleAllocationRequest(w, req)
 		res := w.Result()
 		defer res.Body.Close()
