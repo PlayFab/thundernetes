@@ -1,4 +1,4 @@
-FROM golang:1.19-nanoserver-1809 AS builder
+FROM golang:1.20-nanoserver-1809 AS builder
 
 WORKDIR /workspace
 # Copy the Go Module code
