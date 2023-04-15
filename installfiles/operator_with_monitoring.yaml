@@ -15484,20 +15484,20 @@ spec:
         - name: MAX_PORT
           value: "12000"
         - name: LOG_LEVEL
-          value: 
+          value: info
         - name: API_SERVICE_SECURITY
           value: none
         - name: ALLOC_API_SVC_PORT
           value: "5000"
         - name: THUNDERNETES_INIT_CONTAINER_IMAGE
-          value: :
+          value: ghcr.io/playfab/thundernetes-initcontainer:0.6.0
         - name: THUNDERNETES_INIT_CONTAINER_IMAGE_WIN
-          value: :
+          value: ghcr.io/playfab/thundernetes-initcontainer-win:0.6.0
         - name: TLS_SECRET_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: 
+        image: ghcr.io/playfab/thundernetes-operator:0.6.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -15569,8 +15569,8 @@ spec:
             fieldRef:
               fieldPath: status.hostIP
         - name: LOG_LEVEL
-          value: 
-        image: :
+          value: info
+        image: ghcr.io/playfab/thundernetes-nodeagent:0.6.0
         livenessProbe:
           httpGet:
             path: /healthz
@@ -15617,8 +15617,8 @@ spec:
             fieldRef:
               fieldPath: status.hostIP
         - name: LOG_LEVEL
-          value: 
-        image: :
+          value: info
+        image: ghcr.io/playfab/thundernetes-nodeagent-win:0.6.0
         livenessProbe:
           httpGet:
             path: /healthz
