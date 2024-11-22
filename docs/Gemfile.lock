@@ -146,7 +146,7 @@ GEM
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (1.8.0)
-    webrick (1.7.0)
+    webrick (1.8.2)
     yell (2.2.2)
     zeitwerk (2.6.0)
 
@@ -169,7 +169,7 @@ DEPENDENCIES
   nokogiri
   rack (~> 2.2.8)
   rspec
-  webrick (~> 1.7)
+  webrick (~> 1.8)
 
 BUNDLED WITH
    2.3.14
