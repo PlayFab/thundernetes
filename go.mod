@@ -1,6 +1,6 @@
 module github.com/playfab/thundernetes
 
-go 1.20
+go 1.23
 
 require (
 	github.com/caarlos0/env/v6 v6.9.3

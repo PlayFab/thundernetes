@@ -17,6 +17,8 @@ Thundernetes is a project originating from the [Azure PlayFab Multiplayer Server
 - pre-warm game servers so that they are ready to accept players within seconds, when the game is about to start
 - as part of your iterative development process, you can use Thundernetes locally to test your game server code
 
+IMPORTANT: Thundernetes should be seen as more of an experiment and not supported for production environments.
+
 Thundernetes offers:
 
 - game server auto-scaling, based on [requested standingBy levels](https://playfab.github.io/thundernetes/gameserverbuild.html)
