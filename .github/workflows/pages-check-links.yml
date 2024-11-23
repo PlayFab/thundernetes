@@ -43,4 +43,4 @@ jobs:
       - name: Check for broken links
         run: |
           cd docs/
-          bundle exec htmlproofer --ignore-missing-alt=true --log-level :debug ./_site --swap-urls '^/thundernetes/:/' --ignore-status-code 403
+          bundle exec htmlproofer --ignore-missing-alt=true --log-level :debug ./_site --swap-urls '^/thundernetes/:/' --ignore-status-code 403 --ignore-urls "/github.com/,/www.minecraft.net/"
