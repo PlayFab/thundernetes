@@ -1,9 +1,9 @@
 package controllers
 
 import (
+	"html"
 	"net/http"
 	"regexp"
-	"html"
 
 	"github.com/go-logr/logr"
 )
