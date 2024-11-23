@@ -1,8 +1,8 @@
-FROM mcr.microsoft.com/dotnet/aspnet:6.0-nanoserver-1809 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-nanoserver-1809 AS base
 WORKDIR /app
 EXPOSE 56001
 
-FROM mcr.microsoft.com/dotnet/sdk:6.0-nanoserver-1809 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0-nanoserver-1809 AS build
 WORKDIR /src
 COPY samples/netcore/netcore.csproj .
 RUN dotnet restore "./netcore.csproj"
