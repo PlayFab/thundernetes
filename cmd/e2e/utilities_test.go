@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -287,7 +286,7 @@ func allocate(buildID, sessionID string, cert tls.Certificate) error {
 		return fmt.Errorf("%s %d", invalidStatusCode, resp.StatusCode)
 	}
 	//Read the response body
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}

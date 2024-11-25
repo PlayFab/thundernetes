@@ -315,6 +315,30 @@ func (n *NodeAgentManager) gameServerDeleted(objUnstructured interface{}) {
 	n.gameServerMap.Delete(gameServerName)
 }
 
+// we want to log the GSDK version/flavor once, this variable is used to track that
+// it's OK if we log it multiple times, but we want to avoid spamming the logs
+var gsdkMetricsLogged = false
+
+// this endpoint is used to receive GSDK info from the gameserver
+// v1/metrics/{sessionHostId}/gsdkinfo
+func (n *NodeAgentManager) metricsHandler(w http.ResponseWriter, r *http.Request) {
+	re := regexp.MustCompile(`.*/v1/metrics\/(.*?)(/gsdkinfo|$)`)
+	match := re.FindStringSubmatch(r.RequestURI)
+	gameServerName := match[1]
+	var gi GsdkVersionInfo
+	err := json.NewDecoder(r.Body).Decode(&gi)
+	if err != nil {
+		badRequest(w, err, "cannot deserialize json")
+		return
+	}
+	if !gsdkMetricsLogged {
+		log.Infof("GSDK metrics received from gameserver %s, GSDK flavor and version: %s-%s", gameServerName, gi.Flavor, gi.Version)
+		gsdkMetricsLogged = true
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // heartbeatHandler is the http handler handling heartbeats from the GameServer Pods running on this Node
 // it responds by sending instructions/signal for the next operation
 // on Thundernetes, the only operation that NodeAgent can signal to the GameServer is that the GameServer has been allocated (its state has transitioned to Active)

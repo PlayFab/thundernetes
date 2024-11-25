@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -53,7 +53,7 @@ var _ = Describe("GameServer API service tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		var l mpsv1alpha1.GameServerBuildList
 		err = json.Unmarshal(body, &l)
@@ -77,7 +77,7 @@ var _ = Describe("GameServer API service tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		var b mpsv1alpha1.GameServerBuild
 		err = json.Unmarshal(body, &b)
@@ -134,7 +134,7 @@ var _ = Describe("GameServer API service tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		var b mpsv1alpha1.GameServerBuild
 		err = json.Unmarshal(body, &b)
@@ -149,7 +149,7 @@ var _ = Describe("GameServer API service tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		var l mpsv1alpha1.GameServerList
 		err = json.Unmarshal(body, &l)
@@ -174,7 +174,7 @@ var _ = Describe("GameServer API service tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		var g mpsv1alpha1.GameServer
 		err = json.Unmarshal(body, &g)
@@ -189,7 +189,7 @@ var _ = Describe("GameServer API service tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		var l mpsv1alpha1.GameServerDetailList
 		err = json.Unmarshal(body, &l)
@@ -214,7 +214,7 @@ var _ = Describe("GameServer API service tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		var g mpsv1alpha1.GameServerDetail
 		err = json.Unmarshal(body, &g)

@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -46,7 +46,7 @@ var _ = Describe("nodeagent tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
-		_, err := ioutil.ReadAll(res.Body)
+		_, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 	})
 	It("heartbeat with empty fields should return error", func() {
@@ -59,7 +59,7 @@ var _ = Describe("nodeagent tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
-		_, err := ioutil.ReadAll(res.Body)
+		_, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 	})
 	It("heartbeat with body should work", func() {
@@ -90,7 +90,7 @@ var _ = Describe("nodeagent tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		resBody, err := ioutil.ReadAll(res.Body)
+		resBody, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		hbr := HeartbeatResponse{}
 		_ = json.Unmarshal(resBody, &hbr)
@@ -149,7 +149,7 @@ var _ = Describe("nodeagent tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		resBody, err := ioutil.ReadAll(res.Body)
+		resBody, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		hbr := HeartbeatResponse{}
 		_ = json.Unmarshal(resBody, &hbr)
@@ -167,7 +167,7 @@ var _ = Describe("nodeagent tests", func() {
 		res = w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		resBody, err = ioutil.ReadAll(res.Body)
+		resBody, err = io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		hbr = HeartbeatResponse{}
 		err = json.Unmarshal(resBody, &hbr)
@@ -204,7 +204,7 @@ var _ = Describe("nodeagent tests", func() {
 			res := w.Result()
 			defer res.Body.Close()
 			Expect(res.StatusCode).To(Equal(http.StatusOK))
-			resBody, err := ioutil.ReadAll(res.Body)
+			resBody, err := io.ReadAll(res.Body)
 			Expect(err).ToNot(HaveOccurred())
 			hbr := HeartbeatResponse{}
 			_ = json.Unmarshal(resBody, &hbr)
@@ -400,7 +400,7 @@ var _ = Describe("nodeagent tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		resBody, err := ioutil.ReadAll(res.Body)
+		resBody, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		hbr := HeartbeatResponse{}
 		_ = json.Unmarshal(resBody, &hbr)
@@ -435,7 +435,7 @@ var _ = Describe("nodeagent tests", func() {
 		res = w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		resBody, err = ioutil.ReadAll(res.Body)
+		resBody, err = io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		hbr = HeartbeatResponse{}
 		err = json.Unmarshal(resBody, &hbr)
@@ -519,7 +519,7 @@ var _ = Describe("nodeagent tests", func() {
 				res := w.Result()
 				defer res.Body.Close()
 				Expect(res.StatusCode).To(Equal(http.StatusOK))
-				resBody, err := ioutil.ReadAll(res.Body)
+				resBody, err := io.ReadAll(res.Body)
 				Expect(err).ToNot(HaveOccurred())
 				hbr := HeartbeatResponse{}
 				_ = json.Unmarshal(resBody, &hbr)
@@ -537,7 +537,7 @@ var _ = Describe("nodeagent tests", func() {
 				res = w.Result()
 				defer res.Body.Close()
 				Expect(res.StatusCode).To(Equal(http.StatusOK))
-				resBody, err = ioutil.ReadAll(res.Body)
+				resBody, err = io.ReadAll(res.Body)
 				Expect(err).ToNot(HaveOccurred())
 				hbr = HeartbeatResponse{}
 				err = json.Unmarshal(resBody, &hbr)
@@ -835,6 +835,22 @@ var _ = Describe("nodeagent tests", func() {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gameServerHealth).To(Equal("Healthy"))
 		}, "3s").Should(Succeed())
+	})
+	It("GSDK metrics should work", func() {
+		gi := &GsdkVersionInfo{
+			Version: "1.0.0",
+			Flavor:  "CustomGameEngine",
+		}
+		b, _ := json.Marshal(gi)
+		req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/metrics/%s/gsdkinfo", testGameServerName), bytes.NewReader(b))
+		w := httptest.NewRecorder()
+		dynamicClient := newDynamicInterface()
+
+		n := NewNodeAgentManager(dynamicClient, testNodeName, false, false, time.Now, true)
+		n.metricsHandler(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusOK))
 	})
 })
 
