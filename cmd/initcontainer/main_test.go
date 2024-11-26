@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"testing"
@@ -50,7 +50,7 @@ func (suite *initContainerTestSuite) TestInitContainer() {
 	jsonFile, err := os.Open(testGsdkConfigFile)
 	assert.NoError(suite.T(), err)
 	defer jsonFile.Close()
-	byteValue, err := ioutil.ReadAll(jsonFile)
+	byteValue, err := io.ReadAll(jsonFile)
 	assert.NoError(suite.T(), err)
 	var gsdkConfig *GsdkConfig
 	err = json.Unmarshal(byteValue, &gsdkConfig)

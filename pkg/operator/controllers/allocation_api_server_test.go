@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 
@@ -32,7 +32,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
-		_, err := ioutil.ReadAll(res.Body)
+		_, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 	})
 	It("GET method should return error", func() {
@@ -43,7 +43,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
-		_, err := ioutil.ReadAll(res.Body)
+		_, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 	})
 	It("bad body should return error", func() {
@@ -54,7 +54,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
-		_, err := ioutil.ReadAll(res.Body)
+		_, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 	})
 	It("buildID should be a GUID", func() {
@@ -65,7 +65,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
-		_, err := ioutil.ReadAll(res.Body)
+		_, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 	})
 	It("should return NotFound on an empty list", func() {
@@ -76,7 +76,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusNotFound))
-		_, err := ioutil.ReadAll(res.Body)
+		_, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 	})
 	It("should return existing game server when given an existing sessionID", func() {
@@ -90,7 +90,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		var rm = RequestMultiplayerServerResponse{}
 		err = json.Unmarshal(body, &rm)
@@ -117,7 +117,7 @@ var _ = Describe("allocation API service input validation tests", func() {
 		res := w.Result()
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 		var rm = RequestMultiplayerServerResponse{}
 		err = json.Unmarshal(body, &rm)

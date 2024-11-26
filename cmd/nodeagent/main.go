@@ -31,6 +31,7 @@ func main() {
 	n := NewNodeAgentManager(dynamicClient, nodeName, logEveryHeartbeat, ignoreHealthFromHeartbeat, time.Now, true)
 	log.Debug("Starting HTTP server")
 	http.HandleFunc("/v1/sessionHosts/", n.heartbeatHandler)
+	http.HandleFunc("/v1/metrics/", n.metricsHandler)
 	http.HandleFunc("/healthz", healthzHandler)
 	http.Handle("/metrics", promhttp.Handler())
 

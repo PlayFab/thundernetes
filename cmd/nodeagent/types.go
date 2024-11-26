@@ -78,6 +78,14 @@ var (
 	)
 )
 
+// GsdkVersionInfo contains details about the GSDK version of the game server
+type GsdkVersionInfo struct {
+	// Flavor is the engine of GSDK (Unreal/Unity/C++ etc.)
+	Flavor string `json:"Flavor"`
+	// Version is the version of GSDK
+	Version string `json:"Version"`
+}
+
 // HeartbeatRequest contains data for the heartbeat request coming from the GSDK running alongside GameServer
 type HeartbeatRequest struct {
 	// CurrentGameState is the current state of the game server
