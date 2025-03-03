@@ -151,7 +151,7 @@ func parseStateHealth(u *unstructured.Unstructured) (string, string, error) {
 	}
 
 	if healthErr != nil {
-		return "", "", stateErr
+		return "", "", healthErr
 	}
 	if !healthExists {
 		return "", "", errors.New(ErrHealthNotExists)
