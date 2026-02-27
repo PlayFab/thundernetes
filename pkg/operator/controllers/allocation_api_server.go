@@ -165,8 +165,9 @@ func (s *AllocationApiServer) SetupWithManager(mgr ctrl.Manager) error {
 	// our controller is triggered by changes in any GameServer object
 	// as well as by manual insertions in the s.events channel
 	err = ctrl.NewControllerManagedBy(mgr).
+		Named("allocation-api-server").
 		For(&mpsv1alpha1.GameServer{}).
-		Watches(&source.Channel{Source: s.events}, &handler.EnqueueRequestForObject{}).
+		WatchesRawSource(source.Channel(s.events, &handler.EnqueueRequestForObject{})).
 		Complete(s)
 
 	if err != nil {

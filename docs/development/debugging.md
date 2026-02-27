@@ -45,5 +45,5 @@ To test your changes to Thundernetes on a Kubernetes cluster, you can use the fo
 - Run `make clean build push` to build the container images and push them to your container registry
 - Run `make create-install-files-dev` to create the install files for the cluster
 - Checkout the `installfilesdev` folder for the generated install files. This file is included in .gitignore so it will never be committed.
-- Test your changes as required. For example, to install Thundernetes controller, you can do `kubectl apply -f installfilesdev/operator_with_monitoring.yaml` and then you can install any of the samples on the `samples` folder.
+- Test your changes as required. For example, to install Thundernetes controller, you can do `kubectl apply --server-side -f installfilesdev/operator_with_monitoring.yaml` and then you can install any of the samples on the `samples` folder.
 - single command: `NS=docker.io/<repo>/ make clean build push create-install-files-dev`

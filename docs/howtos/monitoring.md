@@ -38,7 +38,7 @@ kubectl create -f manifests/
 After this, you can install Thundernetes using the install files "with monitoring", these automatically create Prometheus ServiceMonitors that crawl the endpoints described above.
 
 {% include code-block-start.md %}
-kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator_with_monitoring.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator_with_monitoring.yaml
 {% include code-block-end.md %}
 
 ## Check the data in Prometheus and Grafana

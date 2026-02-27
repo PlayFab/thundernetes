@@ -42,8 +42,10 @@ kubectl get pods -n cert-manager
 You can run the following command to install Thundernetes. 
 
 {% include code-block-start.md %}
-kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator.yaml
 {% include code-block-end.md %}
+
+> **Note:** If you are upgrading from a previous version of Thundernetes, you may need to add the `--force-conflicts` flag to resolve field ownership conflicts (e.g. `kubectl apply --server-side --force-conflicts -f ...`).
 
 **Note:** installing Thundernetes will automatically deploy two DaemonSets: one for Linux nodes and for Windows nodes. If you only plan to use one OS for the nodes, you can safely delete the DaemonSet for the other. These DaemonSets live under the `thundernetes-system` namespace, you can optionally delete them with the following commands (even though there is no harm in keeping them around):
 
@@ -111,7 +113,7 @@ Save the above file in your machine and apply it using `kubectl apply -f filenam
 Let's install Thundernetes configured with mTLS authentication.
 
 {% include code-block-start.md %}
-kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator_with_security.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator_with_security.yaml
 {% include code-block-end.md %}
 
 To make sure that our certificate has been configured correctly, run `kubectl get certificate -n thundernetes-system`.
@@ -148,7 +150,7 @@ kubectl create secret tls tls-secret -n thundernetes-system --cert=/path/to/publ
 Then, you can run the following script to install Thundernetes with TLS security for the allocation API service.
 
 {% include code-block-start.md %}
-kubectl apply -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator_with_security.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator_with_security.yaml
 {% include code-block-end.md %}
 
 **Note:** The two installation files (operator.yaml and operator_with_security.yaml) are identical except for the API_SERVICE_SECURITY environment variable that is passed into the controller container.

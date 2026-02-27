@@ -251,7 +251,7 @@ func testGenerateGameServer(buildName, buildID, gsNamespace, gsName string) *mps
 // testNewSimpleK8sClient returns a new fake k8s client
 func testNewSimpleK8sClient() client.Client {
 	cb := fake.NewClientBuilder()
-	return cb.WithIndex(&mpsv1alpha1.GameServer{}, statusSessionId, func(rawObj client.Object) []string {
+	return cb.WithStatusSubresource(&mpsv1alpha1.GameServer{}).WithIndex(&mpsv1alpha1.GameServer{}, statusSessionId, func(rawObj client.Object) []string {
 		gs := rawObj.(*mpsv1alpha1.GameServer)
 		return []string{gs.Status.SessionID}
 	}).WithIndex(&mpsv1alpha1.GameServerBuild{}, specBuildId, func(rawObj client.Object) []string {
