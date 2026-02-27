@@ -48,7 +48,7 @@ IMG=${IMAGE_NAME_OPERATOR}:${IMAGE_TAG} API_SERVICE_SECURITY=usetls make -C "${D
 
 echo "-----Deploying GameServer API-----"
 cd cmd/gameserverapi/deployment/default
-"${DIR}"/../pkg/operator/bin/kustomize build ../e2e | IMAGE_TAG=${IMAGE_TAG} envsubst | kubectl apply --server-side --force-conflicts -f -
+"${DIR}"/../pkg/operator/bin/kustomize build ../e2e | IMAGE_TAG=${IMAGE_TAG} envsubst | kubectl apply --server-side -f -
 
 echo "-----Waiting for Controller deployment-----"
 kubectl wait --for=condition=available --timeout=300s deployment/thundernetes-controller-manager -n thundernetes-system

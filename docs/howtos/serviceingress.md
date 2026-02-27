@@ -17,7 +17,7 @@ When you deploy an Ingress you can use annotations to enable the authentication 
 
 {% include code-block-start.md %}
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-manager.yaml
-kubectl apply --server-side --force-conflicts -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/PlayFab/thundernetes/main/installfiles/operator.yaml
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.0/deploy/static/provider/cloud/deploy.yaml
 {% include code-block-end.md %}
 
