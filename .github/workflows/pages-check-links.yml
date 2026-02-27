@@ -20,12 +20,12 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Ruby
-        uses: ruby/setup-ruby@v1.113.3
+        uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.1
+          ruby-version: 3.3
       
       - name: Setup Rubygems, Bundler, jekyll
         run: |
@@ -43,4 +43,4 @@ jobs:
       - name: Check for broken links
         run: |
           cd docs/
-          bundle exec htmlproofer --ignore-missing-alt=true --log-level :debug ./_site --swap-urls '^/thundernetes/:/' --ignore-status-code 403 --ignore-urls "/github.com/,/www.minecraft.net/"
+          bundle exec htmlproofer --ignore-missing-alt=true --log-level :debug ./_site --swap-urls '^/thundernetes/:/' --ignore-status-code 403 --ignore-urls "/github.com/,/www.minecraft.net/,/kind.sigs.k8s.io/"
