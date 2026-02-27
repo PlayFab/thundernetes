@@ -407,7 +407,7 @@ func verifyGameServers(ctx context.Context, kubeClient client.Client, state buil
 			return fmt.Errorf("GameServer %s has no OwnerReferences", gameServer.Name)
 		}
 		if gameServer.OwnerReferences[0].Name != state.buildName {
-			return fmt.Errorf(fmt.Sprintf("GameServer %s has incorrect OwnerReferences: %s", gameServer.Name, gameServer.OwnerReferences[0].Name))
+			return fmt.Errorf("GameServer %s has incorrect OwnerReferences: %s", gameServer.Name, gameServer.OwnerReferences[0].Name)
 		}
 		if gameServer.Status.State == mpsv1alpha1.GameServerStateStandingBy {
 			observedStandingByCount++
@@ -435,10 +435,10 @@ func verifyGameServers(ctx context.Context, kubeClient client.Client, state buil
 	}
 
 	if observedStandingByCount != state.standingByCount {
-		return fmt.Errorf(fmt.Sprintf("Expected %d gameservers in standingBy, got %d", state.standingByCount, observedStandingByCount))
+		return fmt.Errorf("Expected %d gameservers in standingBy, got %d", state.standingByCount, observedStandingByCount)
 	}
 	if observedActiveCount != state.activeCount {
-		return fmt.Errorf(fmt.Sprintf("Expected %d gameservers in active, got %d", state.activeCount, observedActiveCount))
+		return fmt.Errorf("Expected %d gameservers in active, got %d", state.activeCount, observedActiveCount)
 	}
 	return nil
 }
