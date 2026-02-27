@@ -136,11 +136,13 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
 	err := testEnv.Stop()
-	// nasty workaround because of this issue: https://github.com/kubernetes-sigs/controller-runtime/issues/1571
-	// alternatives would be
-	// 1. set the K8s env test version to 1.20
-	// 2. use the solution here https://github.com/kubernetes-sigs/kubebuilder/pull/2302/files#diff-9c68eed99ac3d414e720ba8a0c38b489e359c99da0b50b203a12ebe5a57d5fbfL143
-	if !strings.Contains(err.Error(), "timeout waiting for process kube-apiserver to stop") {
-		Fail(err.Error())
+	if err != nil {
+		// nasty workaround because of this issue: https://github.com/kubernetes-sigs/controller-runtime/issues/1571
+		// alternatives would be
+		// 1. set the K8s env test version to 1.20
+		// 2. use the solution here https://github.com/kubernetes-sigs/kubebuilder/pull/2302/files#diff-9c68eed99ac3d414e720ba8a0c38b489e359c99da0b50b203a12ebe5a57d5fbfL143
+		if !strings.Contains(err.Error(), "timeout waiting for process kube-apiserver to stop") {
+			Fail(err.Error())
+		}
 	}
 })

@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -24,6 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -32,6 +35,7 @@ var gameserverlog = logf.Log.WithName("gameserver-resource")
 func (r *GameServer) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithValidator(r).
 		Complete()
 }
 
@@ -40,50 +44,53 @@ func (r *GameServer) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-mps-playfab-com-v1alpha1-gameserver,mutating=false,failurePolicy=fail,sideEffects=None,groups=mps.playfab.com,resources=gameservers,verbs=create;update,versions=v1alpha1,name=vgameserver.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Validator = &GameServer{}
+var _ webhook.CustomValidator = &GameServer{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *GameServer) ValidateCreate() error {
-	gameserverlog.Info("validate create", "name", r.Name)
+// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *GameServer) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	gs := obj.(*GameServer)
+	gameserverlog.Info("validate create", "name", gs.Name)
 	var allErrs field.ErrorList
-	if err := r.validateOwnerReferences(); err != nil {
+	if err := gs.validateOwnerReferences(); err != nil {
 		allErrs = append(allErrs, err)
 	}
-	if errs := r.validatePortsToExpose(); errs != nil {
+	if errs := gs.validatePortsToExpose(); errs != nil {
 		allErrs = append(allErrs, errs...)
 	}
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		schema.GroupKind{Group: "mps.playfab.com", Kind: "GameServer"},
-		r.Name, allErrs)
+		gs.Name, allErrs)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *GameServer) ValidateUpdate(old runtime.Object) error {
-	gameserverlog.Info("validate update", "name", r.Name)
+// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *GameServer) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	gs := newObj.(*GameServer)
+	gameserverlog.Info("validate update", "name", gs.Name)
 	var allErrs field.ErrorList
-	if err := r.validateOwnerReferences(); err != nil {
+	if err := gs.validateOwnerReferences(); err != nil {
 		allErrs = append(allErrs, err)
 	}
-	if errs := r.validatePortsToExpose(); errs != nil {
+	if errs := gs.validatePortsToExpose(); errs != nil {
 		allErrs = append(allErrs, errs...)
 	}
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		schema.GroupKind{Group: "mps.playfab.com", Kind: "GameServer"},
-		r.Name, allErrs)
+		gs.Name, allErrs)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *GameServer) ValidateDelete() error {
-	gameserverlog.Info("validate delete", "name", r.Name)
+// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *GameServer) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	gs := obj.(*GameServer)
+	gameserverlog.Info("validate delete", "name", gs.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
-	return nil
+	return nil, nil
 }
 
 // validateOwnerReference checks that OwnerReferences points to a GameServerBuild

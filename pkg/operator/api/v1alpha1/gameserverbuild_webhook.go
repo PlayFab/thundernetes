@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -54,6 +55,7 @@ func (r *GameServerBuild) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	c = mgr.GetClient()
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithValidator(r).
 		Complete()
 }
 
@@ -62,54 +64,57 @@ func (r *GameServerBuild) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-mps-playfab-com-v1alpha1-gameserverbuild,mutating=false,failurePolicy=fail,sideEffects=None,groups=mps.playfab.com,resources=gameserverbuilds,verbs=create;update,versions=v1alpha1,name=vgameserverbuild.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Validator = &GameServerBuild{}
+var _ webhook.CustomValidator = &GameServerBuild{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *GameServerBuild) ValidateCreate() error {
-	gameserverbuildlog.Info("validate create", "name", r.Name)
+// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *GameServerBuild) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	gsb := obj.(*GameServerBuild)
+	gameserverbuildlog.Info("validate create", "name", gsb.Name)
 	var allErrs field.ErrorList
-	if err := r.validateCreateBuildID(); err != nil {
+	if err := gsb.validateCreateBuildID(); err != nil {
 		allErrs = append(allErrs, err)
 	}
-	if errs := r.validatePortsToExpose(); errs != nil {
+	if errs := gsb.validatePortsToExpose(); errs != nil {
 		allErrs = append(allErrs, errs...)
 	}
-	if err := r.validateStandingBy(); err != nil {
+	if err := gsb.validateStandingBy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		schema.GroupKind{Group: "mps.playfab.com", Kind: "GameServerBuild"},
-		r.Name, allErrs)
+		gsb.Name, allErrs)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *GameServerBuild) ValidateUpdate(old runtime.Object) error {
-	gameserverbuildlog.Info("validate update", "name", r.Name)
+// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *GameServerBuild) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	gsb := newObj.(*GameServerBuild)
+	gameserverbuildlog.Info("validate update", "name", gsb.Name)
 	var allErrs field.ErrorList
-	if err := r.validateUpdateBuildID(old); err != nil {
+	if err := gsb.validateUpdateBuildID(oldObj); err != nil {
 		allErrs = append(allErrs, err)
 	}
-	if errs := r.validatePortsToExpose(); errs != nil {
+	if errs := gsb.validatePortsToExpose(); errs != nil {
 		allErrs = append(allErrs, errs...)
 	}
-	if err := r.validateStandingBy(); err != nil {
+	if err := gsb.validateStandingBy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		schema.GroupKind{Group: "mps.playfab.com", Kind: "GameServerBuild"},
-		r.Name, allErrs)
+		gsb.Name, allErrs)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *GameServerBuild) ValidateDelete() error {
-	gameserverbuildlog.V(1).Info("validate delete", "name", r.Name)
-	return nil
+// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *GameServerBuild) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	gsb := obj.(*GameServerBuild)
+	gameserverbuildlog.V(1).Info("validate delete", "name", gsb.Name)
+	return nil, nil
 }
 
 // validateCreateBuildID checks that there is not another GameServerBuild with different name

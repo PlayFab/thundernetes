@@ -41,39 +41,6 @@ rules:
   - mps.playfab.com
   resources:
   - gameserverbuilds
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - mps.playfab.com
-  resources:
-  - gameserverbuilds/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - mps.playfab.com
-  resources:
-  - gameserverbuilds/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - mps.playfab.com
-  resources:
-  - gameserverdetails
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - mps.playfab.com
-  resources:
   - gameservers
   verbs:
   - create
@@ -86,14 +53,24 @@ rules:
 - apiGroups:
   - mps.playfab.com
   resources:
+  - gameserverbuilds/finalizers
   - gameservers/finalizers
   verbs:
   - update
 - apiGroups:
   - mps.playfab.com
   resources:
+  - gameserverbuilds/status
   - gameservers/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - mps.playfab.com
+  resources:
+  - gameserverdetails
+  verbs:
+  - get
+  - list
+  - watch

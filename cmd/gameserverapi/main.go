@@ -17,7 +17,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/cluster"
 
 	"github.com/playfab/thundernetes/cmd/gameserverapi/docs"
 	swaggerFiles "github.com/swaggo/files"
@@ -77,7 +76,7 @@ func main() {
 	}
 
 	log.Info("Cache sync succeeded")
-	kubeClient, err = cluster.DefaultNewClient(ca, config, client.Options{Scheme: scheme})
+	kubeClient, err = client.New(config, client.Options{Scheme: scheme, Cache: &client.CacheOptions{Reader: ca}})
 	if err != nil {
 		log.Fatal(err)
 	}
