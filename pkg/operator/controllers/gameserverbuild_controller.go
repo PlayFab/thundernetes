@@ -23,6 +23,7 @@ import (
 	"runtime"
 	"sort"
 	"sync"
+	"time"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -99,6 +100,11 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		log.Error(err, "unable to fetch gameServerBuild")
 		return ctrl.Result{}, err
 	}
+
+	startTime := time.Now()
+	defer func() {
+		GameServerBuildReconcileDuration.WithLabelValues(gsb.Name).Observe(time.Since(startTime).Seconds())
+	}()
 
 	// if GameServerBuild is unhealthy and current crashes equal or more than CrashesToMarkUnhealthy, do nothing more
 	if gsb.Status.Health == mpsv1alpha1.BuildUnhealthy &&
@@ -208,6 +214,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			createStartTime := time.Now()
 			newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
 			if err != nil {
 				errCh <- err
@@ -217,6 +224,7 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				errCh <- err
 				return
 			}
+			GameServerCreationDuration.WithLabelValues(gsb.Name).Observe(time.Since(createStartTime).Seconds())
 			r.expectations.addGameServerToUnderCreationMap(gsb.Name, newgs.Name)
 			GameServersCreatedCounter.WithLabelValues(gsb.Name).Inc()
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Creating", "Creating GameServer %s", newgs.Name)
@@ -329,6 +337,7 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
+				deleteStartTime := time.Now()
 				if err := r.deleteGameServer(ctx, &gs); err != nil {
 					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
 						return
@@ -336,6 +345,7 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 					errCh <- err
 					return
 				}
+				GameServerDeletionDuration.WithLabelValues(gsb.Name).Observe(time.Since(deleteStartTime).Seconds())
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
 				r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 				r.Recorder.Eventf(gsb, corev1.EventTypeNormal, "GameServer deleted", "GameServer %s deleted", gs.Name)
