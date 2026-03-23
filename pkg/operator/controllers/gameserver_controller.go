@@ -21,6 +21,7 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -91,6 +92,10 @@ func NewGameServerReconciler(mgr manager.Manager,
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	startTime := time.Now()
+	defer func() {
+		GameServerReconcileDuration.WithLabelValues().Observe(time.Since(startTime).Seconds())
+	}()
 	log := log.FromContext(ctx)
 
 	var gs mpsv1alpha1.GameServer

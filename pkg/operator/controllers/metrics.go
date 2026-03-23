@@ -120,4 +120,22 @@ var (
 		},
 		[]string{"BuildName"},
 	)
+	GameServerReconcileDuration = registry.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "thundernetes",
+			Name:      "gameserver_reconcile_duration_seconds",
+			Help:      "Duration of GameServer controller reconciliation in seconds",
+			Buckets:   prometheus.DefBuckets,
+		},
+		[]string{},
+	)
+	GameServerBuildReconcileDuration = registry.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "thundernetes",
+			Name:      "gameserverbuild_reconcile_duration_seconds",
+			Help:      "Duration of GameServerBuild controller reconciliation in seconds",
+			Buckets:   prometheus.DefBuckets,
+		},
+		[]string{"BuildName"},
+	)
 )
