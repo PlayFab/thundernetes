@@ -13,10 +13,10 @@ import (
 
 func TestGetLinearRegressionPrediction(t *testing.T) {
 	tests := []struct {
-		name            string
-		data            []timeSeriesPoint
-		timeToForecast  int64
-		expectError     bool
+		name             string
+		data             []timeSeriesPoint
+		timeToForecast   int64
+		expectError      bool
 		expectedPositive bool // if we just want to verify the sign
 	}{
 		{
@@ -31,8 +31,8 @@ func TestGetLinearRegressionPrediction(t *testing.T) {
 					{time: baseTime.Add(4 * time.Minute), value: 50},
 				}
 			}(),
-			timeToForecast:  time.Date(2024, 1, 1, 0, 5, 0, 0, time.UTC).Unix(),
-			expectError:     false,
+			timeToForecast:   time.Date(2024, 1, 1, 0, 5, 0, 0, time.UTC).Unix(),
+			expectError:      false,
 			expectedPositive: true,
 		},
 		{
@@ -47,8 +47,8 @@ func TestGetLinearRegressionPrediction(t *testing.T) {
 					{time: baseTime.Add(4 * time.Minute), value: 50},
 				}
 			}(),
-			timeToForecast:  time.Date(2024, 1, 1, 0, 5, 0, 0, time.UTC).Unix(),
-			expectError:     false,
+			timeToForecast:   time.Date(2024, 1, 1, 0, 5, 0, 0, time.UTC).Unix(),
+			expectError:      false,
 			expectedPositive: true,
 		},
 		{
@@ -60,8 +60,8 @@ func TestGetLinearRegressionPrediction(t *testing.T) {
 					{time: baseTime.Add(1 * time.Minute), value: 20},
 				}
 			}(),
-			timeToForecast:  time.Date(2024, 1, 1, 0, 2, 0, 0, time.UTC).Unix(),
-			expectError:     true,
+			timeToForecast:   time.Date(2024, 1, 1, 0, 2, 0, 0, time.UTC).Unix(),
+			expectError:      true,
 			expectedPositive: false,
 		},
 		{
@@ -74,8 +74,8 @@ func TestGetLinearRegressionPrediction(t *testing.T) {
 					{time: baseTime.Add(2 * time.Minute), value: 30},
 				}
 			}(),
-			timeToForecast:  time.Date(2024, 1, 1, 0, 3, 0, 0, time.UTC).Unix(),
-			expectError:     false,
+			timeToForecast:   time.Date(2024, 1, 1, 0, 3, 0, 0, time.UTC).Unix(),
+			expectError:      false,
 			expectedPositive: true,
 		},
 	}
