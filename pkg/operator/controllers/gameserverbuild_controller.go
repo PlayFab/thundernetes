@@ -214,7 +214,6 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			createStartTime := time.Now()
 			newgs, err := NewGameServerForGameServerBuild(&gsb, r.PortRegistry)
 			if err != nil {
 				errCh <- err
@@ -224,7 +223,6 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				errCh <- err
 				return
 			}
-			GameServerCreationDuration.WithLabelValues(gsb.Name).Observe(time.Since(createStartTime).Seconds())
 			r.expectations.addGameServerToUnderCreationMap(gsb.Name, newgs.Name)
 			GameServersCreatedCounter.WithLabelValues(gsb.Name).Inc()
 			r.Recorder.Eventf(&gsb, corev1.EventTypeNormal, "Creating", "Creating GameServer %s", newgs.Name)
@@ -337,7 +335,6 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				deleteStartTime := time.Now()
 				if err := r.deleteGameServer(ctx, &gs); err != nil {
 					if apierrors.IsConflict(err) { // this GameServer has been updated, skip it
 						return
@@ -345,7 +342,6 @@ func (r *GameServerBuildReconciler) deleteNonActiveGameServers(ctx context.Conte
 					errCh <- err
 					return
 				}
-				GameServerDeletionDuration.WithLabelValues(gsb.Name).Observe(time.Since(deleteStartTime).Seconds())
 				GameServersDeletedCounter.WithLabelValues(gsb.Name).Inc()
 				r.expectations.addGameServerToUnderDeletionMap(gsb.Name, gs.Name)
 				r.Recorder.Eventf(gsb, corev1.EventTypeNormal, "GameServer deleted", "GameServer %s deleted", gs.Name)

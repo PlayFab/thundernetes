@@ -138,22 +138,4 @@ var (
 		},
 		[]string{"BuildName"},
 	)
-	GameServerCreationDuration = registry.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "thundernetes",
-			Name:      "gameserver_creation_duration_seconds",
-			Help:      "Duration of individual GameServer creation in seconds",
-			Buckets:   prometheus.DefBuckets,
-		},
-		[]string{"BuildName"},
-	)
-	GameServerDeletionDuration = registry.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "thundernetes",
-			Name:      "gameserver_deletion_duration_seconds",
-			Help:      "Duration of individual GameServer deletion in seconds",
-			Buckets:   prometheus.DefBuckets,
-		},
-		[]string{"BuildName"},
-	)
 )
