@@ -67,5 +67,7 @@ GINKGO=github.com/onsi/ginkgo/v2/ginkgo
 # Reason is that if we ran it together with the other tests, it would have an impact on the number of Actives
 # https://onsi.github.io/ginkgo/#description-based-filtering
 IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go run ${GINKGO} --focus "Cluster with variable number of Nodes" --fail-on-pending --keep-going --race --trace
+# run the operator restart test separately since it kills the operator pod which would affect other tests
+IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go run ${GINKGO} --focus "Operator restart recovery" --fail-on-pending --keep-going --race --trace
 # check here for flags explanation: https://onsi.github.io/ginkgo/#recommended-continuous-integration-configuration
-IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go run ${GINKGO} --skip "Cluster with variable number of Nodes" -r --procs=4 --compilers=4 --randomize-all --randomize-suites --fail-on-pending --keep-going --race --trace
+IMG=${IMAGE_NAME_NETCORE_SAMPLE}:${IMAGE_TAG} go run ${GINKGO} --skip "Cluster with variable number of Nodes|Operator restart recovery" -r --procs=4 --compilers=4 --randomize-all --randomize-suites --fail-on-pending --keep-going --race --trace
