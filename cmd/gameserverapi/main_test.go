@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -220,6 +221,122 @@ var _ = Describe("GameServer API service tests", func() {
 		err = json.Unmarshal(body, &g)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(g.Name).To(Equal("test-gameserver"))
+	})
+	It("should return 200 OK on healthz", func() {
+		r := setupRouter()
+		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusOK))
+		body, err := io.ReadAll(res.Body)
+		Expect(err).ToNot(HaveOccurred())
+		var m map[string]string
+		err = json.Unmarshal(body, &m)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(m["status"]).To(Equal("ok"))
+	})
+	It("should return CORS headers on OPTIONS request", func() {
+		r := setupRouter()
+		req := httptest.NewRequest(http.MethodOptions, fmt.Sprintf("%s/gameserverbuilds", url), nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusOK))
+		Expect(res.Header.Get("Access-Control-Allow-Origin")).To(Equal("*"))
+		Expect(res.Header.Get("Access-Control-Allow-Methods")).To(ContainSubstring("POST"))
+	})
+	It("should return bad request when standingBy > max", func() {
+		patchBody := map[string]interface{}{
+			"standingBy": 10,
+			"max":        5,
+		}
+		pb, err := json.Marshal(patchBody)
+		Expect(err).ToNot(HaveOccurred())
+		r := setupRouter()
+		req, err := http.NewRequest("PATCH", fmt.Sprintf("%s/gameserverbuilds/%s/test-build", url, testNamespace), bytes.NewReader(pb))
+		Expect(err).ToNot(HaveOccurred())
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
+	})
+	It("should return bad request when creating GameServerBuild with bad JSON", func() {
+		r := setupRouter()
+		req, err := http.NewRequest("POST", fmt.Sprintf("%s/gameserverbuilds", url), strings.NewReader("not valid json"))
+		Expect(err).ToNot(HaveOccurred())
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
+	})
+	It("should return 404 when patching non-existent GameServerBuild", func() {
+		patchBody := map[string]interface{}{
+			"standingBy": 1,
+			"max":        2,
+		}
+		pb, err := json.Marshal(patchBody)
+		Expect(err).ToNot(HaveOccurred())
+		r := setupRouter()
+		req, err := http.NewRequest("PATCH", fmt.Sprintf("%s/gameserverbuilds/%s/non-existent-build", url, testNamespace), bytes.NewReader(pb))
+		Expect(err).ToNot(HaveOccurred())
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusNotFound))
+	})
+	It("should delete a GameServer", func() {
+		r := setupRouter()
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("%s/gameservers/%s/test-gameserver", url, testNamespace), nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusOK))
+		body, err := io.ReadAll(res.Body)
+		Expect(err).ToNot(HaveOccurred())
+		var m map[string]string
+		err = json.Unmarshal(body, &m)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(m["message"]).To(Equal("Game server deleted"))
+	})
+	It("should return 404 when deleting non-existent GameServer", func() {
+		r := setupRouter()
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("%s/gameservers/%s/non-existent-server", url, testNamespace), nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusNotFound))
+	})
+	It("should delete a GameServerBuild", func() {
+		r := setupRouter()
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("%s/gameserverbuilds/%s/test-build", url, testNamespace), nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusOK))
+		body, err := io.ReadAll(res.Body)
+		Expect(err).ToNot(HaveOccurred())
+		var m map[string]string
+		err = json.Unmarshal(body, &m)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(m["message"]).To(Equal("Game server build deleted"))
+	})
+	It("should return 404 when deleting non-existent GameServerBuild", func() {
+		r := setupRouter()
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("%s/gameserverbuilds/%s/non-existent-build", url, testNamespace), nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusNotFound))
 	})
 })
 
