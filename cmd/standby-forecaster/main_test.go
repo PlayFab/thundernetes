@@ -436,6 +436,108 @@ func TestLoadConfigEmptyFile(t *testing.T) {
 	assert.Equal(t, 0, cfg.ForecastedPoints)
 }
 
+func TestGetLinearRegressionPredictionDecreasing(t *testing.T) {
+	baseTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	data := []timeSeriesPoint{
+		{time: baseTime, value: 100},
+		{time: baseTime.Add(1 * time.Minute), value: 80},
+		{time: baseTime.Add(2 * time.Minute), value: 60},
+		{time: baseTime.Add(3 * time.Minute), value: 40},
+		{time: baseTime.Add(4 * time.Minute), value: 20},
+	}
+
+	prediction, err := getLinearRegressionPrediction(data, baseTime.Add(5*time.Minute).Unix())
+	require.NoError(t, err)
+	// For decreasing data the prediction should be lower than the last value
+	assert.Less(t, prediction, 20.0)
+}
+
+func TestGetForecastedServerCountIncreasing(t *testing.T) {
+	baseTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	seriesLen := 100
+	series := make([]timeSeriesPoint, seriesLen)
+	for i := 0; i < seriesLen; i++ {
+		series[i] = timeSeriesPoint{
+			time:  baseTime.Add(time.Duration(i) * time.Minute),
+			value: float64(i) * 2.0,
+		}
+	}
+
+	cfg := Config{
+		AlphaConstant:                          0.6,
+		BetaConstant:                           0.6,
+		GammaConstant:                          0.45,
+		SeasonLength:                           10,
+		ForecastedPoints:                       5,
+		LongLinearHistoryPoints:                30,
+		LongLinearForecastedPoints:             10,
+		ShortLinearHistoryPoints:               10,
+		ShortLinearForecastedPoints:            5,
+		DatapointGranularity:                   time.Minute,
+		MetricToServerConversionOperation:      "divide",
+		MetricToServerConversionOperationValue: 10.0,
+	}
+
+	totalServers, err := getForecastedServerCount(series, cfg)
+	require.NoError(t, err)
+	assert.Greater(t, totalServers, 0)
+}
+
+func TestLoadConfigK8sSettings(t *testing.T) {
+	content := `
+queryUrl: "http://prometheus:9090"
+metricQuery: "sum(active_servers)"
+k8s:
+  runInCluster: true
+  kubeConfig: "/custom/path/kubeconfig"
+`
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.yaml")
+	err := os.WriteFile(configPath, []byte(content), 0644)
+	require.NoError(t, err)
+
+	cfg := Config{}
+	err = loadConfig(configPath, false, &cfg)
+	require.NoError(t, err)
+
+	assert.True(t, cfg.K8s.RunInCluster)
+	assert.Equal(t, "/custom/path/kubeconfig", cfg.K8s.KubeConfig)
+}
+
+func TestLoadConfigMetricConversion(t *testing.T) {
+	content := `
+queryUrl: "http://prometheus:9090"
+metricQuery: "sum(active_players)"
+metricToServerConversionOperation: "multiply"
+metricToServerConversionOperationValue: 0.5
+`
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.yaml")
+	err := os.WriteFile(configPath, []byte(content), 0644)
+	require.NoError(t, err)
+
+	cfg := Config{}
+	err = loadConfig(configPath, false, &cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, "multiply", cfg.MetricToServerConversionOperation)
+	assert.Equal(t, 0.5, cfg.MetricToServerConversionOperationValue)
+}
+
+func TestConfigRegisterFlagsK8sOverrides(t *testing.T) {
+	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+	cfg := Config{}
+	cfg.RegisterFlags(fs)
+	err := fs.Parse([]string{
+		"--k8s.runInCluster=true",
+		"--k8s.kubeConfig=/my/kubeconfig",
+	})
+	require.NoError(t, err)
+
+	assert.True(t, cfg.K8s.RunInCluster)
+	assert.Equal(t, "/my/kubeconfig", cfg.K8s.KubeConfig)
+}
+
 func TestGetForecastedServerCountDecreasingToZero(t *testing.T) {
 	baseTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	seriesLen := 100
