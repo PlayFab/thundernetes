@@ -80,7 +80,7 @@ There are two ways to generate a certificate.
 
 #### Using cert-manager to generate certificates
 
-Since cert-manager is already installed in the cluster, it can be used to generate a certificate for mTLS authentication. This is the recommended approach.
+Since cert-manager is already installed in the cluster, it can be used to generate a certificate for mTLS authentication. This is the recommended approach. When using cert-manager, certificate rotation is handled automatically — Thundernetes watches the mounted certificate files and reloads them when they change, so there is no need to restart the controller pod when certificates are renewed.
 
 First of all, you need to create the namespace `thundernetes-system`:
 
@@ -154,6 +154,8 @@ kubectl apply --server-side -f https://raw.githubusercontent.com/PlayFab/thunder
 {% include code-block-end.md %}
 
 **Note:** The two installation files (operator.yaml and operator_with_security.yaml) are identical except for the API_SERVICE_SECURITY environment variable that is passed into the controller container.
+
+> **Certificate rotation:** When TLS is enabled, Thundernetes automatically monitors the mounted TLS secret for changes and reloads the certificate without requiring a pod restart. This works with cert-manager automatic renewal or manual secret updates. The controller polls for certificate file changes every 30 seconds, so renewed certificates are picked up shortly after kubelet syncs the updated secret to the pod (typically within ~60 seconds total).
 
 ### Next steps
 

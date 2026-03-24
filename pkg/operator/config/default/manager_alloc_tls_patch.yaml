@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        volumeMounts:
+        - mountPath: /tmp/alloc-api-serving-certs
+          name: alloc-api-cert
+          readOnly: true
+      volumes:
+      - name: alloc-api-cert
+        secret:
+          defaultMode: 420
+          secretName: tls-secret
+          optional: true

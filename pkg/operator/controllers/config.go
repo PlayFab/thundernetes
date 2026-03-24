@@ -8,6 +8,7 @@ type Config struct {
 	TlsSecretNamespace                     string `env:"TLS_SECRET_NAMESPACE" envDefault:"thundernetes-system"`
 	TlsCertificateName                     string `env:"TLS_CERTIFICATE_FILENAME" envDefault:"tls.crt"`
 	TlsPrivateKeyFilename                  string `env:"TLS_PRIVATE_KEY_FILENAME" envDefault:"tls.key"`
+	TlsCertDir                             string `env:"TLS_CERT_DIR" envDefault:"/tmp/alloc-api-serving-certs"`
 	PortRegistryExclusivelyGameServerNodes bool   `env:"PORT_REGISTRY_EXCLUSIVELY_GAME_SERVER_NODES" envDefault:"false"`
 	LogLevel                               string `env:"LOG_LEVEL" envDefault:"info"`
 	MinPort                                int32  `env:"MIN_PORT" envDefault:"10000"`
