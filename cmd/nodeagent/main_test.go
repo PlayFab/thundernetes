@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -252,4 +256,77 @@ func TestSetLogLevel(t *testing.T) {
 			assert.Equal(t, tt.expected, log.GetLevel())
 		})
 	}
+}
+
+func TestMetricsHandler(t *testing.T) {
+	tests := []struct {
+		name           string
+		body           string
+		url            string
+		expectedStatus int
+	}{
+		{
+			name:           "valid GSDK info",
+			body:           `{"Flavor":"Unity","Version":"1.0"}`,
+			url:            "/v1/metrics/test-server/gsdkinfo",
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "valid GSDK info with different flavor",
+			body:           `{"Flavor":"Unreal","Version":"2.5.1"}`,
+			url:            "/v1/metrics/another-server/gsdkinfo",
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "invalid JSON body returns bad request",
+			body:           `not-json`,
+			url:            "/v1/metrics/test-server/gsdkinfo",
+			expectedStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// reset the package-level flag so logging branch is exercised
+			gsdkMetricsLogged = false
+
+			n := &NodeAgentManager{
+				gameServerMap: &sync.Map{},
+			}
+
+			req := httptest.NewRequest(http.MethodPost, tt.url, strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			recorder := httptest.NewRecorder()
+
+			n.metricsHandler(recorder, req)
+
+			assert.Equal(t, tt.expectedStatus, recorder.Code)
+		})
+	}
+}
+
+func TestMetricsHandlerLogsOnlyOnce(t *testing.T) {
+	gsdkMetricsLogged = false
+
+	n := &NodeAgentManager{
+		gameServerMap: &sync.Map{},
+	}
+
+	gi := GsdkVersionInfo{Flavor: "Unity", Version: "1.0"}
+	b, err := json.Marshal(gi)
+	assert.NoError(t, err)
+
+	// first call — should set gsdkMetricsLogged to true
+	req1 := httptest.NewRequest(http.MethodPost, "/v1/metrics/server1/gsdkinfo", bytes.NewReader(b))
+	w1 := httptest.NewRecorder()
+	n.metricsHandler(w1, req1)
+	assert.Equal(t, http.StatusOK, w1.Code)
+	assert.True(t, gsdkMetricsLogged)
+
+	// second call — gsdkMetricsLogged should still be true (no reset)
+	req2 := httptest.NewRequest(http.MethodPost, "/v1/metrics/server2/gsdkinfo", bytes.NewReader(b))
+	w2 := httptest.NewRecorder()
+	n.metricsHandler(w2, req2)
+	assert.Equal(t, http.StatusOK, w2.Code)
+	assert.True(t, gsdkMetricsLogged)
 }

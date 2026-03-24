@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"math"
 	"os"
 	"path/filepath"
@@ -356,4 +357,112 @@ forecastBufferServers: 3
 	assert.True(t, cfg.EnableScaleDownCoolOff)
 	assert.Equal(t, 10*time.Minute, cfg.ScaleDownCoolOffPeriod)
 	assert.Equal(t, 3, cfg.ForecastBufferServers)
+}
+
+func TestGetLinearRegressionPredictionEmptyData(t *testing.T) {
+	someTime := time.Date(2024, 1, 1, 0, 5, 0, 0, time.UTC).Unix()
+	_, err := getLinearRegressionPrediction([]timeSeriesPoint{}, someTime)
+	assert.Error(t, err)
+}
+
+func TestGetLinearRegressionPredictionSinglePoint(t *testing.T) {
+	baseTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	data := []timeSeriesPoint{{time: baseTime, value: 10}}
+	_, err := getLinearRegressionPrediction(data, baseTime.Add(5*time.Minute).Unix())
+	assert.Error(t, err)
+}
+
+func TestConfigRegisterFlags(t *testing.T) {
+	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+	cfg := Config{}
+	cfg.RegisterFlags(fs)
+	err := fs.Parse([]string{})
+	require.NoError(t, err)
+
+	assert.Equal(t, 8080, cfg.Port)
+	assert.Equal(t, 10, cfg.ForecastedPoints)
+	assert.Equal(t, 0.6, cfg.AlphaConstant)
+	assert.Equal(t, 0.6, cfg.BetaConstant)
+	assert.Equal(t, 0.45, cfg.GammaConstant)
+	assert.Equal(t, 60, cfg.SeasonLength)
+	assert.Equal(t, 30, cfg.LongLinearHistoryPoints)
+	assert.Equal(t, 10, cfg.LongLinearForecastedPoints)
+	assert.Equal(t, 10, cfg.ShortLinearHistoryPoints)
+	assert.Equal(t, 5, cfg.ShortLinearForecastedPoints)
+	assert.Equal(t, "http://localhost:9090", cfg.QueryUrl)
+	assert.Equal(t, "divide", cfg.MetricToServerConversionOperation)
+	assert.Equal(t, 1.0, cfg.MetricToServerConversionOperationValue)
+	assert.Equal(t, 1, cfg.ForecastMinimumServers)
+	assert.Equal(t, true, cfg.EnableScaleDownCircuitBreaker)
+	assert.Equal(t, true, cfg.EnableScaleDownCoolOff)
+}
+
+func TestConfigRegisterFlagsOverrides(t *testing.T) {
+	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+	cfg := Config{}
+	cfg.RegisterFlags(fs)
+	err := fs.Parse([]string{
+		"--port=9090",
+		"--points=20",
+		"--alpha=0.8",
+		"--beta=0.7",
+		"--gamma=0.5",
+		"--seasonLength=120",
+		"--forecastMinimumServers=3",
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, 9090, cfg.Port)
+	assert.Equal(t, 20, cfg.ForecastedPoints)
+	assert.Equal(t, 0.8, cfg.AlphaConstant)
+	assert.Equal(t, 0.7, cfg.BetaConstant)
+	assert.Equal(t, 0.5, cfg.GammaConstant)
+	assert.Equal(t, 120, cfg.SeasonLength)
+	assert.Equal(t, 3, cfg.ForecastMinimumServers)
+}
+
+func TestLoadConfigEmptyFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "empty.yaml")
+	err := os.WriteFile(configPath, []byte(""), 0644)
+	require.NoError(t, err)
+
+	cfg := Config{}
+	err = loadConfig(configPath, false, &cfg)
+	assert.NoError(t, err)
+	// Empty YAML is valid; all fields remain zero-valued
+	assert.Equal(t, "", cfg.QueryUrl)
+	assert.Equal(t, 0, cfg.Port)
+	assert.Equal(t, 0, cfg.ForecastedPoints)
+}
+
+func TestGetForecastedServerCountDecreasingToZero(t *testing.T) {
+	baseTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	seriesLen := 100
+	series := make([]timeSeriesPoint, seriesLen)
+	for i := 0; i < seriesLen; i++ {
+		series[i] = timeSeriesPoint{
+			time:  baseTime.Add(time.Duration(i) * time.Minute),
+			value: 0.0,
+		}
+	}
+
+	cfg := Config{
+		AlphaConstant:                          0.6,
+		BetaConstant:                           0.6,
+		GammaConstant:                          0.45,
+		SeasonLength:                           10,
+		ForecastedPoints:                       5,
+		LongLinearHistoryPoints:                30,
+		LongLinearForecastedPoints:             10,
+		ShortLinearHistoryPoints:               10,
+		ShortLinearForecastedPoints:            5,
+		DatapointGranularity:                   time.Minute,
+		MetricToServerConversionOperation:      "divide",
+		MetricToServerConversionOperationValue: 10.0,
+	}
+
+	totalServers, err := getForecastedServerCount(series, cfg)
+	require.NoError(t, err)
+	assert.Equal(t, 0, totalServers)
 }

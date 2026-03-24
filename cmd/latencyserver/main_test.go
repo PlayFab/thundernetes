@@ -39,6 +39,44 @@ var _ = Describe("Latency Server tests", func() {
 		Expect(count).To(Equal(len(msg2)))
 		Expect(buffer[:count]).To(Equal([]byte("\x00\x00hello")))
 	})
+	It("getResponse with count <= 2 should return nil", func() {
+		result := getResponse([]byte{0xFF, 0xFF}, 2)
+		Expect(result).To(BeNil())
+	})
+	It("getResponse with count == 0 should return nil", func() {
+		result := getResponse([]byte{}, 0)
+		Expect(result).To(BeNil())
+	})
+	It("getResponse with non-0xFF prefix should return nil", func() {
+		result := getResponse([]byte{0x01, 0x02, 0x03}, 3)
+		Expect(result).To(BeNil())
+	})
+	It("getResponse with first byte 0xFF but second not should return nil", func() {
+		result := getResponse([]byte{0xFF, 0x02, 0x03}, 3)
+		Expect(result).To(BeNil())
+	})
+	It("getResponse with valid input should flip bytes", func() {
+		result := getResponse([]byte{0xFF, 0xFF, 0x01, 0x02}, 4)
+		Expect(result).NotTo(BeNil())
+		Expect(result[0]).To(Equal(byte(0x00)))
+		Expect(result[1]).To(Equal(byte(0x00)))
+		Expect(result[2]).To(Equal(byte(0x01)))
+		Expect(result[3]).To(Equal(byte(0x02)))
+	})
+	It("getResponse with minimum valid input (3 bytes) should flip bytes", func() {
+		result := getResponse([]byte{0xFF, 0xFF, 0x01}, 3)
+		Expect(result).NotTo(BeNil())
+		Expect(result[0]).To(Equal(byte(0x00)))
+		Expect(result[1]).To(Equal(byte(0x00)))
+		Expect(result[2]).To(Equal(byte(0x01)))
+	})
+	It("createServer with valid port should create a server", func() {
+		conn, err := createServer(3072)
+		Expect(err).To(Succeed())
+		Expect(conn).NotTo(BeNil())
+		err = conn.Close()
+		Expect(err).To(Succeed())
+	})
 })
 
 func TestLatencyServer(t *testing.T) {
