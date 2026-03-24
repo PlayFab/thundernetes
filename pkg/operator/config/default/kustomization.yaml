@@ -38,6 +38,10 @@ patchesStrategicMerge:
 # crd/kustomization.yaml
 - manager_webhook_patch.yaml
 
+# [TLS] Mount the tls-secret for the allocation API service cert rotation
+# The secret is optional so the pod starts even without TLS configured
+- manager_alloc_tls_patch.yaml
+
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'.
 # Uncomment 'CERTMANAGER' sections in crd/kustomization.yaml to enable the CA injection in the admission webhooks.
 # 'CERTMANAGER' needs to be enabled to use ca injection

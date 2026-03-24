@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -38,10 +37,9 @@ const (
 // so it can be added to our Manager
 type AllocationApiServer struct {
 	Client client.Client
-	// CrtBytes is the PEM-encoded certificate
-	CrtBytes []byte
-	// KeyBytes is the PEM-encoded key
-	KeyBytes []byte
+	// certWatcher watches and reloads TLS certificates from disk for dynamic cert rotation.
+	// If nil, the server runs without TLS.
+	certWatcher *CertificateWatcher
 	// gameServerQueue is a map of priority queues for game servers
 	gameServerQueue *GameServersQueue
 	// events is a buffered channel of GenericEvent
@@ -51,10 +49,9 @@ type AllocationApiServer struct {
 	listeningPort int32
 }
 
-func NewAllocationApiServer(crt, key []byte, cl client.Client, port int32) *AllocationApiServer {
+func NewAllocationApiServer(certWatcher *CertificateWatcher, cl client.Client, port int32) *AllocationApiServer {
 	return &AllocationApiServer{
-		CrtBytes:      crt,
-		KeyBytes:      key,
+		certWatcher:   certWatcher,
 		Client:        cl,
 		events:        make(chan event.GenericEvent, 100),
 		logger:        log.Log.WithName("allocation-api"),
@@ -103,25 +100,19 @@ func (s *AllocationApiServer) Start(ctx context.Context) error {
 		close(done)
 	}()
 
-	if s.CrtBytes != nil && s.KeyBytes != nil {
-		s.logger.Info("starting TLS enabled allocation API service")
-		// Generate a key pair from your pem-encoded cert and key ([]byte).
-		cert, err := tls.X509KeyPair(s.CrtBytes, s.KeyBytes)
-		if err != nil {
-			return nil
-		}
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(s.CrtBytes)
-		// Construct a tls.config
+	if s.certWatcher != nil {
+		s.logger.Info("starting TLS enabled allocation API service with dynamic certificate rotation")
+		// Use dynamic TLS configuration via CertificateWatcher callbacks
+		// This enables automatic certificate rotation without server restart
 		tlsConfig := &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			ClientCAs:    caCertPool,
-			ClientAuth:   tls.RequireAndVerifyClientCert,
+			GetCertificate:     s.certWatcher.GetCertificate,
+			GetConfigForClient: s.certWatcher.GetConfigForClient,
+			ClientAuth:         tls.RequireAndVerifyClientCert,
 		}
 
 		// Build a server:
 		srv.TLSConfig = tlsConfig
-		// Finally: serve.
+		// Finally: serve. Empty strings because certs are provided via GetCertificate callback.
 		if err := srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 			return err
 		}
