@@ -23,6 +23,7 @@ import (
 	"runtime"
 	"sort"
 	"sync"
+	"time"
 
 	mpsv1alpha1 "github.com/playfab/thundernetes/pkg/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -99,6 +100,11 @@ func (r *GameServerBuildReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		log.Error(err, "unable to fetch gameServerBuild")
 		return ctrl.Result{}, err
 	}
+
+	startTime := time.Now()
+	defer func() {
+		GameServerBuildReconcileDuration.WithLabelValues(gsb.Name).Observe(time.Since(startTime).Seconds())
+	}()
 
 	// if GameServerBuild is unhealthy and current crashes equal or more than CrashesToMarkUnhealthy, do nothing more
 	if gsb.Status.Health == mpsv1alpha1.BuildUnhealthy &&
