@@ -67,18 +67,20 @@ func BenchmarkPortRegistryGetNewPortsMultiple(b *testing.B) {
 }
 
 func BenchmarkPortRegistryDeregisterPorts(b *testing.B) {
-	pr := newPortRegistryForBenchmark(b, 20000, 20499, 1)
-	// pre-allocate ports for all iterations
+	// Create a port registry with enough capacity for the benchmark
+	pr := newPortRegistryForBenchmark(b, 20000, 20499, 10) // 10 nodes × 500 = 5000 ports
 	names := make([]string, b.N)
 	for i := 0; i < b.N; i++ {
-		names[i] = fmt.Sprintf("gs-%d", i)
+		names[i] = fmt.Sprintf("gs-dealloc-%d", i)
 		_, err := pr.GetNewPorts("default", names[i], 1)
 		if err != nil {
-			// not enough ports for the full run; reduce N conceptually by resetting
-			pr = newPortRegistryForBenchmark(b, 20000, 20499, 1)
-			i = -1 // restart (b.N may have changed)
+			// If we can't pre-allocate all, just benchmark what we have
+			names = names[:i]
 			break
 		}
+	}
+	if len(names) == 0 {
+		b.Skip("could not pre-allocate any ports")
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

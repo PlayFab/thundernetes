@@ -162,13 +162,17 @@ var _ = Describe("Controller reconciliation stress tests", func() {
 			return gsb.Status.CrashesCount
 		}, timeout, interval).Should(BeNumerically(">", 0))
 
-		// The controller should create replacements
-		// Note: since we crashed all 3, we need to handle the recovery
+		// The controller should either create replacements or mark the build as unhealthy
 		Eventually(func(g Gomega) {
 			gsb := getGameServerBuild(ctx, buildName)
-			g.Expect(gsb.Status.CurrentStandingBy + gsb.Status.CurrentActive +
-				gsb.Status.CurrentInitializing + gsb.Status.CurrentPending).
-				To(BeNumerically(">=", 0))
+			// Either the build is unhealthy (too many crashes) or replacements are being created
+			isUnhealthy := gsb.Status.Health == v1alpha1.BuildUnhealthy
+			hasReplacements := gsb.Status.CurrentStandingBy+gsb.Status.CurrentActive+
+				gsb.Status.CurrentInitializing+gsb.Status.CurrentPending > 0
+			g.Expect(isUnhealthy || hasReplacements).To(BeTrue(),
+				"expected build to be unhealthy or have replacement servers, got health=%s servers=%d",
+				gsb.Status.Health,
+				gsb.Status.CurrentStandingBy+gsb.Status.CurrentActive+gsb.Status.CurrentInitializing+gsb.Status.CurrentPending)
 		}, timeout, interval).Should(Succeed())
 
 		fmt.Fprintf(GinkgoWriter, "Build %s health: %s, crashes: %d\n",
