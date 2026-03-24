@@ -866,5 +866,3 @@ func TestUnitHeartbeatTimeChecker_TableDriven(t *testing.T) {
 		})
 	}
 }
-
-
