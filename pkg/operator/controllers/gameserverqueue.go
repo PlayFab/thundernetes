@@ -29,19 +29,14 @@ func NewGameServersQueue() *GameServersQueue {
 
 // PushToQueue pushes a GameServerForQueue onto the queue
 func (gsq *GameServersQueue) PushToQueue(gs *GameServerForQueue) {
-	gsq.mutex.RLock()
-	_, exists := gsq.queuesPerBuilds[gs.BuildID]
-	gsq.mutex.RUnlock()
-
-	// check if we have created a queue for this GameServerBuild
-	if !exists {
-		gsq.mutex.Lock()
-		gsq.queuesPerBuilds[gs.BuildID] = NewGameServersPerBuildQueue()
-		gsq.mutex.Unlock()
-	}
-
 	gsq.mutex.Lock()
 	defer gsq.mutex.Unlock()
+
+	// check if we have created a queue for this GameServerBuild
+	if _, exists := gsq.queuesPerBuilds[gs.BuildID]; !exists {
+		gsq.queuesPerBuilds[gs.BuildID] = NewGameServersPerBuildQueue()
+	}
+
 	// store the BuildID for this GameServer
 	gsq.namespacedNameToBuildId[getNamespacedName(gs.Namespace, gs.Name)] = gs.BuildID
 	gsq.queuesPerBuilds[gs.BuildID].PushToQueue(gs)
