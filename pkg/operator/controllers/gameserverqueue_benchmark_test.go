@@ -95,12 +95,10 @@ func BenchmarkGameServerQueueConcurrentPushPop(b *testing.B) {
 	var goroutineCounter atomic.Int64
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
-		// Each goroutine uses its own build ID to avoid a known concurrent
-		// push/pop race in the queue implementation where PopFromQueue can
-		// delete a build entry between PushToQueue's existence check and its
-		// final lock acquisition.
 		gID := goroutineCounter.Add(1)
-		localBuildID := fmt.Sprintf("build-g%d", gID)
+		// All goroutines share a single build ID to exercise concurrent
+		// push/pop on the same build. This is safe after the PushToQueue
+		// race fix that uses a single write lock for the entire operation.
 		i := 0
 		for pb.Next() {
 			name := fmt.Sprintf("gs-p-%d-%d", gID, i)
@@ -108,11 +106,11 @@ func BenchmarkGameServerQueueConcurrentPushPop(b *testing.B) {
 			gs := &GameServerForQueue{
 				Name:      name,
 				Namespace: "default",
-				BuildID:   localBuildID,
+				BuildID:   "shared-build",
 				NodeAge:   i % 100,
 			}
 			q.PushToQueue(gs)
-			q.PopFromQueue(localBuildID)
+			q.PopFromQueue("shared-build")
 		}
 	})
 }

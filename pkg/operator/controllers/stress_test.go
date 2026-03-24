@@ -199,6 +199,47 @@ func TestPortRegistryMultiPortConcurrency(t *testing.T) {
 // GameServer Queue Concurrency Stress Tests
 // ============================================================================
 
+// TestGameServerQueueConcurrentPushPopSameBuild is a regression test for a race
+// condition in PushToQueue where a concurrent PopFromQueue could delete the build
+// entry between PushToQueue's existence check (under RLock) and its final Lock,
+// causing a nil pointer dereference. The fix holds a single write lock for the
+// entire PushToQueue operation.
+func TestGameServerQueueConcurrentPushPopSameBuild(t *testing.T) {
+	const buildID = "race-build"
+	const iterations = 1000
+
+	for run := 0; run < 10; run++ {
+		q := NewGameServersQueue()
+		var wg sync.WaitGroup
+
+		// Pusher goroutine: continuously pushes to the same build ID
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < iterations; i++ {
+				q.PushToQueue(&GameServerForQueue{
+					Name:      fmt.Sprintf("gs-%d", i),
+					Namespace: "default",
+					BuildID:   buildID,
+					NodeAge:   i,
+				})
+			}
+		}()
+
+		// Popper goroutine: continuously pops from the same build ID,
+		// which deletes the build entry when the queue becomes empty
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < iterations; i++ {
+				q.PopFromQueue(buildID)
+			}
+		}()
+
+		wg.Wait()
+	}
+}
+
 // TestGameServerQueueConcurrentStress exercises the queue under heavy concurrent
 // push, pop, and remove operations
 func TestGameServerQueueConcurrentStress(t *testing.T) {
