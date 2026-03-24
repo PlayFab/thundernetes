@@ -255,4 +255,3 @@ func getLogLevel(logLevel string) zapcore.LevelEnabler {
 		return zapcore.InfoLevel
 	}
 }
-

@@ -105,9 +105,9 @@ func (s *AllocationApiServer) Start(ctx context.Context) error {
 		// Use dynamic TLS configuration via CertificateWatcher callbacks
 		// This enables automatic certificate rotation without server restart
 		tlsConfig := &tls.Config{
-			GetCertificate:   s.certWatcher.GetCertificate,
+			GetCertificate:     s.certWatcher.GetCertificate,
 			GetConfigForClient: s.certWatcher.GetConfigForClient,
-			ClientAuth:       tls.RequireAndVerifyClientCert,
+			ClientAuth:         tls.RequireAndVerifyClientCert,
 		}
 
 		// Build a server:
