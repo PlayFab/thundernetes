@@ -433,7 +433,8 @@ var _ = Describe("Random port registration on port registry with two thousand po
 				var gameServerName string
 				for { // make sure we don't register the same GameServer twice
 					gameServerName = generateName(prefix)
-					if _, ok := gameServerNamesAndPorts.Load(gameServerName); !ok {
+					// use LoadOrStore to atomically claim the name, avoiding TOCTOU races
+					if _, loaded := gameServerNamesAndPorts.LoadOrStore(gameServerName, int32(0)); !loaded {
 						break
 					}
 				}
@@ -494,7 +495,14 @@ var _ = Describe("Random port registration on port registry with two thousand po
 				defer wg.Done()
 				n := rand.Intn(200) + 50 // n will be between 50 and 250
 				time.Sleep(time.Duration(n) * time.Millisecond)
-				gameServerName := generateName(prefix)
+				var gameServerName string
+				for { // make sure we don't register the same GameServer twice
+					gameServerName = generateName(prefix)
+					// use LoadOrStore to atomically claim the name, avoiding TOCTOU races
+					if _, loaded := gameServerNamesAndPorts.LoadOrStore(gameServerName, int32(0)); !loaded {
+						break
+					}
+				}
 				ports, err := portRegistry.GetNewPorts(testnamespace, gameServerName, 1)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(ports)).To(Equal(1))
