@@ -46,6 +46,29 @@ var _ = Describe("allocation API service input validation tests", func() {
 		_, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 	})
+	It("GET method with a valid body should return error and not allocate", func() {
+		client := testNewSimpleK8sClient()
+		gs, err := testCreateGameServerAndBuild(client, gsName, buildName1, buildID1, "", mpsv1alpha1.GameServerStateStandingBy)
+		Expect(err).ToNot(HaveOccurred())
+		err = testCreatePod(client, gsName)
+		Expect(err).ToNot(HaveOccurred())
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/allocate", bytes.NewBufferString(fmt.Sprintf("{\"sessionID\":\"%s\",\"buildID\":\"%s\"}", sessionID1, buildID1)))
+		w := httptest.NewRecorder()
+		h := NewAllocationApiServer(nil, client, allocationApiSvcPort)
+		h.gameServerQueue = NewGameServersQueue()
+		h.gameServerQueue.PushToQueue(&GameServerForQueue{
+			Name:            gsName,
+			Namespace:       "default",
+			BuildID:         buildID1,
+			ResourceVersion: gs.ObjectMeta.ResourceVersion,
+		})
+		h.handleAllocationRequest(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
+		_, err = io.ReadAll(res.Body)
+		Expect(err).ToNot(HaveOccurred())
+	})
 	It("bad body should return error", func() {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/allocate", bytes.NewBufferString("{\"foo\":\"bar\"}"))
 		w := httptest.NewRecorder()
