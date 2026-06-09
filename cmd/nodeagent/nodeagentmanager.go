@@ -348,6 +348,10 @@ func (n *NodeAgentManager) heartbeatHandler(w http.ResponseWriter, r *http.Reque
 	ctx := context.Background()
 	re := regexp.MustCompile(`.*/v1/sessionHosts\/(.*?)(/heartbeats|$)`)
 	match := re.FindStringSubmatch(r.RequestURI)
+	if match == nil {
+		badRequest(w, fmt.Errorf("invalid request URI"), "cannot parse game server name")
+		return
+	}
 
 	gameServerName := match[1]
 

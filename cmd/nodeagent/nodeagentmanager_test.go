@@ -49,6 +49,20 @@ var _ = Describe("nodeagent tests", func() {
 		_, err := io.ReadAll(res.Body)
 		Expect(err).ToNot(HaveOccurred())
 	})
+	It("heartbeat with a request URI that does not match the expected pattern should return error", func() {
+		req := httptest.NewRequest(http.MethodPost, "/v1/sessionHosts/sessionHostID", nil)
+		// simulate a request URI that reaches the handler but does not contain the literal path
+		// (e.g. via a percent-encoded path), so the regex returns no match
+		req.RequestURI = "/%76%31/sessionHosts/sessionHostID"
+		w := httptest.NewRecorder()
+		n := NewNodeAgentManager(newDynamicInterface(), testNodeName, false, false, time.Now, true)
+		n.heartbeatHandler(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusBadRequest))
+		_, err := io.ReadAll(res.Body)
+		Expect(err).ToNot(HaveOccurred())
+	})
 	It("heartbeat with empty fields should return error", func() {
 		hb := &HeartbeatRequest{}
 		b, _ := json.Marshal(hb)
